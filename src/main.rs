@@ -1,6 +1,7 @@
 //! Example application demonstrating the backend-agnostic architecture
 
 use form_factor::{App, AppContext, Backend, BackendConfig, DrawingCanvas, EframeBackend};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Simple demo application
 struct DemoApp {
@@ -21,7 +22,7 @@ impl DemoApp {
 
 impl App for DemoApp {
     fn setup(&mut self, _ctx: &egui::Context) {
-        println!("Application setup complete");
+        tracing::info!("Application setup complete");
     }
 
     fn update(&mut self, ctx: &AppContext) {
@@ -83,7 +84,7 @@ impl App for DemoApp {
     }
 
     fn on_exit(&mut self) {
-        println!("Application exiting. Final counter value: {}", self.counter);
+        tracing::info!(counter = self.counter, "Application exiting");
     }
 
     fn name(&self) -> &str {
@@ -92,13 +93,27 @@ impl App for DemoApp {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Initialize tracing subscriber with environment filter
+    // Use RUST_LOG env var to control logging, e.g.:
+    // RUST_LOG=form_factor=debug cargo run
+    // RUST_LOG=form_factor::drawing=trace cargo run
+    tracing_subscriber::registry()
+        .with(
+            tracing_subscriber::EnvFilter::try_from_default_env()
+                .unwrap_or_else(|_| "form_factor=debug".into()),
+        )
+        .with(tracing_subscriber::fmt::layer())
+        .init();
+
+    tracing::info!("Starting Form Factor application");
+
     let app = Box::new(DemoApp::new());
     let config = BackendConfig::default();
 
     // Run with the backend specified by feature flags
     #[cfg(feature = "backend-eframe")]
     {
-        println!("Starting application with eframe backend...");
+        tracing::info!("Using eframe backend");
         EframeBackend::run(app, config)?;
     }
 

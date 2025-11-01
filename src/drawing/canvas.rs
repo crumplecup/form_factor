@@ -4,6 +4,7 @@ use crate::drawing::{Circle, PolygonShape, Rectangle, Shape, ToolMode};
 use egui::{Color32, Pos2, Stroke};
 use geo::CoordsIter;
 use serde::{Deserialize, Serialize};
+use tracing::{debug, instrument, trace};
 
 /// Drawing canvas state
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -103,14 +104,30 @@ impl DrawingCanvas {
         self.handle_input(&response, &painter);
     }
 
+    #[instrument(skip(self, response, painter), fields(tool = ?self.current_tool))]
     fn handle_input(&mut self, response: &egui::Response, painter: &egui::Painter) {
         match self.current_tool {
             ToolMode::Select => {
-                // Handle selection clicks - use hover_pos for click position
-                if response.clicked()
-                    && let Some(pos) = response.hover_pos()
-                {
-                    self.handle_selection_click(pos);
+                let _span = tracing::debug_span!("selection").entered();
+
+                // Handle selection clicks
+                // Use interact_pointer_pos which works for both clicks and drags
+                if response.clicked() {
+                    debug!(
+                        interact_pos = ?response.interact_pointer_pos(),
+                        hover_pos = ?response.hover_pos(),
+                        "Canvas clicked"
+                    );
+
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        trace!(?pos, "Using interact_pointer_pos");
+                        self.handle_selection_click(pos);
+                    } else if let Some(pos) = response.hover_pos() {
+                        trace!(?pos, "Using hover_pos fallback");
+                        self.handle_selection_click(pos);
+                    } else {
+                        debug!("No position available for click");
+                    }
                 }
             }
             _ => {
@@ -131,19 +148,33 @@ impl DrawingCanvas {
         }
     }
 
+    #[instrument(skip(self), fields(pos = ?pos, total_shapes = self.shapes.len()))]
     fn handle_selection_click(&mut self, pos: Pos2) {
+        let _span = tracing::debug_span!("hit_testing").entered();
+
         // Find the topmost polygon that contains the click point
         // Iterate in reverse to select the most recently drawn shape first
         let mut selected = None;
         for (idx, shape) in self.shapes.iter().enumerate().rev() {
-            if let Shape::Polygon(poly) = shape
-                && poly.contains_point(pos)
-            {
-                selected = Some(idx);
-                break;
+            match shape {
+                Shape::Rectangle(_) => {
+                    trace!(idx, "Shape is Rectangle");
+                }
+                Shape::Circle(_) => {
+                    trace!(idx, "Shape is Circle");
+                }
+                Shape::Polygon(poly) => {
+                    let contains = poly.contains_point(pos);
+                    debug!(idx, contains, "Testing polygon");
+                    if contains {
+                        selected = Some(idx);
+                        break;
+                    }
+                }
             }
         }
 
+        debug!(?selected, "Selection result");
         self.selected_shape = selected;
         self.show_properties = selected.is_some();
     }
