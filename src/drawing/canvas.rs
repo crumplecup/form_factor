@@ -104,28 +104,30 @@ impl DrawingCanvas {
     }
 
     fn handle_input(&mut self, response: &egui::Response, painter: &egui::Painter) {
-        if let Some(pos) = response.interact_pointer_pos() {
-            match self.current_tool {
-                ToolMode::Select => {
-                    // Handle selection clicks
-                    if response.clicked() {
-                        self.handle_selection_click(pos);
-                    }
+        match self.current_tool {
+            ToolMode::Select => {
+                // Handle selection clicks - use hover_pos for click position
+                if response.clicked()
+                    && let Some(pos) = response.hover_pos()
+                {
+                    self.handle_selection_click(pos);
                 }
-                _ => {
-                    // Handle drawing tools
+            }
+            _ => {
+                // Handle drawing tools
+                if let Some(pos) = response.interact_pointer_pos() {
                     if response.drag_started() {
                         self.start_drawing(pos);
                     } else if response.dragged() && self.is_drawing {
                         self.continue_drawing(pos, painter);
                     }
                 }
-            }
-        }
 
-        // Check if mouse was released (drag ended) for drawing tools
-        if response.drag_stopped() && self.is_drawing {
-            self.finalize_shape();
+                // Check if mouse was released (drag ended) for drawing tools
+                if response.drag_stopped() && self.is_drawing {
+                    self.finalize_shape();
+                }
+            }
         }
     }
 
