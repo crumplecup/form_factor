@@ -67,8 +67,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Box::new(DemoApp::new());
     let config = BackendConfig::default();
 
-    println!("Starting application with eframe backend...");
-    form_factor::backend::eframe_backend::EframeBackend::run(app, config)?;
+    // Run with the backend specified by feature flags
+    #[cfg(feature = "backend-eframe")]
+    {
+        println!("Starting application with eframe backend...");
+        form_factor::backend::eframe_backend::EframeBackend::run(app, config)?;
+    }
+
+    // Miniquad backend support - ready for when egui-miniquad updates to egui 0.33+
+    // #[cfg(all(feature = "backend-miniquad", not(feature = "backend-eframe")))]
+    // {
+    //     println!("Starting application with miniquad backend...");
+    //     form_factor::backend::miniquad_backend::MiniquadBackend::run(app, config)?;
+    // }
 
     Ok(())
 }

@@ -1,1 +1,2 @@
 - After generating new code and correcting any check or build errors, run cargo clippy and clear all warnings, then commit the changes to git using best practices for code auditing.
+- Avoid running cargo clean often, to take advantage of incremental compilation during development.

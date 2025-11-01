@@ -8,6 +8,11 @@ use crate::App;
 #[cfg(feature = "backend-eframe")]
 pub mod eframe_backend;
 
+// Miniquad backend - reference implementation for future use
+// Uncomment when egui-miniquad supports egui 0.33+
+// #[cfg(feature = "backend-miniquad")]
+pub mod miniquad_backend;
+
 /// Configuration options for initializing a backend
 #[derive(Debug, Clone)]
 pub struct BackendConfig {
