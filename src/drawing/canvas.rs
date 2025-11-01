@@ -114,11 +114,22 @@ impl DrawingCanvas {
             );
 
             // Draw form image on Canvas layer if loaded
-            if let (Some(texture), Some(size)) = (&self.form_image, self.form_image_size) {
-                let image_rect = egui::Rect::from_min_size(
-                    response.rect.min,
-                    size,
-                );
+            if let (Some(texture), Some(image_size)) = (&self.form_image, self.form_image_size) {
+                // Calculate scaling to fit image within canvas while maintaining aspect ratio
+                let canvas_size = response.rect.size();
+                let scale_x = canvas_size.x / image_size.x;
+                let scale_y = canvas_size.y / image_size.y;
+                let scale = scale_x.min(scale_y); // Use the smaller scale to fit entirely
+
+                let fitted_size = image_size * scale;
+
+                // Center the image within the canvas
+                let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
+                let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
+                let image_pos = response.rect.min + egui::vec2(offset_x, offset_y);
+
+                let image_rect = egui::Rect::from_min_size(image_pos, fitted_size);
+
                 painter.image(
                     texture.id(),
                     image_rect,
