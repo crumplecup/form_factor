@@ -1,6 +1,7 @@
 //! Shape definitions for drawing annotations
 
 use egui::{Color32, Pos2, Stroke};
+use geo::{Contains, Point};
 use geo_types::{Coord, Polygon as GeoPolygon};
 use serde::{Deserialize, Serialize};
 
@@ -36,6 +37,7 @@ pub struct PolygonShape {
     pub polygon: GeoPolygon<f64>,
     pub stroke: Stroke,
     pub fill: Color32,
+    pub name: String,
 }
 
 impl PolygonShape {
@@ -63,6 +65,7 @@ impl PolygonShape {
             polygon,
             stroke,
             fill,
+            name: String::new(),
         })
     }
 
@@ -73,6 +76,12 @@ impl PolygonShape {
             .points()
             .map(|p| Pos2::new(p.x() as f32, p.y() as f32))
             .collect()
+    }
+
+    /// Test if a point is inside this polygon
+    pub fn contains_point(&self, pos: Pos2) -> bool {
+        let point = Point::new(pos.x as f64, pos.y as f64);
+        self.polygon.contains(&point)
     }
 }
 

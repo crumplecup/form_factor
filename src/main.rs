@@ -68,6 +68,7 @@ impl App for DemoApp {
 
                 ui.label("This demo shows:");
                 ui.label("• Drawing tools (rect, circle, freehand)");
+                ui.label("• Polygon selection with properties");
                 ui.label("• Backend-agnostic architecture");
                 ui.label("• AccessKit integration");
             });
@@ -76,6 +77,9 @@ impl App for DemoApp {
         egui::CentralPanel::default().show(ctx.egui_ctx, |ui| {
             self.canvas.ui(ui);
         });
+
+        // Show properties panel if a shape is selected
+        self.canvas.show_properties_panel(ctx.egui_ctx);
     }
 
     fn on_exit(&mut self) {

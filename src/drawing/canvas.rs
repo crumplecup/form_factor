@@ -2,6 +2,7 @@
 
 use crate::drawing::{Circle, PolygonShape, Rectangle, Shape, ToolMode};
 use egui::{Color32, Pos2, Stroke};
+use geo::CoordsIter;
 use serde::{Deserialize, Serialize};
 
 /// Drawing canvas state
@@ -22,6 +23,12 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     is_drawing: bool,
 
+    // Selection state (not serialized)
+    #[serde(skip)]
+    selected_shape: Option<usize>,
+    #[serde(skip)]
+    show_properties: bool,
+
     // Style settings
     pub stroke: Stroke,
     pub fill_color: Color32,
@@ -36,6 +43,8 @@ impl Default for DrawingCanvas {
             current_end: None,
             current_points: Vec::new(),
             is_drawing: false,
+            selected_shape: None,
+            show_properties: false,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
             fill_color: Color32::from_rgba_premultiplied(0, 120, 215, 30),
         }
@@ -74,8 +83,20 @@ impl DrawingCanvas {
         );
 
         // Draw existing shapes
-        for shape in &self.shapes {
+        for (idx, shape) in self.shapes.iter().enumerate() {
             shape.render(&painter);
+
+            // Draw selection highlight
+            if Some(idx) == self.selected_shape
+                && let Shape::Polygon(poly) = shape
+            {
+                let points = poly.to_egui_points();
+                // Highlight with thicker yellow outline
+                painter.add(egui::Shape::closed_line(
+                    points,
+                    Stroke::new(4.0, Color32::from_rgb(255, 215, 0)),
+                ));
+            }
         }
 
         // Handle mouse interactions and draw preview
@@ -84,18 +105,45 @@ impl DrawingCanvas {
 
     fn handle_input(&mut self, response: &egui::Response, painter: &egui::Painter) {
         if let Some(pos) = response.interact_pointer_pos() {
-            // Mouse is over the canvas
-            if response.drag_started() {
-                self.start_drawing(pos);
-            } else if response.dragged() && self.is_drawing {
-                self.continue_drawing(pos, painter);
+            match self.current_tool {
+                ToolMode::Select => {
+                    // Handle selection clicks
+                    if response.clicked() {
+                        self.handle_selection_click(pos);
+                    }
+                }
+                _ => {
+                    // Handle drawing tools
+                    if response.drag_started() {
+                        self.start_drawing(pos);
+                    } else if response.dragged() && self.is_drawing {
+                        self.continue_drawing(pos, painter);
+                    }
+                }
             }
         }
 
-        // Check if mouse was released (drag ended)
+        // Check if mouse was released (drag ended) for drawing tools
         if response.drag_stopped() && self.is_drawing {
             self.finalize_shape();
         }
+    }
+
+    fn handle_selection_click(&mut self, pos: Pos2) {
+        // Find the topmost polygon that contains the click point
+        // Iterate in reverse to select the most recently drawn shape first
+        let mut selected = None;
+        for (idx, shape) in self.shapes.iter().enumerate().rev() {
+            if let Shape::Polygon(poly) = shape
+                && poly.contains_point(pos)
+            {
+                selected = Some(idx);
+                break;
+            }
+        }
+
+        self.selected_shape = selected;
+        self.show_properties = selected.is_some();
     }
 
     fn start_drawing(&mut self, pos: Pos2) {
@@ -223,5 +271,60 @@ impl DrawingCanvas {
     /// Get the number of shapes on the canvas
     pub fn shape_count(&self) -> usize {
         self.shapes.len()
+    }
+
+    /// Show properties panel for the selected shape
+    /// Returns true if a properties panel was shown
+    pub fn show_properties_panel(&mut self, ctx: &egui::Context) -> bool {
+        if !self.show_properties {
+            return false;
+        }
+
+        let Some(idx) = self.selected_shape else {
+            self.show_properties = false;
+            return false;
+        };
+
+        let Some(shape) = self.shapes.get_mut(idx) else {
+            self.selected_shape = None;
+            self.show_properties = false;
+            return false;
+        };
+
+        let Shape::Polygon(poly) = shape else {
+            // Only polygons have properties for now
+            return false;
+        };
+
+        let mut panel_open = true;
+        let response = egui::Window::new("Polygon Properties")
+            .open(&mut panel_open)
+            .resizable(false)
+            .default_width(300.0)
+            .show(ctx, |ui| {
+                ui.heading("Selected Polygon");
+                ui.separator();
+
+                ui.horizontal(|ui| {
+                    ui.label("Name:");
+                    ui.text_edit_singleline(&mut poly.name);
+                });
+
+                ui.separator();
+
+                ui.label(format!("Points: {}", poly.polygon.exterior().coords_count()));
+
+                ui.separator();
+
+                ui.button("Close").clicked()
+            });
+
+        // Close if window was closed or Close button was clicked
+        if !panel_open || response.is_some_and(|r| r.inner.unwrap_or(false)) {
+            self.show_properties = false;
+            self.selected_shape = None;
+        }
+
+        true
     }
 }
