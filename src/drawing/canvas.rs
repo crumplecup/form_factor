@@ -1,6 +1,6 @@
 //! Drawing canvas with interactive annotation tools
 
-use crate::drawing::{Circle, FreehandStroke, Rectangle, Shape, ToolMode};
+use crate::drawing::{Circle, PolygonShape, Rectangle, Shape, ToolMode};
 use egui::{Color32, Pos2, Stroke};
 use serde::{Deserialize, Serialize};
 
@@ -128,7 +128,19 @@ impl DrawingCanvas {
             }
             ToolMode::Freehand => {
                 self.current_points.push(pos);
-                if self.current_points.len() > 1 {
+                if self.current_points.len() > 2 {
+                    // Draw preview as a closed polygon
+                    painter.add(egui::Shape::convex_polygon(
+                        self.current_points.clone(),
+                        self.fill_color,
+                        egui::Stroke::NONE,
+                    ));
+                    painter.add(egui::Shape::closed_line(
+                        self.current_points.clone(),
+                        self.stroke,
+                    ));
+                } else if self.current_points.len() > 1 {
+                    // Draw preview line until we have enough points
                     painter.add(egui::Shape::line(
                         self.current_points.clone(),
                         self.stroke,
@@ -173,12 +185,14 @@ impl DrawingCanvas {
                 }
             }
             ToolMode::Freehand => {
-                if self.current_points.len() > 1 {
-                    Some(Shape::Freehand(FreehandStroke {
-                        points: self.current_points.drain(..).collect(),
-                        stroke: self.stroke,
-                    }))
+                if self.current_points.len() >= 3 {
+                    // Create a closed polygon from the points
+                    let points: Vec<Pos2> = self.current_points.drain(..).collect();
+                    PolygonShape::from_points(points, self.stroke, self.fill_color)
+                        .map(Shape::Polygon)
                 } else {
+                    // Clear points if we don't have enough for a polygon
+                    self.current_points.clear();
                     None
                 }
             }

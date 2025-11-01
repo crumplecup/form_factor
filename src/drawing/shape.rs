@@ -1,6 +1,7 @@
 //! Shape definitions for drawing annotations
 
 use egui::{Color32, Pos2, Stroke};
+use geo_types::{Coord, Polygon as GeoPolygon};
 use serde::{Deserialize, Serialize};
 
 /// A drawing shape on the canvas
@@ -8,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub enum Shape {
     Rectangle(Rectangle),
     Circle(Circle),
-    Freehand(FreehandStroke),
+    Polygon(PolygonShape),
 }
 
 /// A rectangular annotation
@@ -29,11 +30,50 @@ pub struct Circle {
     pub fill: Color32,
 }
 
-/// A freehand stroke annotation
+/// A polygon annotation (closed shape)
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct FreehandStroke {
-    pub points: Vec<Pos2>,
+pub struct PolygonShape {
+    pub polygon: GeoPolygon<f64>,
     pub stroke: Stroke,
+    pub fill: Color32,
+}
+
+impl PolygonShape {
+    /// Create a polygon from a vector of egui positions
+    /// Automatically closes the polygon by connecting the last point to the first
+    pub fn from_points(points: Vec<Pos2>, stroke: Stroke, fill: Color32) -> Option<Self> {
+        if points.len() < 3 {
+            return None; // Need at least 3 points for a polygon
+        }
+
+        // Convert egui Pos2 to geo_types Coord
+        let coords: Vec<Coord<f64>> = points
+            .iter()
+            .map(|p| Coord {
+                x: p.x as f64,
+                y: p.y as f64,
+            })
+            .collect();
+
+        // Create a closed LineString (polygon exterior)
+        // geo_types automatically closes the polygon
+        let polygon = GeoPolygon::new(coords.into(), vec![]);
+
+        Some(PolygonShape {
+            polygon,
+            stroke,
+            fill,
+        })
+    }
+
+    /// Convert polygon to egui points for rendering
+    pub fn to_egui_points(&self) -> Vec<Pos2> {
+        self.polygon
+            .exterior()
+            .points()
+            .map(|p| Pos2::new(p.x() as f32, p.y() as f32))
+            .collect()
+    }
 }
 
 impl Shape {
@@ -53,9 +93,17 @@ impl Shape {
             Shape::Circle(circle) => {
                 painter.circle(circle.center, circle.radius, circle.fill, circle.stroke);
             }
-            Shape::Freehand(stroke) => {
-                if stroke.points.len() > 1 {
-                    painter.add(egui::Shape::line(stroke.points.clone(), stroke.stroke));
+            Shape::Polygon(poly) => {
+                let points = poly.to_egui_points();
+                if points.len() > 2 {
+                    // Draw filled polygon
+                    painter.add(egui::Shape::convex_polygon(
+                        points.clone(),
+                        poly.fill,
+                        egui::Stroke::NONE,
+                    ));
+                    // Draw polygon outline as a closed path
+                    painter.add(egui::Shape::closed_line(points, poly.stroke));
                 }
             }
         }

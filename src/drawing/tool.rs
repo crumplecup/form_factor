@@ -12,7 +12,7 @@ pub enum ToolMode {
     Rectangle,
     /// Draw circles
     Circle,
-    /// Draw freehand strokes
+    /// Draw freehand closed polygons
     Freehand,
 }
 

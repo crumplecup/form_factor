@@ -83,8 +83,8 @@ pub use error::{
 /// Drawing canvas for form annotations
 pub use drawing::DrawingCanvas;
 
-/// Shape types (rectangles, circles, freehand strokes)
-pub use drawing::{Circle, FreehandStroke, Rectangle, Shape};
+/// Shape types (rectangles, circles, polygons)
+pub use drawing::{Circle, PolygonShape, Rectangle, Shape};
 
 /// Drawing tool mode (rectangle, circle, freehand, select)
 pub use drawing::ToolMode;
