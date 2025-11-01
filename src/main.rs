@@ -1,7 +1,6 @@
 //! Example application demonstrating the backend-agnostic architecture
 
-use form_factor::{App, AppContext};
-use form_factor::backend::{Backend, BackendConfig};
+use form_factor::{App, AppContext, Backend, BackendConfig, EframeBackend};
 
 /// Simple demo application
 struct DemoApp {
@@ -71,14 +70,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     #[cfg(feature = "backend-eframe")]
     {
         println!("Starting application with eframe backend...");
-        form_factor::backend::eframe_backend::EframeBackend::run(app, config)?;
+        EframeBackend::run(app, config)?;
     }
 
     // Miniquad backend support - ready for when egui-miniquad updates to egui 0.33+
     // #[cfg(all(feature = "backend-miniquad", not(feature = "backend-eframe")))]
     // {
+    //     use form_factor::backends::miniquad_backend::MiniquadBackend;
     //     println!("Starting application with miniquad backend...");
-    //     form_factor::backend::miniquad_backend::MiniquadBackend::run(app, config)?;
+    //     MiniquadBackend::run(app, config)?;
     // }
 
     Ok(())

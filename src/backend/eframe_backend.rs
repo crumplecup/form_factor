@@ -4,8 +4,7 @@
 //! and rendering. eframe is a high-level framework that handles the event
 //! loop and integrates with multiple rendering backends (glow, wgpu).
 
-use crate::{App, AppContext};
-use super::{Backend, BackendConfig};
+use crate::{App, AppContext, Backend, BackendConfig};
 
 /// eframe-based backend implementation
 pub struct EframeBackend;
