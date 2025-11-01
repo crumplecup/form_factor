@@ -7,3 +7,4 @@ statements.  Keep the mod
 statements prive so there is only
  one way for users to import the 
 type. In modules, import types from the crate level with use crate::{type1, type2} statements.
+- When running clippy, rather than deny all warnings, let them complete so you can fix them all in a single pass.

@@ -45,6 +45,22 @@ impl App for DemoApp {
 
                 ui.separator();
 
+                // Layers section
+                ui.heading("Layers");
+                ui.separator();
+
+                for layer in self.canvas.layer_manager.layers_mut() {
+                    ui.horizontal(|ui| {
+                        let visible_icon = if layer.visible { "👁" } else { "🚫" };
+                        if ui.button(visible_icon).clicked() {
+                            layer.toggle_visibility();
+                        }
+                        ui.label(&layer.name);
+                    });
+                }
+
+                ui.separator();
+
                 // Show inline properties panel for selected shape
                 self.canvas.show_inline_properties(ui);
             });

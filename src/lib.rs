@@ -89,6 +89,9 @@ pub use drawing::{Circle, PolygonShape, Rectangle, Shape};
 /// Drawing tool mode (rectangle, circle, freehand, select)
 pub use drawing::ToolMode;
 
+/// Layer management types
+pub use drawing::{Layer, LayerManager, LayerType};
+
 // ============================================================================
 // Advanced: Direct module access for backend implementations
 // ============================================================================

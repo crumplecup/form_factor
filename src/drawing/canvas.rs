@@ -1,6 +1,6 @@
 //! Drawing canvas with interactive annotation tools
 
-use crate::drawing::{Circle, PolygonShape, Rectangle, Shape, ToolMode};
+use crate::drawing::{Circle, LayerManager, PolygonShape, Rectangle, Shape, ToolMode};
 use egui::{Color32, Pos2, Stroke};
 use geo::CoordsIter;
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,8 @@ pub struct DrawingCanvas {
     pub shapes: Vec<Shape>,
     /// Currently active tool
     pub current_tool: ToolMode,
+    /// Layer management
+    pub layer_manager: LayerManager,
 
     // Drawing state (not serialized)
     #[serde(skip)]
@@ -40,6 +42,7 @@ impl Default for DrawingCanvas {
         Self {
             shapes: Vec::new(),
             current_tool: ToolMode::default(),
+            layer_manager: LayerManager::new(),
             drawing_start: None,
             current_end: None,
             current_points: Vec::new(),
@@ -76,37 +79,42 @@ impl DrawingCanvas {
             egui::Sense::click_and_drag(),
         );
 
-        // Paint background
-        painter.rect_filled(
-            response.rect,
-            0.0,
-            Color32::from_rgb(245, 245, 245),
-        );
+        // Paint background if Canvas layer is visible
+        if self.layer_manager.is_visible(crate::drawing::LayerType::Canvas) {
+            painter.rect_filled(
+                response.rect,
+                0.0,
+                Color32::from_rgb(245, 245, 245),
+            );
+        }
 
-        // Draw existing shapes
-        for (idx, shape) in self.shapes.iter().enumerate() {
-            shape.render(&painter);
+        // Draw existing shapes if Shapes layer is visible
+        let shapes_visible = self.layer_manager.is_visible(crate::drawing::LayerType::Shapes);
+        if shapes_visible {
+            for (idx, shape) in self.shapes.iter().enumerate() {
+                shape.render(&painter);
 
-            // Draw selection highlight
-            if Some(idx) == self.selected_shape {
-                let highlight_stroke = Stroke::new(4.0, Color32::from_rgb(255, 215, 0));
+                // Draw selection highlight
+                if Some(idx) == self.selected_shape {
+                    let highlight_stroke = Stroke::new(4.0, Color32::from_rgb(255, 215, 0));
 
-                match shape {
-                    Shape::Rectangle(rect) => {
-                        let rect_shape = egui::Rect::from_two_pos(rect.start, rect.end);
-                        painter.rect_stroke(
-                            rect_shape,
-                            0.0,
-                            highlight_stroke,
-                            egui::StrokeKind::Outside,
-                        );
-                    }
-                    Shape::Circle(circle) => {
-                        painter.circle_stroke(circle.center, circle.radius, highlight_stroke);
-                    }
-                    Shape::Polygon(poly) => {
-                        let points = poly.to_egui_points();
-                        painter.add(egui::Shape::closed_line(points, highlight_stroke));
+                    match shape {
+                        Shape::Rectangle(rect) => {
+                            let rect_shape = egui::Rect::from_two_pos(rect.start, rect.end);
+                            painter.rect_stroke(
+                                rect_shape,
+                                0.0,
+                                highlight_stroke,
+                                egui::StrokeKind::Outside,
+                            );
+                        }
+                        Shape::Circle(circle) => {
+                            painter.circle_stroke(circle.center, circle.radius, highlight_stroke);
+                        }
+                        Shape::Polygon(poly) => {
+                            let points = poly.to_egui_points();
+                            painter.add(egui::Shape::closed_line(points, highlight_stroke));
+                        }
                     }
                 }
             }
