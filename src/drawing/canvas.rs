@@ -33,6 +33,8 @@ pub struct DrawingCanvas {
     selected_shape: Option<usize>,
     #[serde(skip)]
     show_properties: bool,
+    #[serde(skip)]
+    focus_name_field: bool,
 
     // Form image state (not serialized)
     #[serde(skip)]
@@ -58,6 +60,7 @@ impl Default for DrawingCanvas {
             is_drawing: false,
             selected_shape: None,
             show_properties: false,
+            focus_name_field: false,
             form_image: None,
             form_image_size: None,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
@@ -75,6 +78,7 @@ impl std::fmt::Debug for DrawingCanvas {
             .field("form_image_path", &self.form_image_path)
             .field("form_image_loaded", &self.form_image.is_some())
             .field("form_image_size", &self.form_image_size)
+            .field("selected_shape", &self.selected_shape)
             .field("stroke", &self.stroke)
             .field("fill_color", &self.fill_color)
             .finish()
@@ -252,6 +256,14 @@ impl DrawingCanvas {
         }
 
         debug!(?selected, "Selection result");
+
+        // Check if a polygon was selected to auto-focus the name field
+        if let Some(idx) = selected
+            && let Some(Shape::Polygon(_)) = self.shapes.get(idx)
+        {
+            self.focus_name_field = true;
+        }
+
         self.selected_shape = selected;
         self.show_properties = selected.is_some();
     }
@@ -476,7 +488,13 @@ impl DrawingCanvas {
 
                 ui.horizontal(|ui| {
                     ui.label("Name:");
-                    ui.text_edit_singleline(&mut poly.name);
+                    let response = ui.text_edit_singleline(&mut poly.name);
+
+                    // Auto-focus the name field when polygon is first selected
+                    if self.focus_name_field {
+                        response.request_focus();
+                        self.focus_name_field = false;
+                    }
                 });
 
                 ui.separator();
