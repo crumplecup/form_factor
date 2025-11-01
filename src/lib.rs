@@ -30,6 +30,7 @@
 // Module declarations (private - users import from root)
 mod app;
 mod backend;
+mod drawing;
 mod error;
 
 // ============================================================================
@@ -72,14 +73,21 @@ pub use error::FormErrorKind;
 
 /// Specific error types for each category
 pub use error::{
-    AccessKitError,
-    AppError,
-    BackendError,
-    ConfigError,
-    EguiError,
-    IoError,
-    IoOperation,
+    AccessKitError, AppError, BackendError, ConfigError, EguiError, IoError, IoOperation,
 };
+
+// ============================================================================
+// Drawing Tools
+// ============================================================================
+
+/// Drawing canvas for form annotations
+pub use drawing::DrawingCanvas;
+
+/// Shape types (rectangles, circles, freehand strokes)
+pub use drawing::{Circle, FreehandStroke, Rectangle, Shape};
+
+/// Drawing tool mode (rectangle, circle, freehand, select)
+pub use drawing::ToolMode;
 
 // ============================================================================
 // Advanced: Direct module access for backend implementations

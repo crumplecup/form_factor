@@ -1089,6 +1089,7 @@ dependencies = [
  "accesskit",
  "eframe",
  "egui",
+ "serde",
  "thiserror 2.0.17",
 ]
 
