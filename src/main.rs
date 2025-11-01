@@ -32,6 +32,31 @@ impl App for DemoApp {
 
                 ui.separator();
 
+                // Load Form button
+                if ui.button("📁 Load Form").clicked() {
+                    let Some(path) = rfd::FileDialog::new()
+                        .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
+                        .pick_file()
+                    else {
+                        return;
+                    };
+
+                    let Some(path_str) = path.to_str() else {
+                        return;
+                    };
+
+                    match self.canvas.load_form_image(path_str, ctx.egui_ctx) {
+                        Ok(()) => {
+                            tracing::info!("Successfully loaded form image");
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to load form image: {}", e);
+                        }
+                    }
+                }
+
+                ui.separator();
+
                 ui.horizontal(|ui| {
                     if ui.button("Clear All").clicked() {
                         self.canvas.clear();

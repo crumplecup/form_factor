@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use tracing::{debug, instrument, trace};
 
 /// Drawing canvas state
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct DrawingCanvas {
     /// All completed shapes
     pub shapes: Vec<Shape>,
@@ -15,6 +15,8 @@ pub struct DrawingCanvas {
     pub current_tool: ToolMode,
     /// Layer management
     pub layer_manager: LayerManager,
+    /// Path to the loaded form image (for serialization)
+    pub form_image_path: Option<String>,
 
     // Drawing state (not serialized)
     #[serde(skip)]
@@ -32,6 +34,12 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     show_properties: bool,
 
+    // Form image state (not serialized)
+    #[serde(skip)]
+    form_image: Option<egui::TextureHandle>,
+    #[serde(skip)]
+    form_image_size: Option<egui::Vec2>,
+
     // Style settings
     pub stroke: Stroke,
     pub fill_color: Color32,
@@ -43,15 +51,33 @@ impl Default for DrawingCanvas {
             shapes: Vec::new(),
             current_tool: ToolMode::default(),
             layer_manager: LayerManager::new(),
+            form_image_path: None,
             drawing_start: None,
             current_end: None,
             current_points: Vec::new(),
             is_drawing: false,
             selected_shape: None,
             show_properties: false,
+            form_image: None,
+            form_image_size: None,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
             fill_color: Color32::from_rgba_premultiplied(0, 120, 215, 30),
         }
+    }
+}
+
+impl std::fmt::Debug for DrawingCanvas {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DrawingCanvas")
+            .field("shapes", &self.shapes)
+            .field("current_tool", &self.current_tool)
+            .field("layer_manager", &self.layer_manager)
+            .field("form_image_path", &self.form_image_path)
+            .field("form_image_loaded", &self.form_image.is_some())
+            .field("form_image_size", &self.form_image_size)
+            .field("stroke", &self.stroke)
+            .field("fill_color", &self.fill_color)
+            .finish()
     }
 }
 
@@ -86,6 +112,20 @@ impl DrawingCanvas {
                 0.0,
                 Color32::from_rgb(245, 245, 245),
             );
+
+            // Draw form image on Canvas layer if loaded
+            if let (Some(texture), Some(size)) = (&self.form_image, self.form_image_size) {
+                let image_rect = egui::Rect::from_min_size(
+                    response.rect.min,
+                    size,
+                );
+                painter.image(
+                    texture.id(),
+                    image_rect,
+                    egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                    Color32::WHITE,
+                );
+            }
         }
 
         // Draw existing shapes if Shapes layer is visible
@@ -332,6 +372,42 @@ impl DrawingCanvas {
     /// Get the number of shapes on the canvas
     pub fn shape_count(&self) -> usize {
         self.shapes.len()
+    }
+
+    /// Load a form image from a file path
+    pub fn load_form_image(&mut self, path: &str, ctx: &egui::Context) -> Result<(), String> {
+        // Load the image from disk
+        let img = image::open(path).map_err(|e| format!("Failed to open image: {}", e))?;
+
+        // Convert to RGBA8
+        let size = [img.width() as usize, img.height() as usize];
+        let img_rgba = img.to_rgba8();
+        let pixels = img_rgba.as_flat_samples();
+
+        // Create egui ColorImage
+        let color_image = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
+
+        // Create texture
+        let texture = ctx.load_texture(
+            "form_image",
+            color_image,
+            egui::TextureOptions::default(),
+        );
+
+        // Store the texture and metadata
+        self.form_image_size = Some(egui::Vec2::new(img.width() as f32, img.height() as f32));
+        self.form_image = Some(texture);
+        self.form_image_path = Some(path.to_string());
+
+        tracing::info!("Loaded form image: {} ({}x{})", path, img.width(), img.height());
+        Ok(())
+    }
+
+    /// Clear the loaded form image
+    pub fn clear_form_image(&mut self) {
+        self.form_image = None;
+        self.form_image_size = None;
+        self.form_image_path = None;
     }
 
     /// Show inline properties UI for the selected shape
