@@ -6,6 +6,8 @@
 
 pub mod app;
 pub mod backend;
+pub mod error;
 
 pub use app::{App, AppContext};
 pub use backend::Backend;
+pub use error::{FormError, FormErrorKind};
