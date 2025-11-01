@@ -3,7 +3,7 @@
 use form_factor::{App, AppContext, Backend, BackendConfig, DrawingCanvas, EframeBackend};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-/// Simple demo application
+/// Main application struct
 struct DemoApp {
     name: String,
     canvas: DrawingCanvas,
@@ -12,7 +12,7 @@ struct DemoApp {
 impl DemoApp {
     fn new() -> Self {
         Self {
-            name: String::from("Form Factor Demo"),
+            name: String::from("Form Factor"),
             canvas: DrawingCanvas::new(),
         }
     }

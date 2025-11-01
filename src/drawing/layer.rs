@@ -42,8 +42,8 @@ impl LayerManager {
     pub fn new() -> Self {
         Self {
             layers: vec![
-                Layer::new("Canvas", LayerType::Canvas),
                 Layer::new("Shapes", LayerType::Shapes),
+                Layer::new("Canvas", LayerType::Canvas),
             ],
         }
     }
