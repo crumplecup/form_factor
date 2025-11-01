@@ -1,0 +1,28 @@
+[package]
+name = "form_factor"
+version = "0.1.0"
+edition = "2024"
+authors = ["Erik Rose <erik.w.rose@gmail.com>"]
+description = "A GUI for tagging scanned forms with OCR metadata."
+license = "Apache-2.0 OR MIT"
+# keywords = ["economics", "finance", "rest"]
+# categories = ["asynchronous", "finance"]
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "form_factor"
+
+[dependencies]
+accesskit = { version = "0.21.1", features = ["serde"] }
+egui = { version = "0.33.0", features = ["accesskit", "serde"] }
+thiserror = "2.0"
+
+# Backend dependencies (optional)
+eframe = { version = "0.33.0", optional = true, features = ["accesskit", "wgpu"] }
+
+[features]
+default = ["backend-eframe"]
+backend-eframe = ["dep:eframe"]
