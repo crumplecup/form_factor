@@ -326,8 +326,81 @@ impl DrawingCanvas {
         self.shapes.len()
     }
 
-    /// Show properties panel for the selected shape
+    /// Show inline properties UI for the selected shape
+    pub fn show_inline_properties(&mut self, ui: &mut egui::Ui) {
+        if !self.show_properties {
+            return;
+        }
+
+        let Some(idx) = self.selected_shape else {
+            return;
+        };
+
+        let Some(shape) = self.shapes.get_mut(idx) else {
+            self.selected_shape = None;
+            self.show_properties = false;
+            return;
+        };
+
+        ui.heading("Shape Properties");
+        ui.separator();
+
+        match shape {
+            Shape::Rectangle(rect) => {
+                ui.label("Type: Rectangle");
+                ui.separator();
+
+                ui.horizontal(|ui| {
+                    ui.label("Name:");
+                    ui.text_edit_singleline(&mut rect.name);
+                });
+
+                ui.separator();
+
+                let rect_geom = egui::Rect::from_two_pos(rect.start, rect.end);
+                ui.label(format!("Width: {:.1}", rect_geom.width()));
+                ui.label(format!("Height: {:.1}", rect_geom.height()));
+            }
+            Shape::Circle(circle) => {
+                ui.label("Type: Circle");
+                ui.separator();
+
+                ui.horizontal(|ui| {
+                    ui.label("Name:");
+                    ui.text_edit_singleline(&mut circle.name);
+                });
+
+                ui.separator();
+
+                ui.label(format!("Radius: {:.1}", circle.radius));
+                ui.label(format!("Center: ({:.1}, {:.1})", circle.center.x, circle.center.y));
+            }
+            Shape::Polygon(poly) => {
+                ui.label("Type: Polygon");
+                ui.separator();
+
+                ui.horizontal(|ui| {
+                    ui.label("Name:");
+                    ui.text_edit_singleline(&mut poly.name);
+                });
+
+                ui.separator();
+
+                ui.label(format!("Points: {}", poly.polygon.exterior().coords_count()));
+            }
+        }
+
+        ui.separator();
+
+        if ui.button("Deselect").clicked() {
+            self.selected_shape = None;
+            self.show_properties = false;
+        }
+    }
+
+    /// Show properties panel for the selected shape (popup window version)
     /// Returns true if a properties panel was shown
+    #[allow(dead_code)]
     pub fn show_properties_panel(&mut self, ctx: &egui::Context) -> bool {
         if !self.show_properties {
             return false;
