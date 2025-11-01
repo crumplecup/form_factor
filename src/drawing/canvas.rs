@@ -88,15 +88,27 @@ impl DrawingCanvas {
             shape.render(&painter);
 
             // Draw selection highlight
-            if Some(idx) == self.selected_shape
-                && let Shape::Polygon(poly) = shape
-            {
-                let points = poly.to_egui_points();
-                // Highlight with thicker yellow outline
-                painter.add(egui::Shape::closed_line(
-                    points,
-                    Stroke::new(4.0, Color32::from_rgb(255, 215, 0)),
-                ));
+            if Some(idx) == self.selected_shape {
+                let highlight_stroke = Stroke::new(4.0, Color32::from_rgb(255, 215, 0));
+
+                match shape {
+                    Shape::Rectangle(rect) => {
+                        let rect_shape = egui::Rect::from_two_pos(rect.start, rect.end);
+                        painter.rect_stroke(
+                            rect_shape,
+                            0.0,
+                            highlight_stroke,
+                            egui::StrokeKind::Outside,
+                        );
+                    }
+                    Shape::Circle(circle) => {
+                        painter.circle_stroke(circle.center, circle.radius, highlight_stroke);
+                    }
+                    Shape::Polygon(poly) => {
+                        let points = poly.to_egui_points();
+                        painter.add(egui::Shape::closed_line(points, highlight_stroke));
+                    }
+                }
             }
         }
 
@@ -152,25 +164,31 @@ impl DrawingCanvas {
     fn handle_selection_click(&mut self, pos: Pos2) {
         let _span = tracing::debug_span!("hit_testing").entered();
 
-        // Find the topmost polygon that contains the click point
+        // Find the topmost shape that contains the click point
         // Iterate in reverse to select the most recently drawn shape first
         let mut selected = None;
         for (idx, shape) in self.shapes.iter().enumerate().rev() {
-            match shape {
-                Shape::Rectangle(_) => {
-                    trace!(idx, "Shape is Rectangle");
+            let contains = match shape {
+                Shape::Rectangle(rect) => {
+                    let contains = rect.contains_point(pos);
+                    debug!(idx, contains, "Testing rectangle");
+                    contains
                 }
-                Shape::Circle(_) => {
-                    trace!(idx, "Shape is Circle");
+                Shape::Circle(circle) => {
+                    let contains = circle.contains_point(pos);
+                    debug!(idx, contains, "Testing circle");
+                    contains
                 }
                 Shape::Polygon(poly) => {
                     let contains = poly.contains_point(pos);
                     debug!(idx, contains, "Testing polygon");
-                    if contains {
-                        selected = Some(idx);
-                        break;
-                    }
+                    contains
                 }
+            };
+
+            if contains {
+                selected = Some(idx);
+                break;
             }
         }
 
@@ -243,6 +261,7 @@ impl DrawingCanvas {
                         end,
                         stroke: self.stroke,
                         fill: self.fill_color,
+                        name: String::new(),
                     }))
                 } else {
                     None
@@ -257,6 +276,7 @@ impl DrawingCanvas {
                             radius,
                             stroke: self.stroke,
                             fill: self.fill_color,
+                            name: String::new(),
                         }))
                     } else {
                         None
@@ -324,36 +344,81 @@ impl DrawingCanvas {
             return false;
         };
 
-        let Shape::Polygon(poly) = shape else {
-            // Only polygons have properties for now
-            return false;
+        let mut panel_open = true;
+        let close_clicked = match shape {
+            Shape::Rectangle(rect) => egui::Window::new("Rectangle Properties")
+                .open(&mut panel_open)
+                .resizable(false)
+                .default_width(300.0)
+                .show(ctx, |ui| {
+                    ui.heading("Selected Rectangle");
+                    ui.separator();
+
+                    ui.horizontal(|ui| {
+                        ui.label("Name:");
+                        ui.text_edit_singleline(&mut rect.name);
+                    });
+
+                    ui.separator();
+
+                    let rect_geom = egui::Rect::from_two_pos(rect.start, rect.end);
+                    ui.label(format!("Width: {:.1}", rect_geom.width()));
+                    ui.label(format!("Height: {:.1}", rect_geom.height()));
+
+                    ui.separator();
+
+                    ui.button("Close").clicked()
+                }),
+            Shape::Circle(circle) => egui::Window::new("Circle Properties")
+                .open(&mut panel_open)
+                .resizable(false)
+                .default_width(300.0)
+                .show(ctx, |ui| {
+                    ui.heading("Selected Circle");
+                    ui.separator();
+
+                    ui.horizontal(|ui| {
+                        ui.label("Name:");
+                        ui.text_edit_singleline(&mut circle.name);
+                    });
+
+                    ui.separator();
+
+                    ui.label(format!("Radius: {:.1}", circle.radius));
+                    ui.label(format!(
+                        "Center: ({:.1}, {:.1})",
+                        circle.center.x, circle.center.y
+                    ));
+
+                    ui.separator();
+
+                    ui.button("Close").clicked()
+                }),
+            Shape::Polygon(poly) => egui::Window::new("Polygon Properties")
+                .open(&mut panel_open)
+                .resizable(false)
+                .default_width(300.0)
+                .show(ctx, |ui| {
+                    ui.heading("Selected Polygon");
+                    ui.separator();
+
+                    ui.horizontal(|ui| {
+                        ui.label("Name:");
+                        ui.text_edit_singleline(&mut poly.name);
+                    });
+
+                    ui.separator();
+
+                    ui.label(format!("Points: {}", poly.polygon.exterior().coords_count()));
+
+                    ui.separator();
+
+                    ui.button("Close").clicked()
+                }),
         };
 
-        let mut panel_open = true;
-        let response = egui::Window::new("Polygon Properties")
-            .open(&mut panel_open)
-            .resizable(false)
-            .default_width(300.0)
-            .show(ctx, |ui| {
-                ui.heading("Selected Polygon");
-                ui.separator();
-
-                ui.horizontal(|ui| {
-                    ui.label("Name:");
-                    ui.text_edit_singleline(&mut poly.name);
-                });
-
-                ui.separator();
-
-                ui.label(format!("Points: {}", poly.polygon.exterior().coords_count()));
-
-                ui.separator();
-
-                ui.button("Close").clicked()
-            });
-
         // Close if window was closed or Close button was clicked
-        if !panel_open || response.is_some_and(|r| r.inner.unwrap_or(false)) {
+        if !panel_open || close_clicked.is_some_and(|r| r.inner.unwrap_or(false)) {
             self.show_properties = false;
             self.selected_shape = None;
         }

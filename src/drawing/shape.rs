@@ -20,6 +20,15 @@ pub struct Rectangle {
     pub end: Pos2,
     pub stroke: Stroke,
     pub fill: Color32,
+    pub name: String,
+}
+
+impl Rectangle {
+    /// Test if a point is inside this rectangle
+    pub fn contains_point(&self, pos: Pos2) -> bool {
+        let rect = egui::Rect::from_two_pos(self.start, self.end);
+        rect.contains(pos)
+    }
 }
 
 /// A circular annotation
@@ -29,6 +38,15 @@ pub struct Circle {
     pub radius: f32,
     pub stroke: Stroke,
     pub fill: Color32,
+    pub name: String,
+}
+
+impl Circle {
+    /// Test if a point is inside this circle
+    pub fn contains_point(&self, pos: Pos2) -> bool {
+        let distance = self.center.distance(pos);
+        distance <= self.radius
+    }
 }
 
 /// A polygon annotation (closed shape)
