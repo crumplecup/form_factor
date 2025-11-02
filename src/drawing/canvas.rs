@@ -205,18 +205,6 @@ impl DrawingCanvas {
             * egui::emath::TSTransform::from_scaling(self.zoom_level)
             * egui::emath::TSTransform::from_translation(-canvas_center.to_vec2());
 
-        // Draw grid if enabled
-        if self.show_grid {
-            debug!(
-                show_grid = self.show_grid,
-                grid_spacing = self.grid_spacing,
-                "Calling draw_grid"
-            );
-            self.draw_grid(&painter, &response.rect, &to_screen);
-        } else {
-            trace!("Grid is disabled, skipping grid render");
-        }
-
         // Draw form image on Canvas layer if loaded
         if self.layer_manager.is_visible(crate::drawing::LayerType::Canvas)
             && let (Some(texture), Some(image_size)) = (&self.form_image, self.form_image_size)
@@ -291,6 +279,18 @@ impl DrawingCanvas {
                     }
                 }
             }
+        }
+
+        // Draw grid on top of everything if enabled
+        if self.show_grid {
+            debug!(
+                show_grid = self.show_grid,
+                grid_spacing = self.grid_spacing,
+                "Calling draw_grid (rendering on top)"
+            );
+            self.draw_grid(&painter, &response.rect, &to_screen);
+        } else {
+            trace!("Grid is disabled, skipping grid render");
         }
 
         // Handle mouse interactions and draw preview (with zoom transformation)
