@@ -21,6 +21,8 @@ pub struct Rectangle {
     pub stroke: Stroke,
     pub fill: Color32,
     pub name: String,
+    /// Rotation angle in radians
+    pub rotation_angle: f32,
 }
 
 impl Rectangle {
@@ -42,6 +44,7 @@ impl Rectangle {
             stroke,
             fill,
             name: String::new(),
+            rotation_angle: 0.0,
         }
     }
 
@@ -74,6 +77,8 @@ pub struct Circle {
     pub stroke: Stroke,
     pub fill: Color32,
     pub name: String,
+    /// Rotation angle in radians (not visually significant for circles, but kept for consistency)
+    pub rotation_angle: f32,
 }
 
 impl Circle {
@@ -91,6 +96,8 @@ pub struct PolygonShape {
     pub stroke: Stroke,
     pub fill: Color32,
     pub name: String,
+    /// Rotation angle in radians
+    pub rotation_angle: f32,
 }
 
 impl PolygonShape {
@@ -119,6 +126,7 @@ impl PolygonShape {
             stroke,
             fill,
             name: String::new(),
+            rotation_angle: 0.0,
         })
     }
 

@@ -16,6 +16,8 @@ pub enum ToolMode {
     Freehand,
     /// Edit shape vertices
     Edit,
+    /// Rotate objects
+    Rotate,
 }
 
 impl ToolMode {
@@ -27,6 +29,7 @@ impl ToolMode {
             ToolMode::Circle => "Circle",
             ToolMode::Freehand => "Freehand",
             ToolMode::Edit => "Edit",
+            ToolMode::Rotate => "Rotate",
         }
     }
 }

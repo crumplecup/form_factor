@@ -44,6 +44,14 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     is_dragging_vertex: bool,
 
+    // Rotation state (not serialized)
+    #[serde(skip)]
+    is_rotating: bool,
+    #[serde(skip)]
+    rotation_start_angle: f32,
+    #[serde(skip)]
+    rotation_center: Option<Pos2>,
+
     // Form image state (not serialized)
     #[serde(skip)]
     form_image: Option<egui::TextureHandle>,
@@ -65,6 +73,12 @@ pub struct DrawingCanvas {
     grid_spacing_horizontal: f32,
     #[serde(skip)]
     grid_spacing_vertical: f32,
+    #[serde(skip)]
+    grid_rotation_angle: f32,
+
+    // Form image rotation (not serialized)
+    #[serde(skip)]
+    form_image_rotation: f32,
 
     // Style settings
     pub stroke: Stroke,
@@ -88,6 +102,9 @@ impl Default for DrawingCanvas {
             focus_name_field: false,
             dragging_vertex: None,
             is_dragging_vertex: false,
+            is_rotating: false,
+            rotation_start_angle: 0.0,
+            rotation_center: None,
             form_image: None,
             form_image_size: None,
             zoom_level: 5.0,
@@ -96,6 +113,8 @@ impl Default for DrawingCanvas {
             zoom_sensitivity: 1.0,
             grid_spacing_horizontal: 10.0,
             grid_spacing_vertical: 10.0,
+            grid_rotation_angle: 0.0,
+            form_image_rotation: 0.0,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
             fill_color: Color32::from_rgba_premultiplied(0, 120, 215, 30),
         }
@@ -133,6 +152,7 @@ impl DrawingCanvas {
             ui.selectable_value(&mut self.current_tool, ToolMode::Circle, "◯ Circle");
             ui.selectable_value(&mut self.current_tool, ToolMode::Freehand, "✏ Freehand");
             ui.selectable_value(&mut self.current_tool, ToolMode::Edit, "✎ Edit");
+            ui.selectable_value(&mut self.current_tool, ToolMode::Rotate, "🔄 Rotate");
         });
 
         ui.separator();
@@ -366,6 +386,36 @@ impl DrawingCanvas {
                     self.finalize_shape();
                 }
             }
+            ToolMode::Rotate => {
+                let _span = tracing::debug_span!("rotate").entered();
+
+                // Handle rotation based on selected layer
+                if let Some(pos) = response.interact_pointer_pos() {
+                    let canvas_pos = transform_pos(pos);
+
+                    if response.drag_started() {
+                        self.start_rotation(canvas_pos);
+                    } else if response.dragged() && self.is_rotating {
+                        self.continue_rotation(canvas_pos);
+                    }
+                }
+
+                // Check if drag ended
+                if response.drag_stopped() && self.is_rotating {
+                    self.finish_rotation();
+                }
+
+                // Also handle selection clicks when not rotating
+                if response.clicked() && !self.is_rotating {
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        let canvas_pos = transform_pos(pos);
+                        self.handle_selection_click(canvas_pos);
+                    } else if let Some(pos) = response.hover_pos() {
+                        let canvas_pos = transform_pos(pos);
+                        self.handle_selection_click(canvas_pos);
+                    }
+                }
+            }
         }
     }
 
@@ -496,6 +546,9 @@ impl DrawingCanvas {
             ToolMode::Edit => {
                 // Edit mode doesn't draw new shapes
             }
+            ToolMode::Rotate => {
+                // Rotate mode doesn't draw new shapes
+            }
         }
     }
 
@@ -523,6 +576,7 @@ impl DrawingCanvas {
                             stroke: self.stroke,
                             fill: self.fill_color,
                             name: String::new(),
+                            rotation_angle: 0.0,
                         }))
                     } else {
                         None
@@ -545,6 +599,7 @@ impl DrawingCanvas {
             }
             ToolMode::Select => None,
             ToolMode::Edit => None,
+            ToolMode::Rotate => None,
         };
 
         if let Some(shape) = shape {
@@ -1074,6 +1129,112 @@ impl DrawingCanvas {
         debug!("Finishing vertex drag");
         self.dragging_vertex = None;
         self.is_dragging_vertex = false;
+    }
+
+    /// Start rotation interaction
+    fn start_rotation(&mut self, pos: Pos2) {
+        debug!(?pos, "Starting rotation");
+
+        // Determine what to rotate based on selected layer
+        match self.selected_layer {
+            Some(LayerType::Shapes) => {
+                // If a shape is selected, rotate it
+                if let Some(idx) = self.selected_shape
+                    && let Some(shape) = self.shapes.get(idx) {
+                    let center = self.get_shape_center(shape);
+                    self.rotation_center = Some(center);
+                    self.rotation_start_angle = Self::calculate_angle(center, pos);
+                    self.is_rotating = true;
+                    debug!(?center, start_angle = self.rotation_start_angle, "Rotating shape");
+                }
+            }
+            Some(LayerType::Grid) => {
+                // Rotate the grid around the canvas center
+                self.rotation_center = Some(Pos2::ZERO);
+                self.rotation_start_angle = Self::calculate_angle(Pos2::ZERO, pos);
+                self.is_rotating = true;
+                debug!("Rotating grid");
+            }
+            Some(LayerType::Canvas) => {
+                // Rotate the form image if one is loaded
+                if self.form_image.is_some() {
+                    self.rotation_center = Some(Pos2::ZERO);
+                    self.rotation_start_angle = Self::calculate_angle(Pos2::ZERO, pos);
+                    self.is_rotating = true;
+                    debug!("Rotating form image");
+                }
+            }
+            None => {
+                debug!("No layer selected for rotation");
+            }
+        }
+    }
+
+    /// Continue rotation interaction
+    fn continue_rotation(&mut self, pos: Pos2) {
+        if let Some(center) = self.rotation_center {
+            let current_angle = Self::calculate_angle(center, pos);
+            let angle_delta = current_angle - self.rotation_start_angle;
+
+            debug!(?pos, ?center, current_angle, angle_delta, "Continuing rotation");
+
+            // Apply rotation based on selected layer
+            match self.selected_layer {
+                Some(LayerType::Shapes) => {
+                    if let Some(idx) = self.selected_shape
+                        && let Some(shape) = self.shapes.get_mut(idx) {
+                        match shape {
+                            Shape::Rectangle(rect) => rect.rotation_angle += angle_delta,
+                            Shape::Circle(circle) => circle.rotation_angle += angle_delta,
+                            Shape::Polygon(poly) => poly.rotation_angle += angle_delta,
+                        }
+                    }
+                }
+                Some(LayerType::Grid) => {
+                    self.grid_rotation_angle += angle_delta;
+                }
+                Some(LayerType::Canvas) => {
+                    self.form_image_rotation += angle_delta;
+                }
+                None => {}
+            }
+
+            // Update start angle for next frame
+            self.rotation_start_angle = current_angle;
+        }
+    }
+
+    /// Finish rotation interaction
+    fn finish_rotation(&mut self) {
+        debug!("Finishing rotation");
+        self.is_rotating = false;
+        self.rotation_center = None;
+    }
+
+    /// Calculate angle from center to position in radians
+    fn calculate_angle(center: Pos2, pos: Pos2) -> f32 {
+        let dx = pos.x - center.x;
+        let dy = pos.y - center.y;
+        dy.atan2(dx)
+    }
+
+    /// Get the center point of a shape
+    fn get_shape_center(&self, shape: &Shape) -> Pos2 {
+        match shape {
+            Shape::Rectangle(rect) => {
+                let sum_x: f32 = rect.corners.iter().map(|p| p.x).sum();
+                let sum_y: f32 = rect.corners.iter().map(|p| p.y).sum();
+                Pos2::new(sum_x / 4.0, sum_y / 4.0)
+            }
+            Shape::Circle(circle) => circle.center,
+            Shape::Polygon(poly) => {
+                let points = poly.to_egui_points();
+                let sum_x: f32 = points.iter().map(|p| p.x).sum();
+                let sum_y: f32 = points.iter().map(|p| p.y).sum();
+                let count = points.len() as f32;
+                Pos2::new(sum_x / count, sum_y / count)
+            }
+        }
     }
 
     /// Draw grid overlay on the canvas
