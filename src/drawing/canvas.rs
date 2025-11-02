@@ -338,16 +338,34 @@ impl DrawingCanvas {
         }
 
         // Draw detections if Detections layer is visible (with zoom transformation)
+        // Note: Detections are stored in image pixel coordinates and need to be mapped to canvas space
         let detections_visible = self.layer_manager.is_visible(crate::drawing::LayerType::Detections);
         if !self.detections.is_empty() {
-            debug!("Rendering frame: detections={}, layer_visible={}",
-                   self.detections.len(), detections_visible);
+            debug!("Rendering frame: detections={}, layer_visible={}, image_size={:?}, canvas_size={:?}",
+                   self.detections.len(), detections_visible, self.form_image_size, response.rect.size());
         }
-        if detections_visible {
+        if detections_visible && let (Some(image_size), Some(_texture)) = (self.form_image_size, &self.form_image) {
+            // Calculate the image-to-canvas coordinate transform
+            let canvas_size = response.rect.size();
+            let scale_x = canvas_size.x / image_size.x;
+            let scale_y = canvas_size.y / image_size.y;
+            let scale = scale_x.min(scale_y);
+            let fitted_size = image_size * scale;
+            let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
+            let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
+            let image_offset = response.rect.min + egui::vec2(offset_x, offset_y);
+
+            debug!("Image transform: scale={:.3}, offset=({:.1}, {:.1})", scale, offset_x, offset_y);
+
             for (idx, detection) in self.detections.iter().enumerate() {
                 trace!("Rendering detection {}/{}: {:?}", idx + 1, self.detections.len(), detection);
-                self.render_shape_transformed(detection, &painter, &to_screen);
+
+                // Convert detection from image pixel coordinates to canvas coordinates
+                let detection_in_canvas_space = self.map_detection_to_canvas(detection, scale, image_offset);
+                self.render_shape_transformed(&detection_in_canvas_space, &painter, &to_screen);
             }
+        } else if detections_visible && !self.detections.is_empty() {
+            debug!("Detections layer visible but image not loaded: {} detections not rendered", self.detections.len());
         } else if !self.detections.is_empty() {
             debug!("Detections layer hidden: {} detections not rendered", self.detections.len());
         }
@@ -1752,6 +1770,77 @@ impl DrawingCanvas {
 
         // Translate back
         Pos2::new(center.x + rotated_x, center.y + rotated_y)
+    }
+
+    /// Map a detection shape from image pixel coordinates to canvas coordinates
+    /// Detections are stored in image pixel space (e.g., 0-3400 x 0-4400),
+    /// but need to be converted to canvas space where the image is scaled and centered
+    fn map_detection_to_canvas(&self, detection: &Shape, scale: f32, image_offset: Pos2) -> Shape {
+        match detection {
+            Shape::Rectangle(rect) => {
+                let mapped_corners: Vec<Pos2> = rect.corners
+                    .iter()
+                    .map(|p| {
+                        // Scale from image pixels to fitted canvas size, then offset
+                        Pos2::new(
+                            p.x * scale + image_offset.x,
+                            p.y * scale + image_offset.y,
+                        )
+                    })
+                    .collect();
+
+                Shape::Rectangle(Rectangle {
+                    corners: [mapped_corners[0], mapped_corners[1], mapped_corners[2], mapped_corners[3]],
+                    stroke: rect.stroke,
+                    fill: rect.fill,
+                    name: rect.name.clone(),
+                    rotation_angle: rect.rotation_angle,
+                })
+            }
+            Shape::Circle(circle) => {
+                let mapped_center = Pos2::new(
+                    circle.center.x * scale + image_offset.x,
+                    circle.center.y * scale + image_offset.y,
+                );
+                let mapped_radius = circle.radius * scale;
+
+                Shape::Circle(Circle {
+                    center: mapped_center,
+                    radius: mapped_radius,
+                    stroke: circle.stroke,
+                    fill: circle.fill,
+                    name: circle.name.clone(),
+                    rotation_angle: circle.rotation_angle,
+                })
+            }
+            Shape::Polygon(poly) => {
+                // Map polygon points from image space to canvas space
+                let image_points = poly.to_egui_points();
+                let mapped_points: Vec<Pos2> = image_points
+                    .iter()
+                    .map(|p| {
+                        Pos2::new(
+                            p.x * scale + image_offset.x,
+                            p.y * scale + image_offset.y,
+                        )
+                    })
+                    .collect();
+
+                // Convert back to geo coordinates for storage (geo uses f64)
+                let geo_points: Vec<geo::Coord<f64>> = mapped_points
+                    .iter()
+                    .map(|p| geo::Coord { x: p.x as f64, y: p.y as f64 })
+                    .collect();
+
+                Shape::Polygon(PolygonShape {
+                    polygon: geo::Polygon::new(geo::LineString::from(geo_points), vec![]),
+                    stroke: poly.stroke,
+                    fill: poly.fill,
+                    name: poly.name.clone(),
+                    rotation_angle: poly.rotation_angle,
+                })
+            }
+        }
     }
 
     /// Draw edit vertices with zoom transformation applied
