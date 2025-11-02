@@ -1,0 +1,3 @@
+[env]
+# Set libclang path for opencv-rust build on Arch/Manjaro
+LIBCLANG_PATH = "/usr/lib"
