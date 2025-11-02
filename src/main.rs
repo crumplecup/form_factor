@@ -111,7 +111,12 @@ impl App for DemoApp {
                             }
 
                             if ui.selectable_label(is_selected, &name).clicked() {
-                                self.canvas.selected_layer = Some(layer_type);
+                                // Toggle selection: if already selected, unselect; otherwise select
+                                if is_selected {
+                                    self.canvas.selected_layer = None;
+                                } else {
+                                    self.canvas.selected_layer = Some(layer_type);
+                                }
                             }
                         });
                     });
