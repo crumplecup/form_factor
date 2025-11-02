@@ -881,6 +881,7 @@ impl DrawingCanvas {
         // Copy all the serialized state
         self.project_name = loaded.project_name;
         self.shapes = loaded.shapes;
+        self.detections = loaded.detections;
         self.current_tool = loaded.current_tool;
         self.layer_manager = loaded.layer_manager;
         self.stroke = loaded.stroke;
