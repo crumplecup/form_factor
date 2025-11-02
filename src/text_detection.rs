@@ -1,7 +1,7 @@
 //! Text detection using OpenCV DB (Differentiable Binarization) model
 
 use opencv::{
-    core::{Mat, Point2f, RotatedRect, Vector},
+    core::{Mat, Point2f, RotatedRect, Scalar, Size, Vector},
     dnn::TextDetectionModel_DB,
     imgcodecs,
     prelude::*,
@@ -85,6 +85,16 @@ impl TextDetector {
         // Load the pre-trained DB model (ONNX format)
         let mut detector = TextDetectionModel_DB::new_1(&self.model_path, "")
             .map_err(|e| format!("Failed to load DB model: {}", e))?;
+
+        // Set input size (DB models typically use 736x736)
+        detector.set_input_params(
+            1.0 / 255.0,                    // scale
+            Size::new(736, 736),            // size
+            Scalar::new(122.67891434, 116.66876762, 104.00698793, 0.0), // mean (ImageNet)
+            true,                           // swapRB
+            false,                          // crop
+        )
+        .map_err(|e| format!("Failed to set input params: {}", e))?;
 
         // Configure the detector
         detector.set_binary_threshold(self.binary_threshold)
