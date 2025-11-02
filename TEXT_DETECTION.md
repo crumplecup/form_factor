@@ -14,27 +14,74 @@ The text detection feature requires OpenCV and its dependencies to be installed 
 
 #### Linux (Ubuntu/Debian)
 ```bash
-sudo apt-get update
-sudo apt-get install -y \
-    libopencv-dev \
-    clang \
-    libclang-dev \
-    llvm-dev
+# Check for missing packages and install only what's needed
+PACKAGES="libopencv-dev clang libclang-dev llvm-dev"
+MISSING=""
+for pkg in $PACKAGES; do
+    if ! dpkg -l | grep -q "^ii  $pkg "; then
+        MISSING="$MISSING $pkg"
+    fi
+done
+if [ -n "$MISSING" ]; then
+    echo "Installing missing packages:$MISSING"
+    sudo apt-get update && sudo apt-get install -y $MISSING
+else
+    echo "All required packages are already installed"
+fi
 ```
 
 #### Linux (Fedora/RHEL)
 ```bash
-sudo dnf install opencv-devel clang clang-devel llvm-devel
+# Check for missing packages and install only what's needed
+PACKAGES="opencv-devel clang clang-devel llvm-devel"
+MISSING=""
+for pkg in $PACKAGES; do
+    if ! rpm -q $pkg &>/dev/null; then
+        MISSING="$MISSING $pkg"
+    fi
+done
+if [ -n "$MISSING" ]; then
+    echo "Installing missing packages:$MISSING"
+    sudo dnf install -y $MISSING
+else
+    echo "All required packages are already installed"
+fi
 ```
 
 #### Linux (Manjaro/Arch)
 ```bash
-sudo pacman -S opencv clang llvm
+# Check for missing packages and install only what's needed
+PACKAGES="opencv clang llvm"
+MISSING=""
+for pkg in $PACKAGES; do
+    if ! pacman -Q $pkg &>/dev/null; then
+        MISSING="$MISSING $pkg"
+    fi
+done
+if [ -n "$MISSING" ]; then
+    echo "Installing missing packages:$MISSING"
+    sudo pacman -S --needed --noconfirm $MISSING
+else
+    echo "All required packages are already installed"
+fi
 ```
 
 #### macOS
 ```bash
-brew install opencv llvm
+# Check for missing packages and install only what's needed
+PACKAGES="opencv llvm"
+MISSING=""
+for pkg in $PACKAGES; do
+    if ! brew list $pkg &>/dev/null; then
+        MISSING="$MISSING $pkg"
+    fi
+done
+if [ -n "$MISSING" ]; then
+    echo "Installing missing packages:$MISSING"
+    brew install $MISSING
+else
+    echo "All required packages are already installed"
+fi
 ```
 
 #### Windows
@@ -96,10 +143,16 @@ These settings are optimized for general document text detection but can be adju
 
 **Error**: `couldn't find any valid shared libraries matching: ['libclang.so']`
 
-**Solution**: Install clang and llvm development libraries:
+**Solution**: Use the installation script from the Prerequisites section for your platform, or manually install clang and llvm:
 ```bash
 # Ubuntu/Debian
 sudo apt-get install clang libclang-dev llvm-dev
+
+# Fedora/RHEL
+sudo dnf install clang clang-devel llvm-devel
+
+# Manjaro/Arch
+sudo pacman -S clang llvm
 
 # macOS
 brew install llvm
@@ -108,14 +161,22 @@ export LIBCLANG_PATH=/opt/homebrew/opt/llvm/lib  # For Apple Silicon
 
 **Error**: `opencv not found`
 
-**Solution**: Install OpenCV development libraries:
+**Solution**: Use the installation script from the Prerequisites section for your platform, or manually install OpenCV:
 ```bash
 # Ubuntu/Debian
 sudo apt-get install libopencv-dev
 
+# Fedora/RHEL
+sudo dnf install opencv-devel
+
+# Manjaro/Arch
+sudo pacman -S opencv
+
 # macOS
 brew install opencv
 ```
+
+**Note**: The installation scripts in the Prerequisites section automatically detect and install only missing packages, avoiding unnecessary sudo calls.
 
 ### Runtime Errors
 
