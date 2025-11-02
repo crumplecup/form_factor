@@ -387,31 +387,59 @@ impl DrawingCanvas {
                 }
             }
             ToolMode::Rotate => {
-                let _span = tracing::debug_span!("rotate").entered();
+                let _span = tracing::debug_span!(
+                    "rotate_tool",
+                    selected_layer = ?self.selected_layer,
+                    selected_shape = ?self.selected_shape,
+                    is_rotating = self.is_rotating
+                ).entered();
+
+                debug!(
+                    clicked = response.clicked(),
+                    drag_started = response.drag_started(),
+                    dragged = response.dragged(),
+                    drag_stopped = response.drag_stopped(),
+                    is_rotating = self.is_rotating,
+                    ?self.selected_layer,
+                    ?self.selected_shape,
+                    "Rotate tool input events"
+                );
 
                 // Handle rotation based on selected layer
                 if let Some(pos) = response.interact_pointer_pos() {
                     let canvas_pos = transform_pos(pos);
 
                     if response.drag_started() {
+                        debug!(?canvas_pos, "Drag started - calling start_rotation");
                         self.start_rotation(canvas_pos);
                     } else if response.dragged() && self.is_rotating {
+                        debug!(?canvas_pos, "Dragging - calling continue_rotation");
                         self.continue_rotation(canvas_pos);
+                    } else if response.dragged() && !self.is_rotating {
+                        debug!("Dragging but is_rotating is false");
                     }
                 }
 
                 // Check if drag ended
-                if response.drag_stopped() && self.is_rotating {
-                    self.finish_rotation();
+                if response.drag_stopped() {
+                    if self.is_rotating {
+                        debug!("Drag stopped - calling finish_rotation");
+                        self.finish_rotation();
+                    } else {
+                        debug!("Drag stopped but is_rotating was false");
+                    }
                 }
 
                 // Also handle selection clicks when not rotating
                 if response.clicked() && !self.is_rotating {
+                    debug!("Click detected - handling selection");
                     if let Some(pos) = response.interact_pointer_pos() {
                         let canvas_pos = transform_pos(pos);
+                        debug!(?canvas_pos, "Calling handle_selection_click with interact_pointer_pos");
                         self.handle_selection_click(canvas_pos);
                     } else if let Some(pos) = response.hover_pos() {
                         let canvas_pos = transform_pos(pos);
+                        debug!(?canvas_pos, "Calling handle_selection_click with hover_pos");
                         self.handle_selection_click(canvas_pos);
                     }
                 }
@@ -472,6 +500,12 @@ impl DrawingCanvas {
 
         self.selected_shape = selected;
         self.show_properties = selected.is_some();
+
+        // When a shape is selected, also select the Shapes layer for rotation
+        if selected.is_some() {
+            debug!("Shape selected - setting selected_layer to Shapes");
+            self.selected_layer = Some(LayerType::Shapes);
+        }
     }
 
     fn start_drawing(&mut self, pos: Pos2) {
@@ -1132,42 +1166,69 @@ impl DrawingCanvas {
     }
 
     /// Start rotation interaction
+    #[instrument(skip(self), fields(
+        pos = ?pos,
+        selected_layer = ?self.selected_layer,
+        selected_shape = ?self.selected_shape,
+        has_form_image = self.form_image.is_some()
+    ))]
     fn start_rotation(&mut self, pos: Pos2) {
-        debug!(?pos, "Starting rotation");
+        let _span = tracing::debug_span!("start_rotation").entered();
+
+        debug!(
+            ?pos,
+            ?self.selected_layer,
+            ?self.selected_shape,
+            has_form_image = self.form_image.is_some(),
+            "Attempting to start rotation"
+        );
 
         // Determine what to rotate based on selected layer
         match self.selected_layer {
             Some(LayerType::Shapes) => {
+                debug!("Shapes layer selected");
                 // If a shape is selected, rotate it
-                if let Some(idx) = self.selected_shape
-                    && let Some(shape) = self.shapes.get(idx) {
-                    let center = self.get_shape_center(shape);
-                    self.rotation_center = Some(center);
-                    self.rotation_start_angle = Self::calculate_angle(center, pos);
-                    self.is_rotating = true;
-                    debug!(?center, start_angle = self.rotation_start_angle, "Rotating shape");
+                if let Some(idx) = self.selected_shape {
+                    debug!(shape_idx = idx, "Shape is selected");
+                    if let Some(shape) = self.shapes.get(idx) {
+                        let center = self.get_shape_center(shape);
+                        self.rotation_center = Some(center);
+                        self.rotation_start_angle = Self::calculate_angle(center, pos);
+                        self.is_rotating = true;
+                        debug!(?center, start_angle = self.rotation_start_angle, "Started rotating shape");
+                    } else {
+                        debug!(shape_idx = idx, "Shape index out of bounds");
+                    }
+                } else {
+                    debug!("No shape selected - cannot rotate");
                 }
             }
             Some(LayerType::Grid) => {
+                debug!("Grid layer selected - rotating grid");
                 // Rotate the grid around the canvas center
                 self.rotation_center = Some(Pos2::ZERO);
                 self.rotation_start_angle = Self::calculate_angle(Pos2::ZERO, pos);
                 self.is_rotating = true;
-                debug!("Rotating grid");
+                debug!(rotation_center = ?Pos2::ZERO, start_angle = self.rotation_start_angle, "Started rotating grid");
             }
             Some(LayerType::Canvas) => {
+                debug!(has_form_image = self.form_image.is_some(), "Canvas layer selected");
                 // Rotate the form image if one is loaded
                 if self.form_image.is_some() {
                     self.rotation_center = Some(Pos2::ZERO);
                     self.rotation_start_angle = Self::calculate_angle(Pos2::ZERO, pos);
                     self.is_rotating = true;
-                    debug!("Rotating form image");
+                    debug!(rotation_center = ?Pos2::ZERO, start_angle = self.rotation_start_angle, "Started rotating form image");
+                } else {
+                    debug!("No form image loaded - cannot rotate");
                 }
             }
             None => {
-                debug!("No layer selected for rotation");
+                debug!("No layer selected for rotation - user must select a layer first");
             }
         }
+
+        debug!(is_rotating = self.is_rotating, "Rotation state after start_rotation");
     }
 
     /// Continue rotation interaction
