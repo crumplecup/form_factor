@@ -48,6 +48,12 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     form_image_size: Option<egui::Vec2>,
 
+    // Zoom and pan state (not serialized)
+    #[serde(skip)]
+    zoom_level: f32,
+    #[serde(skip)]
+    pan_offset: egui::Vec2,
+
     // Style settings
     pub stroke: Stroke,
     pub fill_color: Color32,
@@ -71,6 +77,8 @@ impl Default for DrawingCanvas {
             is_dragging_vertex: false,
             form_image: None,
             form_image_size: None,
+            zoom_level: 1.0,
+            pan_offset: egui::Vec2::ZERO,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
             fill_color: Color32::from_rgba_premultiplied(0, 120, 215, 30),
         }
@@ -118,6 +126,44 @@ impl DrawingCanvas {
             egui::Sense::click_and_drag(),
         );
 
+        // Handle zoom input
+        let mut zoom_delta = 0.0;
+
+        // Mouse wheel zoom (only when hovering the canvas)
+        if response.hovered() {
+            let scroll_delta = ui.input(|i| i.smooth_scroll_delta.y);
+            if scroll_delta != 0.0 {
+                zoom_delta = scroll_delta * 0.001; // Scale factor for smooth zooming
+            }
+        }
+
+        // Keyboard zoom with Ctrl+/- (works when canvas is focused/clicked)
+        if response.clicked() || response.has_focus() {
+            ui.input(|i| {
+                if i.modifiers.ctrl || i.modifiers.command {
+                    if i.key_pressed(egui::Key::Minus) {
+                        zoom_delta = -0.1;
+                    } else if i.key_pressed(egui::Key::Plus) || i.key_pressed(egui::Key::Equals) {
+                        zoom_delta = 0.1;
+                    }
+                }
+            });
+        }
+
+        // Apply zoom delta and clamp to prevent zooming out beyond full screen
+        if zoom_delta != 0.0 {
+            let old_zoom = self.zoom_level;
+            self.zoom_level = (self.zoom_level + zoom_delta).max(1.0);
+
+            // Adjust pan offset to zoom toward the center of the viewport
+            if let Some(hover_pos) = response.hover_pos() {
+                let canvas_center = response.rect.center();
+                let zoom_point = hover_pos - canvas_center;
+                let zoom_factor = self.zoom_level / old_zoom;
+                self.pan_offset = self.pan_offset * zoom_factor + zoom_point * (1.0 - zoom_factor);
+            }
+        }
+
         // Paint background if Canvas layer is visible
         if self.layer_manager.is_visible(crate::drawing::LayerType::Canvas) {
             painter.rect_filled(
@@ -125,38 +171,52 @@ impl DrawingCanvas {
                 0.0,
                 Color32::from_rgb(245, 245, 245),
             );
-
-            // Draw form image on Canvas layer if loaded
-            if let (Some(texture), Some(image_size)) = (&self.form_image, self.form_image_size) {
-                // Calculate scaling to fit image within canvas while maintaining aspect ratio
-                let canvas_size = response.rect.size();
-                let scale_x = canvas_size.x / image_size.x;
-                let scale_y = canvas_size.y / image_size.y;
-                let scale = scale_x.min(scale_y); // Use the smaller scale to fit entirely
-
-                let fitted_size = image_size * scale;
-
-                // Center the image within the canvas
-                let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
-                let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
-                let image_pos = response.rect.min + egui::vec2(offset_x, offset_y);
-
-                let image_rect = egui::Rect::from_min_size(image_pos, fitted_size);
-
-                painter.image(
-                    texture.id(),
-                    image_rect,
-                    egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                    Color32::WHITE,
-                );
-            }
         }
 
-        // Draw existing shapes if Shapes layer is visible
+        // Apply zoom transformation to a child painter
+        let canvas_center = response.rect.center();
+        let to_screen = egui::emath::TSTransform::from_translation(canvas_center.to_vec2() + self.pan_offset)
+            * egui::emath::TSTransform::from_scaling(self.zoom_level)
+            * egui::emath::TSTransform::from_translation(-canvas_center.to_vec2());
+
+        // Draw form image on Canvas layer if loaded
+        if self.layer_manager.is_visible(crate::drawing::LayerType::Canvas)
+            && let (Some(texture), Some(image_size)) = (&self.form_image, self.form_image_size)
+        {
+            // Calculate scaling to fit image within canvas while maintaining aspect ratio
+            let canvas_size = response.rect.size();
+            let scale_x = canvas_size.x / image_size.x;
+            let scale_y = canvas_size.y / image_size.y;
+            let scale = scale_x.min(scale_y); // Use the smaller scale to fit entirely
+
+            let fitted_size = image_size * scale;
+
+            // Center the image within the canvas
+            let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
+            let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
+            let image_pos = response.rect.min + egui::vec2(offset_x, offset_y);
+
+            let image_rect = egui::Rect::from_min_size(image_pos, fitted_size);
+
+            // Transform the image rect for zoom
+            let transformed_image_rect = egui::Rect::from_min_max(
+                to_screen.mul_pos(image_rect.min),
+                to_screen.mul_pos(image_rect.max),
+            );
+
+            painter.image(
+                texture.id(),
+                transformed_image_rect,
+                egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                Color32::WHITE,
+            );
+        }
+
+        // Draw existing shapes if Shapes layer is visible (with zoom transformation)
         let shapes_visible = self.layer_manager.is_visible(crate::drawing::LayerType::Shapes);
         if shapes_visible {
             for (idx, shape) in self.shapes.iter().enumerate() {
-                shape.render(&painter);
+                self.render_shape_transformed(shape, &painter, &to_screen);
 
                 // Draw selection highlight
                 if Some(idx) == self.selected_shape {
@@ -164,34 +224,47 @@ impl DrawingCanvas {
 
                     match shape {
                         Shape::Rectangle(rect) => {
+                            let transformed_corners: Vec<Pos2> = rect.corners
+                                .iter()
+                                .map(|p| to_screen.mul_pos(*p))
+                                .collect();
                             painter.add(egui::Shape::closed_line(
-                                rect.corners.to_vec(),
+                                transformed_corners,
                                 highlight_stroke,
                             ));
                         }
                         Shape::Circle(circle) => {
-                            painter.circle_stroke(circle.center, circle.radius, highlight_stroke);
+                            let transformed_center = to_screen.mul_pos(circle.center);
+                            let transformed_radius = circle.radius * self.zoom_level;
+                            painter.circle_stroke(transformed_center, transformed_radius, highlight_stroke);
                         }
                         Shape::Polygon(poly) => {
-                            let points = poly.to_egui_points();
+                            let points: Vec<Pos2> = poly.to_egui_points()
+                                .iter()
+                                .map(|p| to_screen.mul_pos(*p))
+                                .collect();
                             painter.add(egui::Shape::closed_line(points, highlight_stroke));
                         }
                     }
 
                     // Draw edit vertices if in Edit mode
                     if self.current_tool == ToolMode::Edit && Some(idx) == self.selected_shape {
-                        self.draw_edit_vertices(shape, &painter);
+                        self.draw_edit_vertices_transformed(shape, &painter, &to_screen);
                     }
                 }
             }
         }
 
-        // Handle mouse interactions and draw preview
-        self.handle_input(&response, &painter);
+        // Handle mouse interactions and draw preview (with zoom transformation)
+        self.handle_input(&response, &painter, &to_screen);
     }
 
-    #[instrument(skip(self, response, painter), fields(tool = ?self.current_tool))]
-    fn handle_input(&mut self, response: &egui::Response, painter: &egui::Painter) {
+    #[instrument(skip(self, response, painter, transform), fields(tool = ?self.current_tool))]
+    fn handle_input(&mut self, response: &egui::Response, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
+        // Helper to transform screen coordinates to canvas coordinates
+        let transform_pos = |screen_pos: Pos2| -> Pos2 {
+            transform.inverse().mul_pos(screen_pos)
+        };
         match self.current_tool {
             ToolMode::Select => {
                 let _span = tracing::debug_span!("selection").entered();
@@ -206,11 +279,13 @@ impl DrawingCanvas {
                     );
 
                     if let Some(pos) = response.interact_pointer_pos() {
-                        trace!(?pos, "Using interact_pointer_pos");
-                        self.handle_selection_click(pos);
+                        let canvas_pos = transform_pos(pos);
+                        trace!(?pos, ?canvas_pos, "Using interact_pointer_pos");
+                        self.handle_selection_click(canvas_pos);
                     } else if let Some(pos) = response.hover_pos() {
-                        trace!(?pos, "Using hover_pos fallback");
-                        self.handle_selection_click(pos);
+                        let canvas_pos = transform_pos(pos);
+                        trace!(?pos, ?canvas_pos, "Using hover_pos fallback");
+                        self.handle_selection_click(canvas_pos);
                     } else {
                         debug!("No position available for click");
                     }
@@ -221,10 +296,11 @@ impl DrawingCanvas {
 
                 // Handle vertex editing
                 if let Some(pos) = response.interact_pointer_pos() {
+                    let canvas_pos = transform_pos(pos);
                     if response.drag_started() {
-                        self.start_vertex_drag(pos);
+                        self.start_vertex_drag(canvas_pos);
                     } else if response.dragged() && self.is_dragging_vertex {
-                        self.continue_vertex_drag(pos);
+                        self.continue_vertex_drag(canvas_pos);
                     }
                 }
 
@@ -236,19 +312,22 @@ impl DrawingCanvas {
                 // Also handle selection clicks when not dragging
                 if response.clicked() && !self.is_dragging_vertex {
                     if let Some(pos) = response.interact_pointer_pos() {
-                        self.handle_selection_click(pos);
+                        let canvas_pos = transform_pos(pos);
+                        self.handle_selection_click(canvas_pos);
                     } else if let Some(pos) = response.hover_pos() {
-                        self.handle_selection_click(pos);
+                        let canvas_pos = transform_pos(pos);
+                        self.handle_selection_click(canvas_pos);
                     }
                 }
             }
             ToolMode::Rectangle | ToolMode::Circle | ToolMode::Freehand => {
                 // Handle drawing tools
                 if let Some(pos) = response.interact_pointer_pos() {
+                    let canvas_pos = transform_pos(pos);
                     if response.drag_started() {
-                        self.start_drawing(pos);
+                        self.start_drawing(canvas_pos);
                     } else if response.dragged() && self.is_drawing {
-                        self.continue_drawing(pos, painter);
+                        self.continue_drawing(canvas_pos, painter, transform);
                     }
                 }
 
@@ -326,40 +405,57 @@ impl DrawingCanvas {
         }
     }
 
-    fn continue_drawing(&mut self, pos: Pos2, painter: &egui::Painter) {
+    fn continue_drawing(&mut self, pos: Pos2, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
         self.current_end = Some(pos);
 
         match self.current_tool {
             ToolMode::Rectangle => {
                 if let Some(start) = self.drawing_start {
+                    // Transform the rectangle corners for preview
                     let rect = egui::Rect::from_two_pos(start, pos);
-                    painter.rect_filled(rect, 0.0, self.fill_color);
-                    painter.rect_stroke(rect, 0.0, self.stroke, egui::StrokeKind::Outside);
+                    let transformed_rect = egui::Rect::from_min_max(
+                        transform.mul_pos(rect.min),
+                        transform.mul_pos(rect.max),
+                    );
+                    painter.rect_filled(transformed_rect, 0.0, self.fill_color);
+                    painter.rect_stroke(transformed_rect, 0.0, self.stroke, egui::StrokeKind::Outside);
                 }
             }
             ToolMode::Circle => {
                 if let Some(center) = self.drawing_start {
                     let radius = center.distance(pos);
-                    painter.circle(center, radius, self.fill_color, self.stroke);
+                    let transformed_center = transform.mul_pos(center);
+                    let transformed_radius = radius * self.zoom_level;
+                    painter.circle(transformed_center, transformed_radius, self.fill_color, self.stroke);
                 }
             }
             ToolMode::Freehand => {
                 self.current_points.push(pos);
                 if self.current_points.len() > 2 {
+                    // Transform points for preview
+                    let transformed_points: Vec<Pos2> = self.current_points
+                        .iter()
+                        .map(|p| transform.mul_pos(*p))
+                        .collect();
                     // Draw preview as a closed polygon
                     painter.add(egui::Shape::convex_polygon(
-                        self.current_points.clone(),
+                        transformed_points.clone(),
                         self.fill_color,
                         egui::Stroke::NONE,
                     ));
                     painter.add(egui::Shape::closed_line(
-                        self.current_points.clone(),
+                        transformed_points,
                         self.stroke,
                     ));
                 } else if self.current_points.len() > 1 {
+                    // Transform points for preview line
+                    let transformed_points: Vec<Pos2> = self.current_points
+                        .iter()
+                        .map(|p| transform.mul_pos(*p))
+                        .collect();
                     // Draw preview line until we have enough points
                     painter.add(egui::Shape::line(
-                        self.current_points.clone(),
+                        transformed_points,
                         self.stroke,
                     ));
                 }
@@ -758,76 +854,6 @@ impl DrawingCanvas {
         true
     }
 
-    /// Draw edit vertices (control points) for the given shape
-    fn draw_edit_vertices(&self, shape: &Shape, painter: &egui::Painter) {
-        const VERTEX_SIZE: f32 = 6.0;
-        let vertex_stroke = Stroke::new(2.0, Color32::from_rgb(0, 120, 215));
-        let vertex_fill = Color32::from_rgb(255, 255, 255);
-
-        match shape {
-            Shape::Rectangle(rect) => {
-                // Draw control points at all 4 corners
-                for corner in &rect.corners {
-                    painter.rect_filled(
-                        egui::Rect::from_center_size(*corner, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                        0.0,
-                        vertex_fill,
-                    );
-                    painter.rect_stroke(
-                        egui::Rect::from_center_size(*corner, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                        0.0,
-                        vertex_stroke,
-                        egui::StrokeKind::Outside,
-                    );
-                }
-            }
-            Shape::Circle(circle) => {
-                // Draw control points at center and on the edge
-                painter.rect_filled(
-                    egui::Rect::from_center_size(circle.center, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                    0.0,
-                    vertex_fill,
-                );
-                painter.rect_stroke(
-                    egui::Rect::from_center_size(circle.center, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                    0.0,
-                    vertex_stroke,
-                    egui::StrokeKind::Outside,
-                );
-
-                // Edge control point (to the right of center)
-                let edge_point = egui::pos2(circle.center.x + circle.radius, circle.center.y);
-                painter.rect_filled(
-                    egui::Rect::from_center_size(edge_point, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                    0.0,
-                    vertex_fill,
-                );
-                painter.rect_stroke(
-                    egui::Rect::from_center_size(edge_point, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                    0.0,
-                    vertex_stroke,
-                    egui::StrokeKind::Outside,
-                );
-            }
-            Shape::Polygon(poly) => {
-                // Draw control points at all vertices
-                for point in poly.to_egui_points() {
-                    painter.rect_filled(
-                        egui::Rect::from_center_size(point, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                        0.0,
-                        vertex_fill,
-                    );
-                    painter.rect_stroke(
-                        egui::Rect::from_center_size(point, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                        0.0,
-                        vertex_stroke,
-                        egui::StrokeKind::Outside,
-                    );
-                }
-            }
-        }
-    }
-
     /// Start dragging a vertex
     fn start_vertex_drag(&mut self, pos: Pos2) {
         const VERTEX_CLICK_RADIUS: f32 = 8.0;
@@ -943,5 +969,125 @@ impl DrawingCanvas {
         debug!("Finishing vertex drag");
         self.dragging_vertex = None;
         self.is_dragging_vertex = false;
+    }
+
+    /// Render a shape with zoom transformation applied
+    fn render_shape_transformed(&self, shape: &Shape, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
+        match shape {
+            Shape::Rectangle(rect) => {
+                let transformed_corners: Vec<Pos2> = rect.corners
+                    .iter()
+                    .map(|p| transform.mul_pos(*p))
+                    .collect();
+
+                // Draw filled quadrilateral
+                painter.add(egui::Shape::convex_polygon(
+                    transformed_corners.clone(),
+                    rect.fill,
+                    egui::Stroke::NONE,
+                ));
+                // Draw outline
+                painter.add(egui::Shape::closed_line(
+                    transformed_corners,
+                    rect.stroke,
+                ));
+            }
+            Shape::Circle(circle) => {
+                let transformed_center = transform.mul_pos(circle.center);
+                let transformed_radius = circle.radius * self.zoom_level;
+                painter.circle(transformed_center, transformed_radius, circle.fill, circle.stroke);
+            }
+            Shape::Polygon(poly) => {
+                let points: Vec<Pos2> = poly.to_egui_points()
+                    .iter()
+                    .map(|p| transform.mul_pos(*p))
+                    .collect();
+
+                if points.len() > 2 {
+                    // Draw filled polygon
+                    painter.add(egui::Shape::convex_polygon(
+                        points.clone(),
+                        poly.fill,
+                        egui::Stroke::NONE,
+                    ));
+                    // Draw outline
+                    painter.add(egui::Shape::closed_line(points, poly.stroke));
+                }
+            }
+        }
+    }
+
+    /// Draw edit vertices with zoom transformation applied
+    fn draw_edit_vertices_transformed(&self, shape: &Shape, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
+        const VERTEX_SIZE: f32 = 6.0;
+        let vertex_stroke = Stroke::new(2.0, Color32::from_rgb(0, 120, 215));
+        let vertex_fill = Color32::from_rgb(255, 255, 255);
+
+        match shape {
+            Shape::Rectangle(rect) => {
+                // Draw control points at all 4 corners
+                for corner in &rect.corners {
+                    let transformed_corner = transform.mul_pos(*corner);
+                    painter.rect_filled(
+                        egui::Rect::from_center_size(transformed_corner, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        0.0,
+                        vertex_fill,
+                    );
+                    painter.rect_stroke(
+                        egui::Rect::from_center_size(transformed_corner, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        0.0,
+                        vertex_stroke,
+                        egui::StrokeKind::Outside,
+                    );
+                }
+            }
+            Shape::Circle(circle) => {
+                let transformed_center = transform.mul_pos(circle.center);
+
+                // Draw control point at center
+                painter.rect_filled(
+                    egui::Rect::from_center_size(transformed_center, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_fill,
+                );
+                painter.rect_stroke(
+                    egui::Rect::from_center_size(transformed_center, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_stroke,
+                    egui::StrokeKind::Outside,
+                );
+
+                // Draw control point on edge
+                let edge_point = egui::pos2(circle.center.x + circle.radius, circle.center.y);
+                let transformed_edge = transform.mul_pos(edge_point);
+                painter.rect_filled(
+                    egui::Rect::from_center_size(transformed_edge, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_fill,
+                );
+                painter.rect_stroke(
+                    egui::Rect::from_center_size(transformed_edge, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_stroke,
+                    egui::StrokeKind::Outside,
+                );
+            }
+            Shape::Polygon(poly) => {
+                for vertex_pos in poly.to_egui_points() {
+                    let transformed_vertex = transform.mul_pos(vertex_pos);
+                    painter.rect_filled(
+                        egui::Rect::from_center_size(transformed_vertex, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        0.0,
+                        vertex_fill,
+                    );
+                    painter.rect_stroke(
+                        egui::Rect::from_center_size(transformed_vertex, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        0.0,
+                        vertex_stroke,
+                        egui::StrokeKind::Outside,
+                    );
+                }
+            }
+        }
     }
 }
