@@ -7,6 +7,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 struct DemoApp {
     name: String,
     canvas: DrawingCanvas,
+    #[cfg(feature = "ocr")]
+    ocr_results: Vec<(usize, form_factor::OCRResult)>,
 }
 
 impl DemoApp {
@@ -14,6 +16,8 @@ impl DemoApp {
         Self {
             name: String::from("Form Factor"),
             canvas: DrawingCanvas::new(),
+            #[cfg(feature = "ocr")]
+            ocr_results: Vec::new(),
         }
     }
 }
@@ -76,6 +80,52 @@ impl App for DemoApp {
                         Err(e) => {
                             tracing::error!("Failed to detect text: {}", e);
                         }
+                    }
+                }
+
+                // Extract Text (OCR) button (only available with ocr feature)
+                #[cfg(feature = "ocr")]
+                if ui.button("📝 Extract Text (OCR)").clicked() {
+                    use form_factor::{OCREngine, OCRConfig, PageSegmentationMode};
+
+                    // Create OCR engine
+                    match OCREngine::new(OCRConfig::new()
+                        .with_psm(PageSegmentationMode::Auto)
+                        .with_min_confidence(60))
+                    {
+                        Ok(ocr) => {
+                            // Extract text from all detections
+                            match self.canvas.extract_text_from_detections(&ocr) {
+                                Ok(results) => {
+                                    tracing::info!("Extracted text from {} detections", results.len());
+                                    for (idx, result) in &results {
+                                        tracing::info!(
+                                            "Detection {}: '{}' ({:.1}% confidence)",
+                                            idx,
+                                            result.text.trim(),
+                                            result.confidence
+                                        );
+                                    }
+                                    self.ocr_results = results;
+                                }
+                                Err(e) => {
+                                    tracing::error!("Failed to extract text: {}", e);
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to initialize OCR engine: {}", e);
+                            tracing::error!("Make sure Tesseract is installed on your system");
+                        }
+                    }
+                }
+
+                // Show OCR results if available
+                #[cfg(feature = "ocr")]
+                if !self.ocr_results.is_empty() {
+                    ui.label(format!("OCR Results: {} regions", self.ocr_results.len()));
+                    if ui.button("Clear OCR Results").clicked() {
+                        self.ocr_results.clear();
                     }
                 }
 

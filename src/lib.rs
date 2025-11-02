@@ -39,6 +39,9 @@ mod text_detection;
 #[cfg(feature = "logo-detection")]
 mod logo_detection;
 
+#[cfg(feature = "ocr")]
+mod ocr;
+
 // ============================================================================
 // Core Application Types
 // ============================================================================
@@ -140,6 +143,34 @@ pub use logo_detection::LogoLocation;
 #[cfg(feature = "logo-detection")]
 /// Logo size
 pub use logo_detection::LogoSize;
+
+// ============================================================================
+// OCR (Optical Character Recognition)
+// ============================================================================
+
+#[cfg(feature = "ocr")]
+/// OCR engine for text extraction using Tesseract
+pub use ocr::OCREngine;
+
+#[cfg(feature = "ocr")]
+/// OCR configuration options
+pub use ocr::OCRConfig;
+
+#[cfg(feature = "ocr")]
+/// Page segmentation mode for OCR
+pub use ocr::PageSegmentationMode;
+
+#[cfg(feature = "ocr")]
+/// OCR engine mode (LSTM, Legacy, or both)
+pub use ocr::EngineMode;
+
+#[cfg(feature = "ocr")]
+/// Result of OCR text extraction
+pub use ocr::OCRResult;
+
+#[cfg(feature = "ocr")]
+/// Word-level OCR result with bounding box
+pub use ocr::WordResult;
 
 // ============================================================================
 // Advanced: Direct module access for backend implementations

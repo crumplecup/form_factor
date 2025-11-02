@@ -861,6 +861,102 @@ impl DrawingCanvas {
         Ok(count)
     }
 
+    /// Extract text from all detections using OCR
+    ///
+    /// Returns a vector of (detection_index, OCR_result) pairs
+    #[cfg(feature = "ocr")]
+    #[instrument(skip(self, ocr), fields(detections = self.detections.len()))]
+    pub fn extract_text_from_detections(
+        &self,
+        ocr: &crate::ocr::OCREngine,
+    ) -> Result<Vec<(usize, crate::ocr::OCRResult)>, String> {
+        use crate::drawing::Shape;
+
+        let form_path = self.form_image_path.as_ref()
+            .ok_or_else(|| "No form image loaded".to_string())?;
+
+        tracing::info!("Extracting text from {} detections", self.detections.len());
+
+        let mut results = Vec::new();
+
+        for (idx, detection) in self.detections.iter().enumerate() {
+            match self.extract_text_from_shape(ocr, form_path, detection) {
+                Ok(result) => {
+                    debug!(
+                        "Detection {}: extracted {} chars with {:.1}% confidence",
+                        idx,
+                        result.text.len(),
+                        result.confidence
+                    );
+                    results.push((idx, result));
+                }
+                Err(e) => {
+                    warn!("Failed to extract text from detection {}: {}", idx, e);
+                }
+            }
+        }
+
+        tracing::info!("Extracted text from {}/{} detections", results.len(), self.detections.len());
+        Ok(results)
+    }
+
+    /// Extract text from a specific shape using OCR
+    #[cfg(feature = "ocr")]
+    fn extract_text_from_shape(
+        &self,
+        ocr: &crate::ocr::OCREngine,
+        image_path: &str,
+        shape: &Shape,
+    ) -> Result<crate::ocr::OCRResult, String> {
+        use crate::drawing::Shape;
+
+        // Get bounding box of the shape in image pixel coordinates
+        let bbox = match shape {
+            Shape::Rectangle(rect) => {
+                // Find min/max coords
+                let xs: Vec<f32> = rect.corners.iter().map(|p| p.x).collect();
+                let ys: Vec<f32> = rect.corners.iter().map(|p| p.y).collect();
+
+                let x_min = xs.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                let y_min = ys.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                let x_max = xs.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+                let y_max = ys.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+
+                let width = x_max.saturating_sub(x_min);
+                let height = y_max.saturating_sub(y_min);
+
+                (x_min, y_min, width, height)
+            }
+            Shape::Circle(circle) => {
+                let x = (circle.center.x - circle.radius).max(0.0) as u32;
+                let y = (circle.center.y - circle.radius).max(0.0) as u32;
+                let diameter = (circle.radius * 2.0) as u32;
+                (x, y, diameter, diameter)
+            }
+            Shape::Polygon(poly) => {
+                // Get bounding box from polygon points
+                let points = poly.to_egui_points();
+                let xs: Vec<f32> = points.iter().map(|p| p.x).collect();
+                let ys: Vec<f32> = points.iter().map(|p| p.y).collect();
+
+                let x_min = xs.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                let y_min = ys.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                let x_max = xs.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+                let y_max = ys.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+
+                let width = x_max.saturating_sub(x_min);
+                let height = y_max.saturating_sub(y_min);
+
+                (x_min, y_min, width, height)
+            }
+        };
+
+        trace!("Shape bbox in image coords: {:?}", bbox);
+
+        // Extract text from this region
+        ocr.extract_text_from_region_file(image_path, bbox)
+    }
+
     /// Load a form image from a file path
     pub fn load_form_image(&mut self, path: &str, ctx: &egui::Context) -> Result<(), String> {
         // Load the image from disk
