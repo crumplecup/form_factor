@@ -92,6 +92,9 @@ pub use drawing::ToolMode;
 /// Layer management types
 pub use drawing::{Layer, LayerManager, LayerType};
 
+/// Recent projects tracking
+pub use drawing::RecentProjects;
+
 // ============================================================================
 // Advanced: Direct module access for backend implementations
 // ============================================================================

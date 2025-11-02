@@ -1,9 +1,10 @@
 //! Drawing canvas with interactive annotation tools
 
-use crate::drawing::{Circle, LayerManager, LayerType, PolygonShape, Rectangle, Shape, ToolMode};
+use crate::drawing::{Circle, LayerManager, LayerType, PolygonShape, Rectangle, RecentProjects, Shape, ToolMode};
 use egui::{Color32, Pos2, Stroke};
 use geo::CoordsIter;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use tracing::{debug, instrument, trace};
 
 /// Drawing canvas state
@@ -781,6 +782,13 @@ impl DrawingCanvas {
         std::fs::write(path, json)
             .map_err(|e| format!("Failed to write file: {}", e))?;
 
+        // Add to recent projects
+        let mut recent = RecentProjects::load();
+        recent.add(PathBuf::from(path));
+        if let Err(e) = recent.save() {
+            tracing::warn!("Failed to save recent projects: {}", e);
+        }
+
         tracing::info!("Saved project to: {}", path);
         Ok(())
     }
@@ -812,6 +820,13 @@ impl DrawingCanvas {
             self.form_image_path = None;
             self.form_image = None;
             self.form_image_size = None;
+        }
+
+        // Add to recent projects
+        let mut recent = RecentProjects::load();
+        recent.add(PathBuf::from(path));
+        if let Err(e) = recent.save() {
+            tracing::warn!("Failed to save recent projects: {}", e);
         }
 
         tracing::info!("Loaded project from: {}", path);

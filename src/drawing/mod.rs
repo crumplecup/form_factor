@@ -4,10 +4,12 @@
 
 mod canvas;
 mod layer;
+mod recent_projects;
 mod shape;
 mod tool;
 
 pub use canvas::DrawingCanvas;
 pub use layer::{Layer, LayerManager, LayerType};
+pub use recent_projects::RecentProjects;
 pub use shape::{Circle, PolygonShape, Rectangle, Shape};
 pub use tool::ToolMode;
