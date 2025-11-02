@@ -89,7 +89,7 @@ impl Default for DrawingCanvas {
             is_dragging_vertex: false,
             form_image: None,
             form_image_size: None,
-            zoom_level: 1.0,
+            zoom_level: 5.0,
             pan_offset: egui::Vec2::ZERO,
             show_settings: false,
             zoom_sensitivity: 1.0,
@@ -176,10 +176,10 @@ impl DrawingCanvas {
             });
         }
 
-        // Apply zoom delta and clamp to prevent zooming out beyond full screen
+        // Apply zoom delta and clamp to zoom range (1.0 - 10.0)
         if zoom_delta != 0.0 {
             let old_zoom = self.zoom_level;
-            self.zoom_level = (self.zoom_level + zoom_delta).max(1.0);
+            self.zoom_level = (self.zoom_level + zoom_delta).clamp(1.0, 10.0);
 
             // Adjust pan offset to zoom toward the center of the viewport
             if let Some(hover_pos) = response.hover_pos() {
