@@ -785,6 +785,39 @@ impl DrawingCanvas {
         Ok(())
     }
 
+    /// Load the project state from a file
+    pub fn load_from_file(&mut self, path: &str, ctx: &egui::Context) -> Result<(), String> {
+        let json = std::fs::read_to_string(path)
+            .map_err(|e| format!("Failed to read file: {}", e))?;
+
+        let loaded: DrawingCanvas = serde_json::from_str(&json)
+            .map_err(|e| format!("Failed to deserialize project: {}", e))?;
+
+        // Copy all the serialized state
+        self.project_name = loaded.project_name;
+        self.shapes = loaded.shapes;
+        self.current_tool = loaded.current_tool;
+        self.layer_manager = loaded.layer_manager;
+        self.stroke = loaded.stroke;
+        self.fill_color = loaded.fill_color;
+
+        // If there was a form image saved, try to reload it
+        if let Some(form_path) = &loaded.form_image_path {
+            if let Err(e) = self.load_form_image(form_path, ctx) {
+                tracing::warn!("Could not reload form image from {}: {}", form_path, e);
+                // Don't fail the entire load if the image is missing
+                self.form_image_path = loaded.form_image_path;
+            }
+        } else {
+            self.form_image_path = None;
+            self.form_image = None;
+            self.form_image_size = None;
+        }
+
+        tracing::info!("Loaded project from: {}", path);
+        Ok(())
+    }
+
     /// Show inline properties UI for the selected shape
     pub fn show_inline_properties(&mut self, ui: &mut egui::Ui) {
         if !self.show_properties {

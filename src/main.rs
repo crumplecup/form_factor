@@ -153,8 +153,10 @@ impl App for DemoApp {
                     }
                 });
 
-                // Save button
-                if ui.button("💾 Save Project").clicked()
+                // Save and Load buttons
+                ui.horizontal(|ui| {
+                    // Save button
+                    if ui.button("💾 Save").clicked()
                     && let Some(path) = rfd::FileDialog::new()
                         .add_filter("Form Factor Project", &["ffp"])
                         .set_file_name(format!("{}.ffp", self.canvas.project_name))
@@ -169,7 +171,25 @@ impl App for DemoApp {
                             tracing::error!("Failed to save project: {}", e);
                         }
                     }
-                }
+                    }
+
+                    // Load button
+                    if ui.button("📁 Load").clicked()
+                        && let Some(path) = rfd::FileDialog::new()
+                            .add_filter("Form Factor Project", &["ffp"])
+                            .pick_file()
+                        && let Some(path_str) = path.to_str()
+                    {
+                        match self.canvas.load_from_file(path_str, ctx.egui_ctx) {
+                            Ok(()) => {
+                                tracing::info!("Successfully loaded project from {}", path_str);
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to load project: {}", e);
+                            }
+                        }
+                    }
+                });
 
                 ui.separator();
 
