@@ -51,13 +51,22 @@ fi
 #### Linux (Manjaro/Arch)
 ```bash
 # Check for missing packages and install only what's needed
-PACKAGES="opencv clang llvm"
-MISSING=""
+# Note: opencv-cuda provides the same functionality as opencv with GPU acceleration
+PACKAGES="clang llvm"
+OPENCV_PKG=""
+
+# Check if either opencv or opencv-cuda is installed
+if ! pacman -Q opencv &>/dev/null && ! pacman -Q opencv-cuda &>/dev/null; then
+    OPENCV_PKG="opencv"
+fi
+
+MISSING="$OPENCV_PKG"
 for pkg in $PACKAGES; do
     if ! pacman -Q $pkg &>/dev/null; then
         MISSING="$MISSING $pkg"
     fi
 done
+
 if [ -n "$MISSING" ]; then
     echo "Installing missing packages:$MISSING"
     sudo pacman -S --needed --noconfirm $MISSING
@@ -65,6 +74,12 @@ else
     echo "All required packages are already installed"
 fi
 ```
+
+**Note**: If you have an NVIDIA GPU and want GPU-accelerated text detection, you can install `opencv-cuda` instead of `opencv`:
+```bash
+sudo pacman -S opencv-cuda clang llvm
+```
+The `opencv-cuda` package provides the same functionality as `opencv` but with CUDA acceleration for faster inference.
 
 #### macOS
 ```bash
@@ -171,12 +186,16 @@ sudo dnf install opencv-devel
 
 # Manjaro/Arch
 sudo pacman -S opencv
+# Or for GPU acceleration (if you have NVIDIA GPU):
+sudo pacman -S opencv-cuda
 
 # macOS
 brew install opencv
 ```
 
-**Note**: The installation scripts in the Prerequisites section automatically detect and install only missing packages, avoiding unnecessary sudo calls.
+**Note**:
+- The installation scripts in the Prerequisites section automatically detect and install only missing packages, avoiding unnecessary sudo calls.
+- On Manjaro/Arch, `opencv-cuda` is a drop-in replacement for `opencv` that provides GPU acceleration via CUDA. Both packages provide the same functionality for this crate.
 
 ### Runtime Errors
 
