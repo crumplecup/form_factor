@@ -36,6 +36,9 @@ mod error;
 #[cfg(feature = "text-detection")]
 mod text_detection;
 
+#[cfg(feature = "logo-detection")]
+mod logo_detection;
+
 // ============================================================================
 // Core Application Types
 // ============================================================================
@@ -109,6 +112,34 @@ pub use text_detection::TextDetector;
 #[cfg(feature = "text-detection")]
 /// Detected text region
 pub use text_detection::TextRegion;
+
+// ============================================================================
+// Logo Detection
+// ============================================================================
+
+#[cfg(feature = "logo-detection")]
+/// Logo detector using OpenCV template and feature matching
+pub use logo_detection::LogoDetector;
+
+#[cfg(feature = "logo-detection")]
+/// Logo detection method (template matching or feature matching)
+pub use logo_detection::LogoDetectionMethod;
+
+#[cfg(feature = "logo-detection")]
+/// Logo template for detection
+pub use logo_detection::Logo;
+
+#[cfg(feature = "logo-detection")]
+/// Logo detection result
+pub use logo_detection::LogoDetectionResult;
+
+#[cfg(feature = "logo-detection")]
+/// Logo location in image
+pub use logo_detection::LogoLocation;
+
+#[cfg(feature = "logo-detection")]
+/// Logo size
+pub use logo_detection::LogoSize;
 
 // ============================================================================
 // Advanced: Direct module access for backend implementations
