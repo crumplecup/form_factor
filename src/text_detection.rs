@@ -2,11 +2,11 @@
 
 use opencv::{
     core::{Mat, Scalar, Size, Vector},
-    dnn::{blob_from_image, read_net_from_caffe, NetTrait},
+    dnn::{blob_from_image, read_net, NetTrait},
     imgcodecs, imgproc,
     prelude::*,
 };
-use tracing::{debug, warn};
+use tracing::debug;
 
 /// A detected text region
 #[derive(Debug, Clone)]
@@ -20,17 +20,13 @@ pub struct TextRegion {
 
 /// Text detector using EAST model
 pub struct TextDetector {
-    model_config: String,
-    model_weights: String,
+    model_path: String,
 }
 
 impl TextDetector {
-    /// Create a new text detector with paths to EAST model files
-    pub fn new(model_config: String, model_weights: String) -> Self {
-        Self {
-            model_config,
-            model_weights,
-        }
+    /// Create a new text detector with path to EAST model file
+    pub fn new(model_path: String) -> Self {
+        Self { model_path }
     }
 
     /// Detect text regions in an image file
@@ -50,10 +46,10 @@ impl TextDetector {
 
     /// Detect text regions in an OpenCV Mat
     pub fn detect_from_mat(&self, image: &Mat, confidence_threshold: f32) -> Result<Vec<TextRegion>, String> {
-        debug!("Loading EAST model from: {} and {}", self.model_config, self.model_weights);
+        debug!("Loading EAST model from: {}", self.model_path);
 
-        // Load the pre-trained EAST model
-        let mut net = read_net_from_caffe(&self.model_config, &self.model_weights)
+        // Load the pre-trained EAST model (TensorFlow frozen graph)
+        let mut net = opencv::dnn::read_net(&self.model_path, "", "")
             .map_err(|e| format!("Failed to load EAST model: {}", e))?;
 
         // Get the image dimensions
@@ -272,8 +268,7 @@ impl TextDetector {
 impl Default for TextDetector {
     fn default() -> Self {
         Self {
-            model_config: String::from("models/frozen_east_text_detection.pb.prototxt"),
-            model_weights: String::from("models/frozen_east_text_detection.pb"),
+            model_path: String::from("models/frozen_east_text_detection.pb"),
         }
     }
 }

@@ -103,25 +103,36 @@ fi
 Download and install OpenCV from https://opencv.org/releases/
 Set the `OPENCV_LINK_PATHS` and `OPENCV_INCLUDE_PATHS` environment variables.
 
-### EAST Model Files
+### EAST Model File
 
-You need to download the pre-trained EAST text detection model:
+You need to download the pre-trained EAST text detection model from the official OpenCV source:
 
 1. Create a `models` directory in the project root:
 ```bash
 mkdir -p models
 ```
 
-2. Download the EAST model files:
-   - Model weights: [frozen_east_text_detection.pb](https://github.com/oyyd/frozen_east_text_detection.pb/raw/master/frozen_east_text_detection.pb)
-   - Model config: You can create a basic config file or download from the OpenCV repository
+2. Download and extract the EAST model:
+```bash
+# Download the official EAST model (referenced in OpenCV documentation)
+cd models
+wget https://www.dropbox.com/s/r2ingd0l3zt8hxs/frozen_east_text_detection.tar.gz?dl=1 -O frozen_east_text_detection.tar.gz
 
-3. Place the files in the `models` directory:
+# Extract the model file
+tar -xvzf frozen_east_text_detection.tar.gz
+
+# Clean up the archive
+rm frozen_east_text_detection.tar.gz
 ```
-models/
-  ├── frozen_east_text_detection.pb
-  └── frozen_east_text_detection.pb.prototxt
+
+3. Verify the file exists:
+```bash
+ls models/frozen_east_text_detection.pb
 ```
+
+**Note**: This model is a TensorFlow frozen graph (`.pb` format). No `.prototxt` file is needed - that's only required for Caffe models.
+
+**Model Source**: This model comes from the argman/EAST implementation and is officially referenced in OpenCV's documentation and sample code.
 
 ## Building with Text Detection
 
@@ -201,9 +212,10 @@ brew install opencv
 
 **Error**: `Failed to load EAST model`
 
-**Solution**: Ensure the model files are in the correct location:
+**Solution**: Ensure the model file is in the correct location:
 - Default path: `models/frozen_east_text_detection.pb`
-- Check that both `.pb` and `.prototxt` files exist
+- Download from the official OpenCV source (see EAST Model File section above)
+- Only the `.pb` file is needed - no `.prototxt` file required
 
 **Error**: `No form image loaded`
 
