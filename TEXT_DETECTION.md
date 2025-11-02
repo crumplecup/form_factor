@@ -27,6 +27,11 @@ sudo apt-get install -y \
 sudo dnf install opencv-devel clang clang-devel llvm-devel
 ```
 
+#### Linux (Manjaro/Arch)
+```bash
+sudo pacman -S opencv clang llvm
+```
+
 #### macOS
 ```bash
 brew install opencv llvm
