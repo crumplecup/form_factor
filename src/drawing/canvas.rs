@@ -60,7 +60,9 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     zoom_sensitivity: f32,
     #[serde(skip)]
-    grid_spacing: f32,
+    grid_spacing_horizontal: f32,
+    #[serde(skip)]
+    grid_spacing_vertical: f32,
 
     // Style settings
     pub stroke: Stroke,
@@ -89,7 +91,8 @@ impl Default for DrawingCanvas {
             pan_offset: egui::Vec2::ZERO,
             show_settings: false,
             zoom_sensitivity: 1.0,
-            grid_spacing: 50.0,
+            grid_spacing_horizontal: 50.0,
+            grid_spacing_vertical: 50.0,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
             fill_color: Color32::from_rgba_premultiplied(0, 120, 215, 30),
         }
@@ -270,7 +273,8 @@ impl DrawingCanvas {
         if self.layer_manager.is_visible(crate::drawing::LayerType::Grid) {
             debug!(
                 grid_visible = true,
-                grid_spacing = self.grid_spacing,
+                grid_spacing_h = self.grid_spacing_horizontal,
+                grid_spacing_v = self.grid_spacing_vertical,
                 "Calling draw_grid (rendering on top)"
             );
             self.draw_grid(&painter, &response.rect, &to_screen);
@@ -892,10 +896,16 @@ impl DrawingCanvas {
 
         ui.separator();
 
-        ui.label("Grid Spacing:");
+        ui.label("Grid Spacing (Horizontal):");
         ui.add(
-            egui::Slider::new(&mut self.grid_spacing, 10.0..=200.0)
-                .text("Spacing")
+            egui::Slider::new(&mut self.grid_spacing_horizontal, 10.0..=200.0)
+                .text("Horizontal")
+        );
+
+        ui.label("Grid Spacing (Vertical):");
+        ui.add(
+            egui::Slider::new(&mut self.grid_spacing_vertical, 10.0..=200.0)
+                .text("Vertical")
         );
         ui.label("Distance between grid lines");
     }
@@ -1059,7 +1069,11 @@ impl DrawingCanvas {
 
     /// Draw grid overlay on the canvas
     fn draw_grid(&self, painter: &egui::Painter, canvas_rect: &egui::Rect, transform: &egui::emath::TSTransform) {
-        let _span = tracing::debug_span!("draw_grid", spacing = self.grid_spacing).entered();
+        let _span = tracing::debug_span!(
+            "draw_grid",
+            spacing_h = self.grid_spacing_horizontal,
+            spacing_v = self.grid_spacing_vertical
+        ).entered();
 
         debug!(
             canvas_rect = ?canvas_rect,
@@ -1088,17 +1102,20 @@ impl DrawingCanvas {
         );
 
         // Determine grid line positions in world coordinates
-        let spacing = self.grid_spacing;
-        let start_x = (canvas_min.x / spacing).floor() * spacing;
-        let start_y = (canvas_min.y / spacing).floor() * spacing;
+        let spacing_h = self.grid_spacing_horizontal;
+        let spacing_v = self.grid_spacing_vertical;
+        let start_x = (canvas_min.x / spacing_h).floor() * spacing_h;
+        let start_y = (canvas_min.y / spacing_v).floor() * spacing_v;
 
         debug!(
             start_x = start_x,
             start_y = start_y,
+            spacing_h = spacing_h,
+            spacing_v = spacing_v,
             "Starting grid positions"
         );
 
-        // Draw vertical lines
+        // Draw vertical lines (spaced horizontally)
         let mut x = start_x;
         let mut vertical_count = 0;
         while x <= canvas_max.x {
@@ -1111,11 +1128,11 @@ impl DrawingCanvas {
                 "Drawing vertical grid line"
             );
             painter.line_segment([screen_x_top, screen_x_bottom], grid_stroke);
-            x += spacing;
+            x += spacing_h;
             vertical_count += 1;
         }
 
-        // Draw horizontal lines
+        // Draw horizontal lines (spaced vertically)
         let mut y = start_y;
         let mut horizontal_count = 0;
         while y <= canvas_max.y {
@@ -1128,7 +1145,7 @@ impl DrawingCanvas {
                 "Drawing horizontal grid line"
             );
             painter.line_segment([screen_y_left, screen_y_right], grid_stroke);
-            y += spacing;
+            y += spacing_v;
             horizontal_count += 1;
         }
 
