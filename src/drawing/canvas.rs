@@ -606,6 +606,10 @@ impl DrawingCanvas {
         self.form_image = Some(texture);
         self.form_image_path = Some(path.to_string());
 
+        // Reset zoom and pan to fit image to window
+        self.zoom_level = 1.0;
+        self.pan_offset = egui::Vec2::ZERO;
+
         tracing::info!("Loaded form image: {} ({}x{})", path, img.width(), img.height());
         Ok(())
     }
