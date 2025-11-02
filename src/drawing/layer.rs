@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum LayerType {
     Canvas,
     Shapes,
+    Grid,
 }
 
 /// A layer with visibility control
@@ -42,6 +43,7 @@ impl LayerManager {
     pub fn new() -> Self {
         Self {
             layers: vec![
+                Layer::new("Grid", LayerType::Grid),
                 Layer::new("Shapes", LayerType::Shapes),
                 Layer::new("Canvas", LayerType::Canvas),
             ],

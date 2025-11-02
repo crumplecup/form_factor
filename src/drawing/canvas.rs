@@ -59,10 +59,6 @@ pub struct DrawingCanvas {
     show_settings: bool,
     #[serde(skip)]
     zoom_sensitivity: f32,
-
-    // Grid state (not serialized)
-    #[serde(skip)]
-    show_grid: bool,
     #[serde(skip)]
     grid_spacing: f32,
 
@@ -93,7 +89,6 @@ impl Default for DrawingCanvas {
             pan_offset: egui::Vec2::ZERO,
             show_settings: false,
             zoom_sensitivity: 1.0,
-            show_grid: false,
             grid_spacing: 50.0,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
             fill_color: Color32::from_rgba_premultiplied(0, 120, 215, 30),
@@ -132,16 +127,6 @@ impl DrawingCanvas {
             ui.selectable_value(&mut self.current_tool, ToolMode::Circle, "◯ Circle");
             ui.selectable_value(&mut self.current_tool, ToolMode::Freehand, "✏ Freehand");
             ui.selectable_value(&mut self.current_tool, ToolMode::Edit, "✎ Edit");
-
-            ui.separator();
-
-            // Grid toggle button
-            let grid_label = if self.show_grid { "Grid ✓" } else { "Grid" };
-            if ui.button(grid_label).clicked() {
-                let _span = tracing::debug_span!("grid_toggle").entered();
-                self.show_grid = !self.show_grid;
-                debug!(show_grid = self.show_grid, "Grid toggled");
-            }
         });
 
         ui.separator();
@@ -281,16 +266,16 @@ impl DrawingCanvas {
             }
         }
 
-        // Draw grid on top of everything if enabled
-        if self.show_grid {
+        // Draw grid on top of everything if Grid layer is visible
+        if self.layer_manager.is_visible(crate::drawing::LayerType::Grid) {
             debug!(
-                show_grid = self.show_grid,
+                grid_visible = true,
                 grid_spacing = self.grid_spacing,
                 "Calling draw_grid (rendering on top)"
             );
             self.draw_grid(&painter, &response.rect, &to_screen);
         } else {
-            trace!("Grid is disabled, skipping grid render");
+            trace!("Grid layer is not visible, skipping grid render");
         }
 
         // Handle mouse interactions and draw preview (with zoom transformation)
