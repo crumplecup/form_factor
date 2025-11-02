@@ -257,8 +257,10 @@ impl DrawingCanvas {
 
         debug!(?selected, "Selection result");
 
-        // Check if a polygon was selected to auto-focus the name field
-        if let Some(idx) = selected
+        // Check if a polygon was newly selected to auto-focus the name field
+        // Only set focus if this is a different selection or a new selection
+        if selected != self.selected_shape
+            && let Some(idx) = selected
             && let Some(Shape::Polygon(_)) = self.shapes.get(idx)
         {
             self.focus_name_field = true;
@@ -488,7 +490,11 @@ impl DrawingCanvas {
 
                 ui.horizontal(|ui| {
                     ui.label("Name:");
-                    let response = ui.text_edit_singleline(&mut poly.name);
+
+                    // Create text edit with explicit ID for focusing
+                    let text_edit = egui::TextEdit::singleline(&mut poly.name)
+                        .id_salt("polygon_name");
+                    let response = ui.add(text_edit);
 
                     // Auto-focus the name field when polygon is first selected
                     if self.focus_name_field {
