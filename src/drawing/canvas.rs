@@ -235,18 +235,72 @@ impl DrawingCanvas {
 
             let image_rect = egui::Rect::from_min_size(image_pos, fitted_size);
 
-            // Transform the image rect for zoom
-            let transformed_image_rect = egui::Rect::from_min_max(
-                to_screen.mul_pos(image_rect.min),
-                to_screen.mul_pos(image_rect.max),
-            );
+            // If rotation is applied, use textured mesh for rotation
+            if self.form_image_rotation != 0.0 {
+                // Get the center of the image for rotation
+                let image_center = image_rect.center();
 
-            painter.image(
-                texture.id(),
-                transformed_image_rect,
-                egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
-                Color32::WHITE,
-            );
+                // Define the four corners of the image in world coordinates
+                let corners = [
+                    image_rect.min,
+                    egui::pos2(image_rect.max.x, image_rect.min.y),
+                    image_rect.max,
+                    egui::pos2(image_rect.min.x, image_rect.max.y),
+                ];
+
+                // Rotate corners around the image center, then apply zoom/pan transform
+                let transformed_corners: Vec<Pos2> = corners
+                    .iter()
+                    .map(|&corner| {
+                        let rotated = Self::rotate_point(corner, image_center, self.form_image_rotation);
+                        to_screen.mul_pos(rotated)
+                    })
+                    .collect();
+
+                // Create a textured mesh for the rotated image
+                let uv = egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0));
+                let mesh = egui::Mesh {
+                    indices: vec![0, 1, 2, 0, 2, 3],
+                    vertices: vec![
+                        egui::epaint::Vertex {
+                            pos: transformed_corners[0],
+                            uv: uv.min,
+                            color: Color32::WHITE,
+                        },
+                        egui::epaint::Vertex {
+                            pos: transformed_corners[1],
+                            uv: egui::pos2(uv.max.x, uv.min.y),
+                            color: Color32::WHITE,
+                        },
+                        egui::epaint::Vertex {
+                            pos: transformed_corners[2],
+                            uv: uv.max,
+                            color: Color32::WHITE,
+                        },
+                        egui::epaint::Vertex {
+                            pos: transformed_corners[3],
+                            uv: egui::pos2(uv.min.x, uv.max.y),
+                            color: Color32::WHITE,
+                        },
+                    ],
+                    texture_id: texture.id(),
+                };
+
+                painter.add(egui::Shape::mesh(mesh));
+            } else {
+                // No rotation - use simple image rendering
+                let transformed_image_rect = egui::Rect::from_min_max(
+                    to_screen.mul_pos(image_rect.min),
+                    to_screen.mul_pos(image_rect.max),
+                );
+
+                painter.image(
+                    texture.id(),
+                    transformed_image_rect,
+                    egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
+                    Color32::WHITE,
+                );
+            }
         }
 
         // Draw existing shapes if Shapes layer is visible (with zoom transformation)
@@ -1346,16 +1400,30 @@ impl DrawingCanvas {
             "Starting grid positions"
         );
 
+        // Rotation center for the grid (canvas origin)
+        let grid_center = Pos2::ZERO;
+
         // Draw vertical lines (spaced horizontally)
         let mut x = start_x;
         let mut vertical_count = 0;
         while x <= canvas_max.x {
-            let screen_x_top = transform.mul_pos(Pos2::new(x, canvas_min.y));
-            let screen_x_bottom = transform.mul_pos(Pos2::new(x, canvas_max.y));
+            // Create line endpoints in world coordinates
+            let top = Pos2::new(x, canvas_min.y);
+            let bottom = Pos2::new(x, canvas_max.y);
+
+            // Apply rotation around grid center
+            let rotated_top = Self::rotate_point(top, grid_center, self.grid_rotation_angle);
+            let rotated_bottom = Self::rotate_point(bottom, grid_center, self.grid_rotation_angle);
+
+            // Apply zoom/pan transform
+            let screen_x_top = transform.mul_pos(rotated_top);
+            let screen_x_bottom = transform.mul_pos(rotated_bottom);
+
             trace!(
                 x = x,
                 screen_top = ?screen_x_top,
                 screen_bottom = ?screen_x_bottom,
+                rotation_angle = self.grid_rotation_angle,
                 "Drawing vertical grid line"
             );
             painter.line_segment([screen_x_top, screen_x_bottom], grid_stroke);
@@ -1367,12 +1435,23 @@ impl DrawingCanvas {
         let mut y = start_y;
         let mut horizontal_count = 0;
         while y <= canvas_max.y {
-            let screen_y_left = transform.mul_pos(Pos2::new(canvas_min.x, y));
-            let screen_y_right = transform.mul_pos(Pos2::new(canvas_max.x, y));
+            // Create line endpoints in world coordinates
+            let left = Pos2::new(canvas_min.x, y);
+            let right = Pos2::new(canvas_max.x, y);
+
+            // Apply rotation around grid center
+            let rotated_left = Self::rotate_point(left, grid_center, self.grid_rotation_angle);
+            let rotated_right = Self::rotate_point(right, grid_center, self.grid_rotation_angle);
+
+            // Apply zoom/pan transform
+            let screen_y_left = transform.mul_pos(rotated_left);
+            let screen_y_right = transform.mul_pos(rotated_right);
+
             trace!(
                 y = y,
                 screen_left = ?screen_y_left,
                 screen_right = ?screen_y_right,
+                rotation_angle = self.grid_rotation_angle,
                 "Drawing horizontal grid line"
             );
             painter.line_segment([screen_y_left, screen_y_right], grid_stroke);
@@ -1391,9 +1470,18 @@ impl DrawingCanvas {
     fn render_shape_transformed(&self, shape: &Shape, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
         match shape {
             Shape::Rectangle(rect) => {
+                // Get center of the rectangle for rotation
+                let center = self.get_shape_center(shape);
+
+                // Apply rotation then zoom/pan transform
                 let transformed_corners: Vec<Pos2> = rect.corners
                     .iter()
-                    .map(|p| transform.mul_pos(*p))
+                    .map(|p| {
+                        // Rotate point around center
+                        let rotated = Self::rotate_point(*p, center, rect.rotation_angle);
+                        // Then apply zoom/pan transform
+                        transform.mul_pos(rotated)
+                    })
                     .collect();
 
                 // Draw filled quadrilateral
@@ -1409,14 +1497,25 @@ impl DrawingCanvas {
                 ));
             }
             Shape::Circle(circle) => {
-                let transformed_center = transform.mul_pos(circle.center);
+                // Circles look the same when rotated, but we still apply rotation for consistency
+                // This matters if we add visual indicators like arrows or patterns later
+                let rotated_center = Self::rotate_point(circle.center, circle.center, circle.rotation_angle);
+                let transformed_center = transform.mul_pos(rotated_center);
                 let transformed_radius = circle.radius * self.zoom_level;
                 painter.circle(transformed_center, transformed_radius, circle.fill, circle.stroke);
             }
             Shape::Polygon(poly) => {
+                // Get center of the polygon for rotation
+                let center = self.get_shape_center(shape);
+
                 let points: Vec<Pos2> = poly.to_egui_points()
                     .iter()
-                    .map(|p| transform.mul_pos(*p))
+                    .map(|p| {
+                        // Rotate point around center
+                        let rotated = Self::rotate_point(*p, center, poly.rotation_angle);
+                        // Then apply zoom/pan transform
+                        transform.mul_pos(rotated)
+                    })
                     .collect();
 
                 if points.len() > 2 {
@@ -1431,6 +1530,27 @@ impl DrawingCanvas {
                 }
             }
         }
+    }
+
+    /// Rotate a point around a center by the given angle (in radians)
+    fn rotate_point(point: Pos2, center: Pos2, angle: f32) -> Pos2 {
+        if angle == 0.0 {
+            return point;
+        }
+
+        let cos_a = angle.cos();
+        let sin_a = angle.sin();
+
+        // Translate to origin
+        let dx = point.x - center.x;
+        let dy = point.y - center.y;
+
+        // Rotate
+        let rotated_x = dx * cos_a - dy * sin_a;
+        let rotated_y = dx * sin_a + dy * cos_a;
+
+        // Translate back
+        Pos2::new(center.x + rotated_x, center.y + rotated_y)
     }
 
     /// Draw edit vertices with zoom transformation applied
