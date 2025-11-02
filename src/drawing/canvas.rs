@@ -255,14 +255,19 @@ impl DrawingCanvas {
             }
         }
 
-        debug!(?selected, "Selection result");
+        debug!(?selected, ?self.selected_shape, "Selection result");
 
         // Check if a polygon was newly selected to auto-focus the name field
         // Only set focus if this is a different selection or a new selection
-        if selected != self.selected_shape
-            && let Some(idx) = selected
-            && let Some(Shape::Polygon(_)) = self.shapes.get(idx)
-        {
+        let should_focus = selected != self.selected_shape
+            && selected.is_some()
+            && matches!(
+                selected.and_then(|idx| self.shapes.get(idx)),
+                Some(Shape::Polygon(_))
+            );
+
+        if should_focus {
+            debug!("Setting focus flag for newly selected polygon");
             self.focus_name_field = true;
         }
 
@@ -438,18 +443,27 @@ impl DrawingCanvas {
     /// Show inline properties UI for the selected shape
     pub fn show_inline_properties(&mut self, ui: &mut egui::Ui) {
         if !self.show_properties {
+            trace!("Not showing properties panel");
             return;
         }
 
         let Some(idx) = self.selected_shape else {
+            trace!("No shape selected");
             return;
         };
 
         let Some(shape) = self.shapes.get_mut(idx) else {
+            trace!("Selected shape index {} out of bounds", idx);
             self.selected_shape = None;
             self.show_properties = false;
             return;
         };
+
+        debug!(
+            shape_type = ?shape,
+            focus_flag = self.focus_name_field,
+            "Showing properties panel"
+        );
 
         ui.heading("Shape Properties");
         ui.separator();
@@ -496,8 +510,16 @@ impl DrawingCanvas {
                         .id_salt("polygon_name");
                     let response = ui.add(text_edit);
 
+                    debug!(
+                        has_focus = response.has_focus(),
+                        focus_flag = self.focus_name_field,
+                        widget_id = ?response.id,
+                        "Polygon name field rendered"
+                    );
+
                     // Auto-focus the name field when polygon is first selected
                     if self.focus_name_field {
+                        debug!("Requesting focus on polygon name field");
                         response.request_focus();
                         self.focus_name_field = false;
                     }
