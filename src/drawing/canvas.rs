@@ -166,6 +166,11 @@ impl DrawingCanvas {
 
     /// Render the canvas UI
     pub fn ui(&mut self, ui: &mut egui::Ui) {
+        // Log state at frame start (only when we have detections to avoid spam)
+        if !self.detections.is_empty() {
+            trace!("Frame start: detections={}, shapes={}", self.detections.len(), self.shapes.len());
+        }
+
         // Process any pending image loads (deferred from startup)
         if let Some(pending_path) = self.pending_image_load.take() {
             tracing::debug!("Processing deferred image load: {}", pending_path);
@@ -334,8 +339,10 @@ impl DrawingCanvas {
 
         // Draw detections if Detections layer is visible (with zoom transformation)
         let detections_visible = self.layer_manager.is_visible(crate::drawing::LayerType::Detections);
-        trace!("Rendering detections: count={}, layer_visible={}",
-               self.detections.len(), detections_visible);
+        if !self.detections.is_empty() {
+            debug!("Rendering frame: detections={}, layer_visible={}",
+                   self.detections.len(), detections_visible);
+        }
         if detections_visible {
             for (idx, detection) in self.detections.iter().enumerate() {
                 trace!("Rendering detection {}/{}: {:?}", idx + 1, self.detections.len(), detection);
@@ -756,6 +763,7 @@ impl DrawingCanvas {
 
     /// Clear all shapes and detections from the canvas
     pub fn clear(&mut self) {
+        debug!("Clearing canvas: shapes={}, detections={}", self.shapes.len(), self.detections.len());
         self.shapes.clear();
         self.detections.clear();
     }
