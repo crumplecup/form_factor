@@ -110,7 +110,7 @@ impl Default for DrawingCanvas {
             zoom_level: 5.0,
             pan_offset: egui::Vec2::ZERO,
             show_settings: false,
-            zoom_sensitivity: 1.0,
+            zoom_sensitivity: 5.0,
             grid_spacing_horizontal: 10.0,
             grid_spacing_vertical: 10.0,
             grid_rotation_angle: 0.0,
@@ -1038,7 +1038,7 @@ impl DrawingCanvas {
 
         ui.label("Zoom Sensitivity:");
         ui.add(
-            egui::Slider::new(&mut self.zoom_sensitivity, 0.1..=5.0)
+            egui::Slider::new(&mut self.zoom_sensitivity, 0.1..=10.0)
                 .text("Sensitivity")
                 .logarithmic(true)
         );
@@ -1081,7 +1081,7 @@ impl DrawingCanvas {
 
                 ui.label("Zoom Sensitivity:");
                 ui.add(
-                    egui::Slider::new(&mut self.zoom_sensitivity, 0.1..=5.0)
+                    egui::Slider::new(&mut self.zoom_sensitivity, 0.1..=10.0)
                         .text("Sensitivity")
                         .logarithmic(true)
                 );
