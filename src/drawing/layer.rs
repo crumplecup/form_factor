@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LayerType {
     Canvas,
+    Detections,
     Shapes,
     Grid,
 }
@@ -55,6 +56,7 @@ impl LayerManager {
             layers: vec![
                 grid_layer,
                 Layer::new("Shapes", LayerType::Shapes),
+                Layer::new("Detections", LayerType::Detections),
                 Layer::new("Canvas", LayerType::Canvas),
             ],
         }

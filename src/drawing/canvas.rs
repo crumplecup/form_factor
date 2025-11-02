@@ -21,6 +21,8 @@ pub struct DrawingCanvas {
     pub project_name: String,
     /// All completed shapes
     pub shapes: Vec<Shape>,
+    /// Detected text regions
+    pub detections: Vec<Shape>,
     /// Currently active tool
     pub current_tool: ToolMode,
     /// Layer management
@@ -104,6 +106,7 @@ impl Default for DrawingCanvas {
         Self {
             project_name: String::from("Untitled"),
             shapes: Vec::new(),
+            detections: Vec::new(),
             current_tool: ToolMode::default(),
             layer_manager: LayerManager::new(),
             form_image_path: None,
@@ -142,6 +145,7 @@ impl std::fmt::Debug for DrawingCanvas {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("DrawingCanvas")
             .field("shapes", &self.shapes)
+            .field("detections", &self.detections)
             .field("current_tool", &self.current_tool)
             .field("layer_manager", &self.layer_manager)
             .field("form_image_path", &self.form_image_path)
@@ -325,6 +329,14 @@ impl DrawingCanvas {
                     egui::Rect::from_min_max(egui::pos2(0.0, 0.0), egui::pos2(1.0, 1.0)),
                     Color32::WHITE,
                 );
+            }
+        }
+
+        // Draw detections if Detections layer is visible (with zoom transformation)
+        let detections_visible = self.layer_manager.is_visible(crate::drawing::LayerType::Detections);
+        if detections_visible {
+            for detection in &self.detections {
+                self.render_shape_transformed(detection, &painter, &to_screen);
             }
         }
 
@@ -737,9 +749,10 @@ impl DrawingCanvas {
         self.is_drawing = false;
     }
 
-    /// Clear all shapes from the canvas
+    /// Clear all shapes and detections from the canvas
     pub fn clear(&mut self) {
         self.shapes.clear();
+        self.detections.clear();
     }
 
     /// Remove the last shape (undo)
@@ -786,7 +799,7 @@ impl DrawingCanvas {
             let mut rect = Rectangle::from_corners(top_left, bottom_right, stroke, fill);
             rect.name = format!("Text Region {} ({:.2}%)", i + 1, region.confidence * 100.0);
 
-            self.shapes.push(Shape::Rectangle(rect));
+            self.detections.push(Shape::Rectangle(rect));
         }
 
         Ok(count)
@@ -1430,6 +1443,9 @@ impl DrawingCanvas {
                     debug!("No form image loaded - cannot rotate");
                 }
             }
+            Some(LayerType::Detections) => {
+                debug!("Detections layer selected - detections cannot be rotated");
+            }
             None => {
                 debug!("No layer selected for rotation - user must select a layer first");
             }
@@ -1463,6 +1479,9 @@ impl DrawingCanvas {
                 }
                 Some(LayerType::Canvas) => {
                     self.form_image_rotation -= angle_delta;
+                }
+                Some(LayerType::Detections) => {
+                    // Detections cannot be rotated
                 }
                 None => {}
             }
