@@ -383,6 +383,17 @@ impl DrawingCanvas {
 
         if let Some(shape) = shape {
             self.shapes.push(shape);
+
+            // Automatically select the newly created shape so user can name it
+            let new_shape_idx = self.shapes.len() - 1;
+            self.selected_shape = Some(new_shape_idx);
+            self.show_properties = true;
+            self.focus_name_field = true;
+
+            debug!(
+                shape_index = new_shape_idx,
+                "Auto-selecting newly created shape"
+            );
         }
 
         // Reset drawing state
