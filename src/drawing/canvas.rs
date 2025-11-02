@@ -257,19 +257,14 @@ impl DrawingCanvas {
 
         debug!(?selected, ?self.selected_shape, "Selection result");
 
-        // Check if a polygon was newly selected to auto-focus the name field
+        // Check if a shape was newly selected to auto-focus the name field
         // Only set focus if this is a different selection or a new selection
-        let _span = tracing::debug_span!("polygon_name_autofocus").entered();
+        let _span = tracing::debug_span!("shape_name_autofocus").entered();
 
-        let should_focus = selected != self.selected_shape
-            && selected.is_some()
-            && matches!(
-                selected.and_then(|idx| self.shapes.get(idx)),
-                Some(Shape::Polygon(_))
-            );
+        let should_focus = selected != self.selected_shape && selected.is_some();
 
         if should_focus {
-            debug!("Setting focus flag for newly selected polygon");
+            debug!("Setting focus flag for newly selected shape");
             self.focus_name_field = true;
         } else {
             trace!(
@@ -482,8 +477,32 @@ impl DrawingCanvas {
                 ui.separator();
 
                 ui.horizontal(|ui| {
+                    let _span = tracing::debug_span!("shape_name_autofocus").entered();
+
                     ui.label("Name:");
-                    ui.text_edit_singleline(&mut rect.name);
+
+                    // Create text edit with explicit ID for focusing
+                    let text_edit = egui::TextEdit::singleline(&mut rect.name)
+                        .id_salt("rectangle_name");
+                    let response = ui.add(text_edit);
+
+                    debug!(
+                        has_focus = response.has_focus(),
+                        focus_flag = self.focus_name_field,
+                        widget_id = ?response.id,
+                        "Rectangle name field rendered"
+                    );
+
+                    // Auto-focus the name field when rectangle is first selected
+                    if self.focus_name_field {
+                        debug!("Requesting focus on rectangle name field");
+                        response.request_focus();
+                        self.focus_name_field = false;
+                        debug!(
+                            has_focus_after_request = response.has_focus(),
+                            "Focus requested, checking result"
+                        );
+                    }
                 });
 
                 ui.separator();
@@ -497,8 +516,32 @@ impl DrawingCanvas {
                 ui.separator();
 
                 ui.horizontal(|ui| {
+                    let _span = tracing::debug_span!("shape_name_autofocus").entered();
+
                     ui.label("Name:");
-                    ui.text_edit_singleline(&mut circle.name);
+
+                    // Create text edit with explicit ID for focusing
+                    let text_edit = egui::TextEdit::singleline(&mut circle.name)
+                        .id_salt("circle_name");
+                    let response = ui.add(text_edit);
+
+                    debug!(
+                        has_focus = response.has_focus(),
+                        focus_flag = self.focus_name_field,
+                        widget_id = ?response.id,
+                        "Circle name field rendered"
+                    );
+
+                    // Auto-focus the name field when circle is first selected
+                    if self.focus_name_field {
+                        debug!("Requesting focus on circle name field");
+                        response.request_focus();
+                        self.focus_name_field = false;
+                        debug!(
+                            has_focus_after_request = response.has_focus(),
+                            "Focus requested, checking result"
+                        );
+                    }
                 });
 
                 ui.separator();
@@ -511,7 +554,7 @@ impl DrawingCanvas {
                 ui.separator();
 
                 ui.horizontal(|ui| {
-                    let _span = tracing::debug_span!("polygon_name_autofocus").entered();
+                    let _span = tracing::debug_span!("shape_name_autofocus").entered();
 
                     ui.label("Name:");
 
