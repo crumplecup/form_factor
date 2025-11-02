@@ -7,6 +7,11 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tracing::{debug, instrument, trace};
 
+/// Default zoom level for new canvases
+fn default_zoom_level() -> f32 {
+    5.0
+}
+
 /// Drawing canvas state
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DrawingCanvas {
@@ -65,11 +70,11 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     pending_image_load: Option<String>,
 
-    // Zoom and pan state (not serialized)
-    #[serde(skip)]
-    zoom_level: f32,
-    #[serde(skip)]
-    pan_offset: egui::Vec2,
+    // Zoom and pan state
+    #[serde(default = "default_zoom_level")]
+    pub zoom_level: f32,
+    #[serde(default)]
+    pub pan_offset: egui::Vec2,
 
     // Settings state (not serialized)
     #[serde(skip)]
@@ -80,12 +85,12 @@ pub struct DrawingCanvas {
     grid_spacing_horizontal: f32,
     #[serde(skip)]
     grid_spacing_vertical: f32,
-    #[serde(skip)]
-    grid_rotation_angle: f32,
+    #[serde(default)]
+    pub grid_rotation_angle: f32,
 
-    // Form image rotation (not serialized)
-    #[serde(skip)]
-    form_image_rotation: f32,
+    // Form image rotation
+    #[serde(default)]
+    pub form_image_rotation: f32,
 
     // Style settings
     pub stroke: Stroke,
@@ -825,6 +830,10 @@ impl DrawingCanvas {
         self.layer_manager = loaded.layer_manager;
         self.stroke = loaded.stroke;
         self.fill_color = loaded.fill_color;
+        self.zoom_level = loaded.zoom_level;
+        self.pan_offset = loaded.pan_offset;
+        self.grid_rotation_angle = loaded.grid_rotation_angle;
+        self.form_image_rotation = loaded.form_image_rotation;
 
         // If there was a form image saved, try to reload it
         if let Some(form_path) = &loaded.form_image_path {
