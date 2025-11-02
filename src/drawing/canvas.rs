@@ -1293,23 +1293,23 @@ impl DrawingCanvas {
 
             debug!(?pos, ?center, current_angle, angle_delta, "Continuing rotation");
 
-            // Apply rotation based on selected layer
+            // Apply rotation based on selected layer (negated for inverted axis)
             match self.selected_layer {
                 Some(LayerType::Shapes) => {
                     if let Some(idx) = self.selected_shape
                         && let Some(shape) = self.shapes.get_mut(idx) {
                         match shape {
-                            Shape::Rectangle(rect) => rect.rotation_angle += angle_delta,
-                            Shape::Circle(circle) => circle.rotation_angle += angle_delta,
-                            Shape::Polygon(poly) => poly.rotation_angle += angle_delta,
+                            Shape::Rectangle(rect) => rect.rotation_angle -= angle_delta,
+                            Shape::Circle(circle) => circle.rotation_angle -= angle_delta,
+                            Shape::Polygon(poly) => poly.rotation_angle -= angle_delta,
                         }
                     }
                 }
                 Some(LayerType::Grid) => {
-                    self.grid_rotation_angle += angle_delta;
+                    self.grid_rotation_angle -= angle_delta;
                 }
                 Some(LayerType::Canvas) => {
-                    self.form_image_rotation += angle_delta;
+                    self.form_image_rotation -= angle_delta;
                 }
                 None => {}
             }
