@@ -17,6 +17,7 @@ name = "form_factor"
 
 [dependencies]
 accesskit = { version = "0.21.1", features = ["serde"] }
+dotenvy = "0.15"
 egui = { version = "0.33.0", features = ["accesskit", "serde"] }
 geo = "0.29"
 geo-types = { version = "0.7", features = ["serde"] }

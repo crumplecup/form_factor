@@ -106,7 +106,12 @@ impl App for DemoApp {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Load .env file for configuration (RUST_LOG, etc.)
+    // This allows setting defaults in .env that can be overridden by environment variables
+    let _ = dotenvy::dotenv(); // Ignore error if .env doesn't exist
+
     // Initialize tracing subscriber with environment filter
+    // Priority: environment variable > .env file > default fallback
     // Use RUST_LOG env var to control logging, e.g.:
     // RUST_LOG=form_factor=debug cargo run
     // RUST_LOG=form_factor::drawing=trace cargo run
