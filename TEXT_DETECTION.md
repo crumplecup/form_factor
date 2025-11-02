@@ -4,7 +4,7 @@ This document explains how to enable and use the text detection feature in Form 
 
 ## Overview
 
-The text detection feature uses OpenCV's EAST (Efficient and Accurate Scene Text) model to automatically detect text regions in form images. Detected regions are automatically converted to rectangle shapes on the canvas.
+The text detection feature uses OpenCV's **DB (Differentiable Binarization)** model to automatically detect text regions in form images. DB is a modern (2019) deep learning model that offers excellent performance on curved text, small text, and complex layouts. Detected regions are automatically converted to rectangle shapes on the canvas.
 
 ## Prerequisites
 
@@ -103,36 +103,67 @@ fi
 Download and install OpenCV from https://opencv.org/releases/
 Set the `OPENCV_LINK_PATHS` and `OPENCV_INCLUDE_PATHS` environment variables.
 
-### EAST Model File
+### DB Model Files
 
-You need to download the pre-trained EAST text detection model from the official OpenCV source:
+You need to download a pre-trained DB text detection model. OpenCV officially provides several variants:
 
-1. Create a `models` directory in the project root:
+#### Available Models
+
+1. **DB_IC15_resnet50.onnx** - ResNet-50 backbone, trained on ICDAR2015 (English text)
+   - Best for: High accuracy requirements, English documents
+   - Size: ~100 MB
+
+2. **DB_IC15_resnet18.onnx** - ResNet-18 backbone, trained on ICDAR2015 (English text)
+   - Best for: Faster inference, resource-constrained environments
+   - Size: ~50 MB
+
+3. **DB_TD500_resnet50.onnx** - ResNet-50 backbone, trained on MSRA-TD500 (English + Chinese text)
+   - Best for: Multi-language documents (default model)
+   - Size: ~100 MB
+
+4. **DB_TD500_resnet18.onnx** - ResNet-18 backbone, trained on MSRA-TD500 (English + Chinese text)
+   - Best for: Faster multi-language detection
+   - Size: ~50 MB
+
+#### Download Instructions
+
+1. Create a `models` directory:
 ```bash
 mkdir -p models
+cd models
 ```
 
-2. Download and extract the EAST model:
+2. Download your preferred model from OpenCV's Google Drive:
+
+**Option 1: TD500 ResNet-50 (recommended default)**
 ```bash
-# Download the official EAST model (referenced in OpenCV documentation)
-cd models
-wget https://www.dropbox.com/s/r2ingd0l3zt8hxs/frozen_east_text_detection.tar.gz?dl=1 -O frozen_east_text_detection.tar.gz
+# Download multi-language model (English + Chinese)
+wget --no-check-certificate 'https://drive.google.com/uc?export=download&id=19YWhArrNccaoSza0CfkXlA8im4-lAGsR' -O DB_TD500_resnet50.onnx
+```
 
-# Extract the model file
-tar -xvzf frozen_east_text_detection.tar.gz
+**Option 2: IC15 ResNet-50 (English only, high accuracy)**
+```bash
+# Download English-only model
+wget --no-check-certificate 'https://drive.google.com/uc?export=download&id=17_ABp79PlFt9yPCxSaarVc_DKTmrSGGf' -O DB_IC15_resnet50.onnx
+```
 
-# Clean up the archive
-rm frozen_east_text_detection.tar.gz
+**Option 3: Faster models (ResNet-18)**
+```bash
+# TD500 ResNet-18 (multi-language, faster)
+wget --no-check-certificate 'https://drive.google.com/uc?export=download&id=1vY_KsDZZZb_svLPwybZhHXcYp7zPWPZU' -O DB_TD500_resnet18.onnx
+
+# IC15 ResNet-18 (English only, faster)
+wget --no-check-certificate 'https://drive.google.com/uc?export=download&id=1sZszH3pEt8hliyBlTSz2u_v3_d-nnD5e' -O DB_IC15_resnet18.onnx
 ```
 
 3. Verify the file exists:
 ```bash
-ls models/frozen_east_text_detection.pb
+ls models/DB_TD500_resnet50.onnx  # or whichever model you downloaded
 ```
 
-**Note**: This model is a TensorFlow frozen graph (`.pb` format). No `.prototxt` file is needed - that's only required for Caffe models.
+**Note**: These are ONNX format models officially provided by OpenCV. The links come from OpenCV's official documentation at https://docs.opencv.org/4.x/d4/d43/tutorial_dnn_text_spotting.html
 
-**Model Source**: This model comes from the argman/EAST implementation and is officially referenced in OpenCV's documentation and sample code.
+**Model Source**: Official OpenCV pre-trained models based on the DB paper (https://arxiv.org/abs/1911.08947)
 
 ## Building with Text Detection
 
@@ -155,13 +186,23 @@ cargo run --features text-detection
 
 ## Configuration
 
-The text detector uses the following default settings:
+The DB text detector uses the following default settings:
 
-- **Confidence threshold**: 0.5 (50%)
-- **Model input size**: 320x320 pixels
-- **Non-maximum suppression IoU threshold**: 0.4
+- **Binary threshold**: 0.3 - Threshold for binarization (lower = more sensitive)
+- **Polygon threshold**: 0.5 - Threshold for text region filtering (0.5-0.7 typical)
+- **Unclip ratio**: 2.0 - Expansion ratio for detected text regions
+- **Max candidates**: 200 - Maximum number of text regions to detect
+- **Confidence threshold**: 0.5 (50%) - Minimum confidence for shape creation
 
-These settings are optimized for general document text detection but can be adjusted by modifying the `detect_text_regions` method in `src/drawing/canvas.rs`.
+These settings are optimized for general document text detection and can be adjusted using the builder pattern:
+
+```rust
+let detector = TextDetector::new("models/DB_TD500_resnet50.onnx".to_string())
+    .with_binary_threshold(0.3)
+    .with_polygon_threshold(0.6)
+    .with_unclip_ratio(2.0)
+    .with_max_candidates(200);
+```
 
 ## Troubleshooting
 
@@ -210,12 +251,13 @@ brew install opencv
 
 ### Runtime Errors
 
-**Error**: `Failed to load EAST model`
+**Error**: `Failed to load DB model`
 
 **Solution**: Ensure the model file is in the correct location:
-- Default path: `models/frozen_east_text_detection.pb`
-- Download from the official OpenCV source (see EAST Model File section above)
-- Only the `.pb` file is needed - no `.prototxt` file required
+- Default path: `models/DB_TD500_resnet50.onnx`
+- Download from OpenCV's Google Drive (see DB Model Files section above)
+- The model must be in ONNX format (`.onnx` extension)
+- Verify file is not corrupted: `file models/DB_TD500_resnet50.onnx` should show "data"
 
 **Error**: `No form image loaded`
 
@@ -224,26 +266,39 @@ brew install opencv
 ## Performance
 
 Text detection performance depends on:
-- Image size (larger images take longer)
-- CPU/GPU capabilities
-- Number of text regions in the image
+- **Model size**: ResNet-50 (~100 MB) vs ResNet-18 (~50 MB)
+- **Image size**: Larger images take longer to process
+- **CPU/GPU**: GPU acceleration (via opencv-cuda) significantly faster
+- **Number of text regions**: More text = longer processing time
 
-Typical processing time for a standard form (A4 size, 300 DPI):
-- With GPU: 1-3 seconds
-- Without GPU: 3-10 seconds
+### Typical Processing Time (A4 size, 300 DPI):
 
-## Limitations
+**ResNet-50 models:**
+- With GPU (CUDA): 0.5-2 seconds
+- Without GPU: 3-8 seconds
 
-- The EAST model is optimized for horizontal and near-horizontal text
-- Very small or very large text may not be detected reliably
-- Handwritten text detection is limited
-- Best results with high-contrast, clear text
+**ResNet-18 models (faster):**
+- With GPU (CUDA): 0.3-1 second
+- Without GPU: 1-4 seconds
 
-## Alternative Models
+### Model Selection Guide:
 
-While this implementation uses the EAST model, you can adapt the `TextDetector` to use other models:
-- CRAFT (Character Region Awareness for Text detection)
-- DB (Differentiable Binarization)
-- PSENet (Progressive Scale Expansion Network)
+- **High accuracy needed**: Use ResNet-50 (DB_TD500_resnet50.onnx or DB_IC15_resnet50.onnx)
+- **Speed critical**: Use ResNet-18 (DB_TD500_resnet18.onnx or DB_IC15_resnet18.onnx)
+- **Multi-language**: Use TD500 models (English + Chinese)
+- **English only**: Use IC15 models
 
-Modify `src/text_detection.rs` to integrate alternative models.
+## Strengths & Limitations
+
+### Strengths:
+- ✅ Excellent performance on curved and rotated text
+- ✅ Handles small text well
+- ✅ Works with complex layouts
+- ✅ Supports multi-language detection (TD500 models)
+- ✅ Modern architecture (2019)
+
+### Limitations:
+- ⚠️ Handwritten text detection is limited (trained on printed text)
+- ⚠️ Best results with high-contrast text
+- ⚠️ Very low-resolution images may not work well
+- ⚠️ Requires ~100 MB model file for ResNet-50 variants
