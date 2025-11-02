@@ -91,8 +91,8 @@ impl Default for DrawingCanvas {
             pan_offset: egui::Vec2::ZERO,
             show_settings: false,
             zoom_sensitivity: 1.0,
-            grid_spacing_horizontal: 50.0,
-            grid_spacing_vertical: 50.0,
+            grid_spacing_horizontal: 10.0,
+            grid_spacing_vertical: 10.0,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
             fill_color: Color32::from_rgba_premultiplied(0, 120, 215, 30),
         }
@@ -898,14 +898,16 @@ impl DrawingCanvas {
 
         ui.label("Grid Spacing (Horizontal):");
         ui.add(
-            egui::Slider::new(&mut self.grid_spacing_horizontal, 10.0..=200.0)
+            egui::Slider::new(&mut self.grid_spacing_horizontal, 0.1..=100.0)
                 .text("Horizontal")
+                .logarithmic(true)
         );
 
         ui.label("Grid Spacing (Vertical):");
         ui.add(
-            egui::Slider::new(&mut self.grid_spacing_vertical, 10.0..=200.0)
+            egui::Slider::new(&mut self.grid_spacing_vertical, 0.1..=100.0)
                 .text("Vertical")
+                .logarithmic(true)
         );
         ui.label("Distance between grid lines");
     }
