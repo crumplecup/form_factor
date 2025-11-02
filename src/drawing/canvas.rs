@@ -334,10 +334,15 @@ impl DrawingCanvas {
 
         // Draw detections if Detections layer is visible (with zoom transformation)
         let detections_visible = self.layer_manager.is_visible(crate::drawing::LayerType::Detections);
+        trace!("Rendering detections: count={}, layer_visible={}",
+               self.detections.len(), detections_visible);
         if detections_visible {
-            for detection in &self.detections {
+            for (idx, detection) in self.detections.iter().enumerate() {
+                trace!("Rendering detection {}/{}: {:?}", idx + 1, self.detections.len(), detection);
                 self.render_shape_transformed(detection, &painter, &to_screen);
             }
+        } else if !self.detections.is_empty() {
+            debug!("Detections layer hidden: {} detections not rendered", self.detections.len());
         }
 
         // Draw existing shapes if Shapes layer is visible (with zoom transformation)
@@ -767,6 +772,7 @@ impl DrawingCanvas {
 
     /// Detect text regions in the loaded form image
     #[cfg(feature = "text-detection")]
+    #[instrument(skip(self), fields(confidence_threshold, existing_detections = self.detections.len()))]
     pub fn detect_text_regions(&mut self, confidence_threshold: f32) -> Result<usize, String> {
         // Check if we have a form image loaded
         let form_path = self.form_image_path.as_ref()
@@ -801,6 +807,8 @@ impl DrawingCanvas {
 
             self.detections.push(Shape::Rectangle(rect));
         }
+
+        debug!("Added {} detections, total now: {}", count, self.detections.len());
 
         Ok(count)
     }
@@ -846,7 +854,10 @@ impl DrawingCanvas {
     }
 
     /// Save the project state to a file
+    #[instrument(skip(self), fields(path, shapes = self.shapes.len(), detections = self.detections.len()))]
     pub fn save_to_file(&self, path: &str) -> Result<(), String> {
+        debug!("Saving project: shapes={}, detections={}", self.shapes.len(), self.detections.len());
+
         let json = serde_json::to_string_pretty(self)
             .map_err(|e| format!("Failed to serialize project: {}", e))?;
 
@@ -871,12 +882,16 @@ impl DrawingCanvas {
 
     /// Load the project state from a file (internal implementation)
     /// If defer_image_load is true, the image will be loaded on the next update() call
+    #[instrument(skip(self, ctx), fields(path, defer_image_load))]
     fn load_from_file_impl(&mut self, path: &str, ctx: &egui::Context, defer_image_load: bool) -> Result<(), String> {
         let json = std::fs::read_to_string(path)
             .map_err(|e| format!("Failed to read file: {}", e))?;
 
         let loaded: DrawingCanvas = serde_json::from_str(&json)
             .map_err(|e| format!("Failed to deserialize project: {}", e))?;
+
+        debug!("Deserialized project state: shapes={}, detections={}",
+               loaded.shapes.len(), loaded.detections.len());
 
         // Copy all the serialized state
         self.project_name = loaded.project_name;
@@ -890,6 +905,11 @@ impl DrawingCanvas {
         self.pan_offset = loaded.pan_offset;
         self.grid_rotation_angle = loaded.grid_rotation_angle;
         self.form_image_rotation = loaded.form_image_rotation;
+
+        debug!("Loaded project state: shapes={}, detections={}, detections_layer_visible={}",
+               self.shapes.len(),
+               self.detections.len(),
+               self.layer_manager.is_visible(LayerType::Detections));
 
         // If there was a form image saved, try to reload it
         if let Some(form_path) = &loaded.form_image_path {
