@@ -36,6 +36,12 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     focus_name_field: bool,
 
+    // Edit mode vertex dragging state (not serialized)
+    #[serde(skip)]
+    dragging_vertex: Option<usize>,
+    #[serde(skip)]
+    is_dragging_vertex: bool,
+
     // Form image state (not serialized)
     #[serde(skip)]
     form_image: Option<egui::TextureHandle>,
@@ -61,6 +67,8 @@ impl Default for DrawingCanvas {
             selected_shape: None,
             show_properties: false,
             focus_name_field: false,
+            dragging_vertex: None,
+            is_dragging_vertex: false,
             form_image: None,
             form_image_size: None,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
@@ -99,6 +107,7 @@ impl DrawingCanvas {
             ui.selectable_value(&mut self.current_tool, ToolMode::Rectangle, "▭ Rectangle");
             ui.selectable_value(&mut self.current_tool, ToolMode::Circle, "◯ Circle");
             ui.selectable_value(&mut self.current_tool, ToolMode::Freehand, "✏ Freehand");
+            ui.selectable_value(&mut self.current_tool, ToolMode::Edit, "✎ Edit");
         });
 
         ui.separator();
@@ -171,6 +180,11 @@ impl DrawingCanvas {
                             painter.add(egui::Shape::closed_line(points, highlight_stroke));
                         }
                     }
+
+                    // Draw edit vertices if in Edit mode
+                    if self.current_tool == ToolMode::Edit && Some(idx) == self.selected_shape {
+                        self.draw_edit_vertices(shape, &painter);
+                    }
                 }
             }
         }
@@ -205,7 +219,33 @@ impl DrawingCanvas {
                     }
                 }
             }
-            _ => {
+            ToolMode::Edit => {
+                let _span = tracing::debug_span!("edit_vertices").entered();
+
+                // Handle vertex editing
+                if let Some(pos) = response.interact_pointer_pos() {
+                    if response.drag_started() {
+                        self.start_vertex_drag(pos);
+                    } else if response.dragged() && self.is_dragging_vertex {
+                        self.continue_vertex_drag(pos);
+                    }
+                }
+
+                // Check if drag ended
+                if response.drag_stopped() && self.is_dragging_vertex {
+                    self.finish_vertex_drag();
+                }
+
+                // Also handle selection clicks when not dragging
+                if response.clicked() && !self.is_dragging_vertex {
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        self.handle_selection_click(pos);
+                    } else if let Some(pos) = response.hover_pos() {
+                        self.handle_selection_click(pos);
+                    }
+                }
+            }
+            ToolMode::Rectangle | ToolMode::Circle | ToolMode::Freehand => {
                 // Handle drawing tools
                 if let Some(pos) = response.interact_pointer_pos() {
                     if response.drag_started() {
@@ -330,6 +370,9 @@ impl DrawingCanvas {
             ToolMode::Select => {
                 // Selection preview could go here
             }
+            ToolMode::Edit => {
+                // Edit mode doesn't draw new shapes
+            }
         }
     }
 
@@ -379,6 +422,7 @@ impl DrawingCanvas {
                 }
             }
             ToolMode::Select => None,
+            ToolMode::Edit => None,
         };
 
         if let Some(shape) = shape {
@@ -706,5 +750,204 @@ impl DrawingCanvas {
         }
 
         true
+    }
+
+    /// Draw edit vertices (control points) for the given shape
+    fn draw_edit_vertices(&self, shape: &Shape, painter: &egui::Painter) {
+        const VERTEX_SIZE: f32 = 6.0;
+        let vertex_stroke = Stroke::new(2.0, Color32::from_rgb(0, 120, 215));
+        let vertex_fill = Color32::from_rgb(255, 255, 255);
+
+        match shape {
+            Shape::Rectangle(rect) => {
+                // Draw control points at start and end corners
+                painter.rect_filled(
+                    egui::Rect::from_center_size(rect.start, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_fill,
+                );
+                painter.rect_stroke(
+                    egui::Rect::from_center_size(rect.start, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_stroke,
+                    egui::StrokeKind::Outside,
+                );
+
+                painter.rect_filled(
+                    egui::Rect::from_center_size(rect.end, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_fill,
+                );
+                painter.rect_stroke(
+                    egui::Rect::from_center_size(rect.end, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_stroke,
+                    egui::StrokeKind::Outside,
+                );
+            }
+            Shape::Circle(circle) => {
+                // Draw control points at center and on the edge
+                painter.rect_filled(
+                    egui::Rect::from_center_size(circle.center, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_fill,
+                );
+                painter.rect_stroke(
+                    egui::Rect::from_center_size(circle.center, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_stroke,
+                    egui::StrokeKind::Outside,
+                );
+
+                // Edge control point (to the right of center)
+                let edge_point = egui::pos2(circle.center.x + circle.radius, circle.center.y);
+                painter.rect_filled(
+                    egui::Rect::from_center_size(edge_point, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_fill,
+                );
+                painter.rect_stroke(
+                    egui::Rect::from_center_size(edge_point, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    0.0,
+                    vertex_stroke,
+                    egui::StrokeKind::Outside,
+                );
+            }
+            Shape::Polygon(poly) => {
+                // Draw control points at all vertices
+                for point in poly.to_egui_points() {
+                    painter.rect_filled(
+                        egui::Rect::from_center_size(point, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        0.0,
+                        vertex_fill,
+                    );
+                    painter.rect_stroke(
+                        egui::Rect::from_center_size(point, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        0.0,
+                        vertex_stroke,
+                        egui::StrokeKind::Outside,
+                    );
+                }
+            }
+        }
+    }
+
+    /// Start dragging a vertex
+    fn start_vertex_drag(&mut self, pos: Pos2) {
+        const VERTEX_CLICK_RADIUS: f32 = 8.0;
+
+        let Some(idx) = self.selected_shape else {
+            // No shape selected, try to select one
+            self.handle_selection_click(pos);
+            return;
+        };
+
+        let Some(shape) = self.shapes.get(idx) else {
+            return;
+        };
+
+        // Find which vertex was clicked
+        let clicked_vertex = match shape {
+            Shape::Rectangle(rect) => {
+                if pos.distance(rect.start) < VERTEX_CLICK_RADIUS {
+                    Some(0)
+                } else if pos.distance(rect.end) < VERTEX_CLICK_RADIUS {
+                    Some(1)
+                } else {
+                    None
+                }
+            }
+            Shape::Circle(circle) => {
+                if pos.distance(circle.center) < VERTEX_CLICK_RADIUS {
+                    Some(0)
+                } else {
+                    let edge_point = egui::pos2(circle.center.x + circle.radius, circle.center.y);
+                    if pos.distance(edge_point) < VERTEX_CLICK_RADIUS {
+                        Some(1)
+                    } else {
+                        None
+                    }
+                }
+            }
+            Shape::Polygon(poly) => {
+                poly.to_egui_points()
+                    .iter()
+                    .enumerate()
+                    .find(|(_, vertex_pos)| pos.distance(**vertex_pos) < VERTEX_CLICK_RADIUS)
+                    .map(|(i, _)| i)
+            }
+        };
+
+        if let Some(vertex_idx) = clicked_vertex {
+            debug!(vertex_idx, "Starting vertex drag");
+            self.dragging_vertex = Some(vertex_idx);
+            self.is_dragging_vertex = true;
+        }
+    }
+
+    /// Continue dragging a vertex
+    fn continue_vertex_drag(&mut self, pos: Pos2) {
+        let Some(vertex_idx) = self.dragging_vertex else {
+            return;
+        };
+
+        let Some(shape_idx) = self.selected_shape else {
+            return;
+        };
+
+        let Some(shape) = self.shapes.get_mut(shape_idx) else {
+            return;
+        };
+
+        trace!(vertex_idx, ?pos, "Continuing vertex drag");
+
+        // Update the vertex position based on which shape and vertex
+        match shape {
+            Shape::Rectangle(rect) => {
+                match vertex_idx {
+                    0 => rect.start = pos,
+                    1 => rect.end = pos,
+                    _ => {}
+                }
+            }
+            Shape::Circle(circle) => {
+                match vertex_idx {
+                    0 => {
+                        // Moving center - maintain radius
+                        circle.center = pos;
+                    }
+                    1 => {
+                        // Moving edge - update radius
+                        circle.radius = circle.center.distance(pos);
+                    }
+                    _ => {}
+                }
+            }
+            Shape::Polygon(poly) => {
+                // Update the polygon vertex
+                let mut coords: Vec<geo_types::Coord<f64>> = poly.polygon
+                    .exterior()
+                    .coords()
+                    .copied()
+                    .collect();
+
+                if vertex_idx < coords.len() {
+                    coords[vertex_idx] = geo_types::Coord {
+                        x: pos.x as f64,
+                        y: pos.y as f64,
+                    };
+
+                    // Reconstruct the polygon with updated coordinates
+                    poly.polygon = geo_types::Polygon::new(coords.into(), vec![]);
+                }
+            }
+        }
+    }
+
+    /// Finish dragging a vertex
+    fn finish_vertex_drag(&mut self) {
+        debug!("Finishing vertex drag");
+        self.dragging_vertex = None;
+        self.is_dragging_vertex = false;
     }
 }

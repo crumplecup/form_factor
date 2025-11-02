@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 /// The active drawing tool mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ToolMode {
-    /// Select and manipulate existing shapes (not yet implemented)
+    /// Select and manipulate existing shapes
     #[default]
     Select,
     /// Draw rectangles
@@ -14,6 +14,8 @@ pub enum ToolMode {
     Circle,
     /// Draw freehand closed polygons
     Freehand,
+    /// Edit shape vertices
+    Edit,
 }
 
 impl ToolMode {
@@ -24,6 +26,7 @@ impl ToolMode {
             ToolMode::Rectangle => "Rectangle",
             ToolMode::Circle => "Circle",
             ToolMode::Freehand => "Freehand",
+            ToolMode::Edit => "Edit",
         }
     }
 }
