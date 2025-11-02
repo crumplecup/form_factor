@@ -54,6 +54,12 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     pan_offset: egui::Vec2,
 
+    // Settings state (not serialized)
+    #[serde(skip)]
+    show_settings: bool,
+    #[serde(skip)]
+    zoom_sensitivity: f32,
+
     // Style settings
     pub stroke: Stroke,
     pub fill_color: Color32,
@@ -79,6 +85,8 @@ impl Default for DrawingCanvas {
             form_image_size: None,
             zoom_level: 1.0,
             pan_offset: egui::Vec2::ZERO,
+            show_settings: false,
+            zoom_sensitivity: 1.0,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
             fill_color: Color32::from_rgba_premultiplied(0, 120, 215, 30),
         }
@@ -109,6 +117,18 @@ impl DrawingCanvas {
 
     /// Render the canvas UI
     pub fn ui(&mut self, ui: &mut egui::Ui) {
+        // Menu bar
+        egui::MenuBar::new().ui(ui, |ui| {
+            ui.menu_button("File", |ui| {
+                if ui.button("Settings").clicked() {
+                    self.show_settings = true;
+                    ui.close();
+                }
+            });
+        });
+
+        ui.separator();
+
         // Tool selection toolbar
         ui.horizontal(|ui| {
             ui.selectable_value(&mut self.current_tool, ToolMode::Select, "✋ Select");
@@ -133,7 +153,7 @@ impl DrawingCanvas {
         if response.hovered() {
             let scroll_delta = ui.input(|i| i.smooth_scroll_delta.y);
             if scroll_delta != 0.0 {
-                zoom_delta = scroll_delta * 0.001; // Scale factor for smooth zooming
+                zoom_delta = scroll_delta * 0.001 * self.zoom_sensitivity; // Apply zoom sensitivity
             }
         }
 
@@ -142,9 +162,9 @@ impl DrawingCanvas {
             ui.input(|i| {
                 if i.modifiers.ctrl || i.modifiers.command {
                     if i.key_pressed(egui::Key::Minus) {
-                        zoom_delta = -0.1;
+                        zoom_delta = -0.1 * self.zoom_sensitivity;
                     } else if i.key_pressed(egui::Key::Plus) || i.key_pressed(egui::Key::Equals) {
-                        zoom_delta = 0.1;
+                        zoom_delta = 0.1 * self.zoom_sensitivity;
                     }
                 }
             });
@@ -849,6 +869,45 @@ impl DrawingCanvas {
         if !panel_open || close_clicked.is_some_and(|r| r.inner.unwrap_or(false)) {
             self.show_properties = false;
             self.selected_shape = None;
+        }
+
+        true
+    }
+
+    /// Show settings panel
+    /// Returns true if the settings panel was shown
+    pub fn show_settings_panel(&mut self, ctx: &egui::Context) -> bool {
+        if !self.show_settings {
+            return false;
+        }
+
+        let mut panel_open = true;
+        egui::Window::new("Settings")
+            .open(&mut panel_open)
+            .resizable(false)
+            .default_width(300.0)
+            .show(ctx, |ui| {
+                ui.heading("Settings");
+                ui.separator();
+
+                ui.label("Zoom Sensitivity:");
+                ui.add(
+                    egui::Slider::new(&mut self.zoom_sensitivity, 0.1..=5.0)
+                        .text("Sensitivity")
+                        .logarithmic(true)
+                );
+                ui.label("Higher values make zoom more responsive");
+
+                ui.separator();
+
+                if ui.button("Close").clicked() {
+                    self.show_settings = false;
+                }
+            });
+
+        // Close if window was closed
+        if !panel_open {
+            self.show_settings = false;
         }
 
         true

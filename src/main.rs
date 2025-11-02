@@ -94,6 +94,9 @@ impl App for DemoApp {
         egui::CentralPanel::default().show(ctx.egui_ctx, |ui| {
             self.canvas.ui(ui);
         });
+
+        // Settings panel (floating window)
+        self.canvas.show_settings_panel(ctx.egui_ctx);
     }
 
     fn on_exit(&mut self) {
