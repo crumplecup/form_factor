@@ -1,6 +1,6 @@
 //! Example application demonstrating the backend-agnostic architecture
 
-use form_factor::{App, AppContext, Backend, BackendConfig, DrawingCanvas, EframeBackend, RecentProjects};
+use form_factor::{App, AppContext, Backend, BackendConfig, DrawingCanvas, EframeBackend};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 /// Main application struct
@@ -20,22 +20,15 @@ impl DemoApp {
 
 impl App for DemoApp {
     fn setup(&mut self, ctx: &egui::Context) {
-        // Try to load the most recent project
-        let recent = RecentProjects::load();
-        if let Some(recent_path) = recent.most_recent() {
-            if let Some(path_str) = recent_path.to_str() {
-                match self.canvas.load_from_file(path_str, ctx) {
-                    Ok(()) => {
-                        tracing::info!("Auto-loaded most recent project: {}", path_str);
-                    }
-                    Err(e) => {
-                        tracing::warn!("Failed to auto-load recent project {}: {}", path_str, e);
-                        tracing::info!("Starting with default empty project");
-                    }
-                }
+        // Try to load the most recent project (defers image loading)
+        match self.canvas.load_recent_on_startup(ctx) {
+            Ok(()) => {
+                tracing::info!("Auto-loaded most recent project");
             }
-        } else {
-            tracing::info!("No recent projects found, starting with default workspace");
+            Err(e) => {
+                tracing::debug!("No recent project to load: {}", e);
+                tracing::info!("Starting with default workspace");
+            }
         }
 
         tracing::info!("Application setup complete");

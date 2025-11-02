@@ -62,6 +62,8 @@ pub struct DrawingCanvas {
     form_image: Option<egui::TextureHandle>,
     #[serde(skip)]
     form_image_size: Option<egui::Vec2>,
+    #[serde(skip)]
+    pending_image_load: Option<String>,
 
     // Zoom and pan state (not serialized)
     #[serde(skip)]
@@ -114,6 +116,7 @@ impl Default for DrawingCanvas {
             rotation_center: None,
             form_image: None,
             form_image_size: None,
+            pending_image_load: None,
             zoom_level: 5.0,
             pan_offset: egui::Vec2::ZERO,
             show_settings: false,
@@ -152,6 +155,14 @@ impl DrawingCanvas {
 
     /// Render the canvas UI
     pub fn ui(&mut self, ui: &mut egui::Ui) {
+        // Process any pending image loads (deferred from startup)
+        if let Some(pending_path) = self.pending_image_load.take() {
+            tracing::debug!("Processing deferred image load: {}", pending_path);
+            if let Err(e) = self.load_form_image(&pending_path, ui.ctx()) {
+                tracing::warn!("Could not load deferred form image from {}: {}", pending_path, e);
+            }
+        }
+
         // Tool selection toolbar
         ui.horizontal(|ui| {
             ui.selectable_value(&mut self.current_tool, ToolMode::Select, "✋ Select");
@@ -795,6 +806,12 @@ impl DrawingCanvas {
 
     /// Load the project state from a file
     pub fn load_from_file(&mut self, path: &str, ctx: &egui::Context) -> Result<(), String> {
+        self.load_from_file_impl(path, ctx, false)
+    }
+
+    /// Load the project state from a file (internal implementation)
+    /// If defer_image_load is true, the image will be loaded on the next update() call
+    fn load_from_file_impl(&mut self, path: &str, ctx: &egui::Context, defer_image_load: bool) -> Result<(), String> {
         let json = std::fs::read_to_string(path)
             .map_err(|e| format!("Failed to read file: {}", e))?;
 
@@ -811,10 +828,18 @@ impl DrawingCanvas {
 
         // If there was a form image saved, try to reload it
         if let Some(form_path) = &loaded.form_image_path {
-            if let Err(e) = self.load_form_image(form_path, ctx) {
-                tracing::warn!("Could not reload form image from {}: {}", form_path, e);
-                // Don't fail the entire load if the image is missing
-                self.form_image_path = loaded.form_image_path;
+            if defer_image_load {
+                // Defer image loading until the first update() call
+                self.pending_image_load = Some(form_path.clone());
+                self.form_image_path = Some(form_path.clone());
+                tracing::debug!("Deferred loading of form image: {}", form_path);
+            } else {
+                // Load image immediately
+                if let Err(e) = self.load_form_image(form_path, ctx) {
+                    tracing::warn!("Could not reload form image from {}: {}", form_path, e);
+                    // Don't fail the entire load if the image is missing
+                    self.form_image_path = loaded.form_image_path;
+                }
             }
         } else {
             self.form_image_path = None;
@@ -831,6 +856,17 @@ impl DrawingCanvas {
 
         tracing::info!("Loaded project from: {}", path);
         Ok(())
+    }
+
+    /// Load the most recent project on startup (defers image loading)
+    pub fn load_recent_on_startup(&mut self, ctx: &egui::Context) -> Result<(), String> {
+        let recent = RecentProjects::load();
+        if let Some(recent_path) = recent.most_recent()
+            && let Some(path_str) = recent_path.to_str()
+        {
+            return self.load_from_file_impl(path_str, ctx, true);
+        }
+        Err("No recent projects found".to_string())
     }
 
     /// Show inline properties UI for the selected shape
