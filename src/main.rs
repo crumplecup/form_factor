@@ -80,6 +80,12 @@ impl App for DemoApp {
                         if ui.button(visible_icon).clicked() {
                             layer.toggle_visibility();
                         }
+
+                        let lock_icon = if layer.locked { "🔒" } else { "🔓" };
+                        if ui.button(lock_icon).clicked() {
+                            layer.toggle_locked();
+                        }
+
                         ui.label(&layer.name);
                     });
                 }

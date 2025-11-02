@@ -14,6 +14,7 @@ pub struct Layer {
     pub name: String,
     pub layer_type: LayerType,
     pub visible: bool,
+    pub locked: bool,
 }
 
 impl Layer {
@@ -23,12 +24,18 @@ impl Layer {
             name: name.into(),
             layer_type,
             visible: true,
+            locked: false,
         }
     }
 
     /// Toggle visibility
     pub fn toggle_visibility(&mut self) {
         self.visible = !self.visible;
+    }
+
+    /// Toggle locked state
+    pub fn toggle_locked(&mut self) {
+        self.locked = !self.locked;
     }
 }
 
