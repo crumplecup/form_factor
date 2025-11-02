@@ -796,6 +796,28 @@ impl DrawingCanvas {
         self.shapes.len()
     }
 
+    /// Clear only shapes from the canvas
+    pub fn clear_shapes(&mut self) {
+        debug!("Clearing shapes: count={}", self.shapes.len());
+        self.shapes.clear();
+        self.selected_shape = None;
+    }
+
+    /// Clear only detections from the canvas
+    pub fn clear_detections(&mut self) {
+        debug!("Clearing detections: count={}", self.detections.len());
+        self.detections.clear();
+    }
+
+    /// Clear the canvas image (form image)
+    pub fn clear_canvas_image(&mut self) {
+        debug!("Clearing canvas image: path={:?}", self.form_image_path);
+        self.form_image = None;
+        self.form_image_size = None;
+        self.form_image_path = None;
+        self.pending_image_load = None;
+    }
+
     /// Detect text regions in the loaded form image
     #[cfg(feature = "text-detection")]
     #[instrument(skip(self), fields(confidence_threshold, existing_detections = self.detections.len()))]
@@ -826,7 +848,7 @@ impl DrawingCanvas {
 
             // Create a rectangle shape with a distinctive color for text regions
             let stroke = Stroke::new(2.0, Color32::from_rgb(255, 165, 0)); // Orange
-            let fill = Color32::from_rgba_premultiplied(255, 165, 0, 30); // Semi-transparent orange
+            let fill = Color32::TRANSPARENT; // No fill, outline only
 
             let mut rect = Rectangle::from_corners(top_left, bottom_right, stroke, fill);
             rect.name = format!("Text Region {} ({:.2}%)", i + 1, region.confidence * 100.0);

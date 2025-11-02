@@ -135,6 +135,17 @@ impl App for DemoApp {
                                 layer.toggle_locked();
                             }
 
+                            // Clear button for each layer type
+                            use form_factor::LayerType;
+                            if ui.button("🗑").on_hover_text("Clear layer").clicked() {
+                                match layer_type {
+                                    LayerType::Shapes => self.canvas.clear_shapes(),
+                                    LayerType::Detections => self.canvas.clear_detections(),
+                                    LayerType::Canvas => self.canvas.clear_canvas_image(),
+                                    LayerType::Grid => {} // Grid doesn't need clearing
+                                }
+                            }
+
                             // Use regular label instead of selectable_label since we're highlighting the whole row
                             if ui.label(&name).clicked() {
                                 // Toggle selection: if already selected, unselect; otherwise select
