@@ -41,9 +41,12 @@ pub struct LayerManager {
 impl LayerManager {
     /// Create a new layer manager with default layers
     pub fn new() -> Self {
+        let mut grid_layer = Layer::new("Grid", LayerType::Grid);
+        grid_layer.visible = false; // Grid is hidden by default
+
         Self {
             layers: vec![
-                Layer::new("Grid", LayerType::Grid),
+                grid_layer,
                 Layer::new("Shapes", LayerType::Shapes),
                 Layer::new("Canvas", LayerType::Canvas),
             ],
