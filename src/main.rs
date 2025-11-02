@@ -153,6 +153,24 @@ impl App for DemoApp {
                     }
                 });
 
+                // Save button
+                if ui.button("💾 Save Project").clicked()
+                    && let Some(path) = rfd::FileDialog::new()
+                        .add_filter("Form Factor Project", &["ffp"])
+                        .set_file_name(format!("{}.ffp", self.canvas.project_name))
+                        .save_file()
+                    && let Some(path_str) = path.to_str()
+                {
+                    match self.canvas.save_to_file(path_str) {
+                        Ok(()) => {
+                            tracing::info!("Successfully saved project to {}", path_str);
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to save project: {}", e);
+                        }
+                    }
+                }
+
                 ui.separator();
 
                 // Settings section

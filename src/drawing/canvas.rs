@@ -773,6 +773,18 @@ impl DrawingCanvas {
         self.form_image_path = None;
     }
 
+    /// Save the project state to a file
+    pub fn save_to_file(&self, path: &str) -> Result<(), String> {
+        let json = serde_json::to_string_pretty(self)
+            .map_err(|e| format!("Failed to serialize project: {}", e))?;
+
+        std::fs::write(path, json)
+            .map_err(|e| format!("Failed to write file: {}", e))?;
+
+        tracing::info!("Saved project to: {}", path);
+        Ok(())
+    }
+
     /// Show inline properties UI for the selected shape
     pub fn show_inline_properties(&mut self, ui: &mut egui::Ui) {
         if !self.show_properties {
