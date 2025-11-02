@@ -9,6 +9,8 @@ use tracing::{debug, instrument, trace};
 /// Drawing canvas state
 #[derive(Clone, Serialize, Deserialize)]
 pub struct DrawingCanvas {
+    /// Project name
+    pub project_name: String,
     /// All completed shapes
     pub shapes: Vec<Shape>,
     /// Currently active tool
@@ -37,6 +39,8 @@ pub struct DrawingCanvas {
     show_properties: bool,
     #[serde(skip)]
     focus_name_field: bool,
+    #[serde(skip)]
+    pub editing_project_name: bool,
 
     // Edit mode vertex dragging state (not serialized)
     #[serde(skip)]
@@ -88,6 +92,7 @@ pub struct DrawingCanvas {
 impl Default for DrawingCanvas {
     fn default() -> Self {
         Self {
+            project_name: String::from("Untitled"),
             shapes: Vec::new(),
             current_tool: ToolMode::default(),
             layer_manager: LayerManager::new(),
@@ -100,6 +105,7 @@ impl Default for DrawingCanvas {
             selected_layer: None,
             show_properties: false,
             focus_name_field: false,
+            editing_project_name: false,
             dragging_vertex: None,
             is_dragging_vertex: false,
             is_rotating: false,

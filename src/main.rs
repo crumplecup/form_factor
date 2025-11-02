@@ -126,6 +126,35 @@ impl App for DemoApp {
 
                 ui.separator();
 
+                // Projects section
+                ui.heading("Project");
+                ui.separator();
+
+                ui.horizontal(|ui| {
+                    ui.label("Name:");
+
+                    if self.canvas.editing_project_name {
+                        let response = ui.text_edit_singleline(&mut self.canvas.project_name);
+
+                        // Stop editing on Enter or focus loss
+                        if response.lost_focus() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
+                            self.canvas.editing_project_name = false;
+                        }
+
+                        // Request focus when starting to edit
+                        if !response.has_focus() {
+                            response.request_focus();
+                        }
+                    } else {
+                        // Show project name as clickable label
+                        if ui.selectable_label(false, &self.canvas.project_name).clicked() {
+                            self.canvas.editing_project_name = true;
+                        }
+                    }
+                });
+
+                ui.separator();
+
                 // Settings section
                 self.canvas.show_inline_settings(ui);
 
