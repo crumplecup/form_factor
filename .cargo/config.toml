@@ -1,3 +1,12 @@
+# Note: Environment variables for build scripts must be set in your shell
+# Add to ~/.bashrc or ~/.zshrc:
+#   export LIBCLANG_PATH=/usr/lib
+#   export LD_LIBRARY_PATH=/usr/lib
+#
+# Or build with:
+#   LIBCLANG_PATH=/usr/lib LD_LIBRARY_PATH=/usr/lib cargo build --release
+
 [env]
-# Set libclang path for opencv-rust build on Arch/Manjaro
+# These apply to the final binary, not build scripts
 LIBCLANG_PATH = "/usr/lib"
+LD_LIBRARY_PATH = "/usr/lib"
