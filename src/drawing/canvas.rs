@@ -136,9 +136,11 @@ impl DrawingCanvas {
             ui.separator();
 
             // Grid toggle button
-            let grid_icon = if self.show_grid { "⊞" } else { "⊟" };
-            if ui.button(grid_icon).on_hover_text("Toggle Grid").clicked() {
+            let grid_label = if self.show_grid { "Grid ✓" } else { "Grid" };
+            if ui.button(grid_label).clicked() {
+                let _span = tracing::debug_span!("grid_toggle").entered();
                 self.show_grid = !self.show_grid;
+                debug!(show_grid = self.show_grid, "Grid toggled");
             }
         });
 
@@ -205,7 +207,14 @@ impl DrawingCanvas {
 
         // Draw grid if enabled
         if self.show_grid {
+            debug!(
+                show_grid = self.show_grid,
+                grid_spacing = self.grid_spacing,
+                "Calling draw_grid"
+            );
             self.draw_grid(&painter, &response.rect, &to_screen);
+        } else {
+            trace!("Grid is disabled, skipping grid render");
         }
 
         // Draw form image on Canvas layer if loaded
@@ -1065,35 +1074,84 @@ impl DrawingCanvas {
 
     /// Draw grid overlay on the canvas
     fn draw_grid(&self, painter: &egui::Painter, canvas_rect: &egui::Rect, transform: &egui::emath::TSTransform) {
-        let grid_color = Color32::from_rgba_premultiplied(150, 150, 150, 100);
+        let _span = tracing::debug_span!("draw_grid", spacing = self.grid_spacing).entered();
+
+        debug!(
+            canvas_rect = ?canvas_rect,
+            zoom_level = self.zoom_level,
+            "Starting grid render"
+        );
+
+        // Use a more visible grid color - darker with higher opacity
+        let grid_color = Color32::from_rgba_premultiplied(100, 100, 100, 180);
         let grid_stroke = Stroke::new(1.0, grid_color);
+
+        debug!(
+            grid_color = ?grid_color,
+            stroke_width = grid_stroke.width,
+            "Grid stroke configuration"
+        );
 
         // Calculate the canvas bounds in world coordinates
         let canvas_min = transform.inverse().mul_pos(canvas_rect.min);
         let canvas_max = transform.inverse().mul_pos(canvas_rect.max);
+
+        debug!(
+            canvas_min = ?canvas_min,
+            canvas_max = ?canvas_max,
+            "Canvas bounds in world coordinates"
+        );
 
         // Determine grid line positions in world coordinates
         let spacing = self.grid_spacing;
         let start_x = (canvas_min.x / spacing).floor() * spacing;
         let start_y = (canvas_min.y / spacing).floor() * spacing;
 
+        debug!(
+            start_x = start_x,
+            start_y = start_y,
+            "Starting grid positions"
+        );
+
         // Draw vertical lines
         let mut x = start_x;
+        let mut vertical_count = 0;
         while x <= canvas_max.x {
             let screen_x_top = transform.mul_pos(Pos2::new(x, canvas_min.y));
             let screen_x_bottom = transform.mul_pos(Pos2::new(x, canvas_max.y));
+            trace!(
+                x = x,
+                screen_top = ?screen_x_top,
+                screen_bottom = ?screen_x_bottom,
+                "Drawing vertical grid line"
+            );
             painter.line_segment([screen_x_top, screen_x_bottom], grid_stroke);
             x += spacing;
+            vertical_count += 1;
         }
 
         // Draw horizontal lines
         let mut y = start_y;
+        let mut horizontal_count = 0;
         while y <= canvas_max.y {
             let screen_y_left = transform.mul_pos(Pos2::new(canvas_min.x, y));
             let screen_y_right = transform.mul_pos(Pos2::new(canvas_max.x, y));
+            trace!(
+                y = y,
+                screen_left = ?screen_y_left,
+                screen_right = ?screen_y_right,
+                "Drawing horizontal grid line"
+            );
             painter.line_segment([screen_y_left, screen_y_right], grid_stroke);
             y += spacing;
+            horizontal_count += 1;
         }
+
+        debug!(
+            vertical_lines = vertical_count,
+            horizontal_lines = horizontal_count,
+            "Grid render complete"
+        );
     }
 
     /// Render a shape with zoom transformation applied
