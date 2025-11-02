@@ -83,32 +83,37 @@ impl App for DemoApp {
                 for (layer_type, visible, locked, name) in layers_data {
                     let is_selected = self.canvas.selected_layer == Some(layer_type);
 
-                    ui.horizontal(|ui| {
-                        let visible_icon = if visible { "👁" } else { "🚫" };
-                        if ui.button(visible_icon).clicked()
-                            && let Some(layer) = self.canvas.layer_manager.layers_mut()
-                                .iter_mut()
-                                .find(|l| l.layer_type == layer_type) {
-                            layer.toggle_visibility();
-                        }
+                    // Frame for row without custom selection color
+                    egui::Frame::default()
+                        .inner_margin(4.0)
+                        .show(ui, |ui| {
+                            ui.horizontal(|ui| {
+                                let visible_icon = if visible { "👁" } else { "🚫" };
+                                if ui.button(visible_icon).clicked()
+                                    && let Some(layer) = self.canvas.layer_manager.layers_mut()
+                                        .iter_mut()
+                                        .find(|l| l.layer_type == layer_type) {
+                                    layer.toggle_visibility();
+                                }
 
-                        let lock_icon = if locked { "🔒" } else { "🔓" };
-                        if ui.button(lock_icon).clicked()
-                            && let Some(layer) = self.canvas.layer_manager.layers_mut()
-                                .iter_mut()
-                                .find(|l| l.layer_type == layer_type) {
-                            layer.toggle_locked();
-                        }
+                                let lock_icon = if locked { "🔒" } else { "🔓" };
+                                if ui.button(lock_icon).clicked()
+                                    && let Some(layer) = self.canvas.layer_manager.layers_mut()
+                                        .iter_mut()
+                                        .find(|l| l.layer_type == layer_type) {
+                                    layer.toggle_locked();
+                                }
 
-                        if ui.selectable_label(is_selected, &name).clicked() {
-                            // Toggle selection: if already selected, unselect; otherwise select
-                            if is_selected {
-                                self.canvas.selected_layer = None;
-                            } else {
-                                self.canvas.selected_layer = Some(layer_type);
-                            }
-                        }
-                    });
+                                if ui.selectable_label(is_selected, &name).clicked() {
+                                    // Toggle selection: if already selected, unselect; otherwise select
+                                    if is_selected {
+                                        self.canvas.selected_layer = None;
+                                    } else {
+                                        self.canvas.selected_layer = Some(layer_type);
+                                    }
+                                }
+                            });
+                        });
                 }
 
                 ui.separator();
