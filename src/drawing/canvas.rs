@@ -259,6 +259,8 @@ impl DrawingCanvas {
 
         // Check if a polygon was newly selected to auto-focus the name field
         // Only set focus if this is a different selection or a new selection
+        let _span = tracing::debug_span!("polygon_name_autofocus").entered();
+
         let should_focus = selected != self.selected_shape
             && selected.is_some()
             && matches!(
@@ -269,6 +271,12 @@ impl DrawingCanvas {
         if should_focus {
             debug!("Setting focus flag for newly selected polygon");
             self.focus_name_field = true;
+        } else {
+            trace!(
+                selection_changed = (selected != self.selected_shape),
+                selected_is_some = selected.is_some(),
+                "Not setting focus flag"
+            );
         }
 
         self.selected_shape = selected;
@@ -503,6 +511,8 @@ impl DrawingCanvas {
                 ui.separator();
 
                 ui.horizontal(|ui| {
+                    let _span = tracing::debug_span!("polygon_name_autofocus").entered();
+
                     ui.label("Name:");
 
                     // Create text edit with explicit ID for focusing
@@ -522,6 +532,10 @@ impl DrawingCanvas {
                         debug!("Requesting focus on polygon name field");
                         response.request_focus();
                         self.focus_name_field = false;
+                        debug!(
+                            has_focus_after_request = response.has_focus(),
+                            "Focus requested, checking result"
+                        );
                     }
                 });
 
