@@ -60,6 +60,12 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     zoom_sensitivity: f32,
 
+    // Grid state (not serialized)
+    #[serde(skip)]
+    show_grid: bool,
+    #[serde(skip)]
+    grid_spacing: f32,
+
     // Style settings
     pub stroke: Stroke,
     pub fill_color: Color32,
@@ -87,6 +93,8 @@ impl Default for DrawingCanvas {
             pan_offset: egui::Vec2::ZERO,
             show_settings: false,
             zoom_sensitivity: 1.0,
+            show_grid: false,
+            grid_spacing: 50.0,
             stroke: Stroke::new(2.0, Color32::from_rgb(0, 120, 215)),
             fill_color: Color32::from_rgba_premultiplied(0, 120, 215, 30),
         }
@@ -117,18 +125,6 @@ impl DrawingCanvas {
 
     /// Render the canvas UI
     pub fn ui(&mut self, ui: &mut egui::Ui) {
-        // Menu bar
-        egui::MenuBar::new().ui(ui, |ui| {
-            ui.menu_button("File", |ui| {
-                if ui.button("Settings").clicked() {
-                    self.show_settings = true;
-                    ui.close();
-                }
-            });
-        });
-
-        ui.separator();
-
         // Tool selection toolbar
         ui.horizontal(|ui| {
             ui.selectable_value(&mut self.current_tool, ToolMode::Select, "✋ Select");
@@ -136,6 +132,14 @@ impl DrawingCanvas {
             ui.selectable_value(&mut self.current_tool, ToolMode::Circle, "◯ Circle");
             ui.selectable_value(&mut self.current_tool, ToolMode::Freehand, "✏ Freehand");
             ui.selectable_value(&mut self.current_tool, ToolMode::Edit, "✎ Edit");
+
+            ui.separator();
+
+            // Grid toggle button
+            let grid_icon = if self.show_grid { "⊞" } else { "⊟" };
+            if ui.button(grid_icon).on_hover_text("Toggle Grid").clicked() {
+                self.show_grid = !self.show_grid;
+            }
         });
 
         ui.separator();
@@ -198,6 +202,11 @@ impl DrawingCanvas {
         let to_screen = egui::emath::TSTransform::from_translation(canvas_center.to_vec2() + self.pan_offset)
             * egui::emath::TSTransform::from_scaling(self.zoom_level)
             * egui::emath::TSTransform::from_translation(-canvas_center.to_vec2());
+
+        // Draw grid if enabled
+        if self.show_grid {
+            self.draw_grid(&painter, &response.rect, &to_screen);
+        }
 
         // Draw form image on Canvas layer if loaded
         if self.layer_manager.is_visible(crate::drawing::LayerType::Canvas)
@@ -874,8 +883,32 @@ impl DrawingCanvas {
         true
     }
 
+    /// Show settings inline in the side panel
+    pub fn show_inline_settings(&mut self, ui: &mut egui::Ui) {
+        ui.heading("Settings");
+        ui.separator();
+
+        ui.label("Zoom Sensitivity:");
+        ui.add(
+            egui::Slider::new(&mut self.zoom_sensitivity, 0.1..=5.0)
+                .text("Sensitivity")
+                .logarithmic(true)
+        );
+        ui.label("Higher values make zoom more responsive");
+
+        ui.separator();
+
+        ui.label("Grid Spacing:");
+        ui.add(
+            egui::Slider::new(&mut self.grid_spacing, 10.0..=200.0)
+                .text("Spacing")
+        );
+        ui.label("Distance between grid lines");
+    }
+
     /// Show settings panel
     /// Returns true if the settings panel was shown
+    #[allow(dead_code)]
     pub fn show_settings_panel(&mut self, ctx: &egui::Context) -> bool {
         if !self.show_settings {
             return false;
@@ -1028,6 +1061,39 @@ impl DrawingCanvas {
         debug!("Finishing vertex drag");
         self.dragging_vertex = None;
         self.is_dragging_vertex = false;
+    }
+
+    /// Draw grid overlay on the canvas
+    fn draw_grid(&self, painter: &egui::Painter, canvas_rect: &egui::Rect, transform: &egui::emath::TSTransform) {
+        let grid_color = Color32::from_rgba_premultiplied(150, 150, 150, 100);
+        let grid_stroke = Stroke::new(1.0, grid_color);
+
+        // Calculate the canvas bounds in world coordinates
+        let canvas_min = transform.inverse().mul_pos(canvas_rect.min);
+        let canvas_max = transform.inverse().mul_pos(canvas_rect.max);
+
+        // Determine grid line positions in world coordinates
+        let spacing = self.grid_spacing;
+        let start_x = (canvas_min.x / spacing).floor() * spacing;
+        let start_y = (canvas_min.y / spacing).floor() * spacing;
+
+        // Draw vertical lines
+        let mut x = start_x;
+        while x <= canvas_max.x {
+            let screen_x_top = transform.mul_pos(Pos2::new(x, canvas_min.y));
+            let screen_x_bottom = transform.mul_pos(Pos2::new(x, canvas_max.y));
+            painter.line_segment([screen_x_top, screen_x_bottom], grid_stroke);
+            x += spacing;
+        }
+
+        // Draw horizontal lines
+        let mut y = start_y;
+        while y <= canvas_max.y {
+            let screen_y_left = transform.mul_pos(Pos2::new(canvas_min.x, y));
+            let screen_y_right = transform.mul_pos(Pos2::new(canvas_max.x, y));
+            painter.line_segment([screen_y_left, screen_y_right], grid_stroke);
+            y += spacing;
+        }
     }
 
     /// Render a shape with zoom transformation applied

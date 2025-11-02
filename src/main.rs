@@ -86,6 +86,11 @@ impl App for DemoApp {
 
                 ui.separator();
 
+                // Settings section
+                self.canvas.show_inline_settings(ui);
+
+                ui.separator();
+
                 // Show inline properties panel for selected shape
                 self.canvas.show_inline_properties(ui);
             });
@@ -94,9 +99,6 @@ impl App for DemoApp {
         egui::CentralPanel::default().show(ctx.egui_ctx, |ui| {
             self.canvas.ui(ui);
         });
-
-        // Settings panel (floating window)
-        self.canvas.show_settings_panel(ctx.egui_ctx);
     }
 
     fn on_exit(&mut self) {
