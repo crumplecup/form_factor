@@ -164,13 +164,10 @@ impl DrawingCanvas {
 
                     match shape {
                         Shape::Rectangle(rect) => {
-                            let rect_shape = egui::Rect::from_two_pos(rect.start, rect.end);
-                            painter.rect_stroke(
-                                rect_shape,
-                                0.0,
+                            painter.add(egui::Shape::closed_line(
+                                rect.corners.to_vec(),
                                 highlight_stroke,
-                                egui::StrokeKind::Outside,
-                            );
+                            ));
                         }
                         Shape::Circle(circle) => {
                             painter.circle_stroke(circle.center, circle.radius, highlight_stroke);
@@ -380,13 +377,12 @@ impl DrawingCanvas {
         let shape = match self.current_tool {
             ToolMode::Rectangle => {
                 if let (Some(start), Some(end)) = (self.drawing_start, self.current_end) {
-                    Some(Shape::Rectangle(Rectangle {
+                    Some(Shape::Rectangle(Rectangle::from_corners(
                         start,
                         end,
-                        stroke: self.stroke,
-                        fill: self.fill_color,
-                        name: String::new(),
-                    }))
+                        self.stroke,
+                        self.fill_color,
+                    )))
                 } else {
                     None
                 }
@@ -562,7 +558,12 @@ impl DrawingCanvas {
 
                 ui.separator();
 
-                let rect_geom = egui::Rect::from_two_pos(rect.start, rect.end);
+                // Calculate bounding box from all 4 corners
+                let min_x = rect.corners.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
+                let max_x = rect.corners.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
+                let min_y = rect.corners.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
+                let max_y = rect.corners.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
+                let rect_geom = egui::Rect::from_min_max(Pos2::new(min_x, min_y), Pos2::new(max_x, max_y));
                 ui.label(format!("Width: {:.1}", rect_geom.width()));
                 ui.label(format!("Height: {:.1}", rect_geom.height()));
             }
@@ -687,7 +688,12 @@ impl DrawingCanvas {
 
                     ui.separator();
 
-                    let rect_geom = egui::Rect::from_two_pos(rect.start, rect.end);
+                    // Calculate bounding box from all 4 corners
+                    let min_x = rect.corners.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
+                    let max_x = rect.corners.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
+                    let min_y = rect.corners.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
+                    let max_y = rect.corners.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
+                    let rect_geom = egui::Rect::from_min_max(Pos2::new(min_x, min_y), Pos2::new(max_x, max_y));
                     ui.label(format!("Width: {:.1}", rect_geom.width()));
                     ui.label(format!("Height: {:.1}", rect_geom.height()));
 
@@ -760,30 +766,20 @@ impl DrawingCanvas {
 
         match shape {
             Shape::Rectangle(rect) => {
-                // Draw control points at start and end corners
-                painter.rect_filled(
-                    egui::Rect::from_center_size(rect.start, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                    0.0,
-                    vertex_fill,
-                );
-                painter.rect_stroke(
-                    egui::Rect::from_center_size(rect.start, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                    0.0,
-                    vertex_stroke,
-                    egui::StrokeKind::Outside,
-                );
-
-                painter.rect_filled(
-                    egui::Rect::from_center_size(rect.end, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                    0.0,
-                    vertex_fill,
-                );
-                painter.rect_stroke(
-                    egui::Rect::from_center_size(rect.end, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
-                    0.0,
-                    vertex_stroke,
-                    egui::StrokeKind::Outside,
-                );
+                // Draw control points at all 4 corners
+                for corner in &rect.corners {
+                    painter.rect_filled(
+                        egui::Rect::from_center_size(*corner, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        0.0,
+                        vertex_fill,
+                    );
+                    painter.rect_stroke(
+                        egui::Rect::from_center_size(*corner, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        0.0,
+                        vertex_stroke,
+                        egui::StrokeKind::Outside,
+                    );
+                }
             }
             Shape::Circle(circle) => {
                 // Draw control points at center and on the edge
@@ -849,13 +845,12 @@ impl DrawingCanvas {
         // Find which vertex was clicked
         let clicked_vertex = match shape {
             Shape::Rectangle(rect) => {
-                if pos.distance(rect.start) < VERTEX_CLICK_RADIUS {
-                    Some(0)
-                } else if pos.distance(rect.end) < VERTEX_CLICK_RADIUS {
-                    Some(1)
-                } else {
-                    None
-                }
+                // Check all 4 corners
+                rect.corners
+                    .iter()
+                    .enumerate()
+                    .find(|(_, corner)| pos.distance(**corner) < VERTEX_CLICK_RADIUS)
+                    .map(|(i, _)| i)
             }
             Shape::Circle(circle) => {
                 if pos.distance(circle.center) < VERTEX_CLICK_RADIUS {
@@ -904,10 +899,9 @@ impl DrawingCanvas {
         // Update the vertex position based on which shape and vertex
         match shape {
             Shape::Rectangle(rect) => {
-                match vertex_idx {
-                    0 => rect.start = pos,
-                    1 => rect.end = pos,
-                    _ => {}
+                // Update the specific corner
+                if vertex_idx < 4 {
+                    rect.corners[vertex_idx] = pos;
                 }
             }
             Shape::Circle(circle) => {

@@ -13,21 +13,56 @@ pub enum Shape {
     Polygon(PolygonShape),
 }
 
-/// A rectangular annotation
+/// A quadrilateral annotation (4-sided polygon, initially a rectangle)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Rectangle {
-    pub start: Pos2,
-    pub end: Pos2,
+    /// Four corners in clockwise order: top-left, top-right, bottom-right, bottom-left
+    pub corners: [Pos2; 4],
     pub stroke: Stroke,
     pub fill: Color32,
     pub name: String,
 }
 
 impl Rectangle {
-    /// Test if a point is inside this rectangle
+    /// Create a rectangle from two opposite corners
+    pub fn from_corners(start: Pos2, end: Pos2, stroke: Stroke, fill: Color32) -> Self {
+        // Calculate all 4 corners from the diagonal
+        let min_x = start.x.min(end.x);
+        let max_x = start.x.max(end.x);
+        let min_y = start.y.min(end.y);
+        let max_y = start.y.max(end.y);
+
+        Self {
+            corners: [
+                Pos2::new(min_x, min_y), // top-left
+                Pos2::new(max_x, min_y), // top-right
+                Pos2::new(max_x, max_y), // bottom-right
+                Pos2::new(min_x, max_y), // bottom-left
+            ],
+            stroke,
+            fill,
+            name: String::new(),
+        }
+    }
+
+    /// Test if a point is inside this quadrilateral using ray casting
     pub fn contains_point(&self, pos: Pos2) -> bool {
-        let rect = egui::Rect::from_two_pos(self.start, self.end);
-        rect.contains(pos)
+        // Use point-in-polygon algorithm (ray casting)
+        let mut inside = false;
+        let mut j = 3;
+
+        for i in 0..4 {
+            let pi = self.corners[i];
+            let pj = self.corners[j];
+
+            if ((pi.y > pos.y) != (pj.y > pos.y)) &&
+               (pos.x < (pj.x - pi.x) * (pos.y - pi.y) / (pj.y - pi.y) + pi.x) {
+                inside = !inside;
+            }
+            j = i;
+        }
+
+        inside
     }
 }
 
@@ -108,14 +143,17 @@ impl Shape {
     pub fn render(&self, painter: &egui::Painter) {
         match self {
             Shape::Rectangle(rect) => {
-                let rect_shape = egui::Rect::from_two_pos(rect.start, rect.end);
-                painter.rect_filled(rect_shape, 0.0, rect.fill);
-                painter.rect_stroke(
-                    rect_shape,
-                    0.0,
+                // Draw as a filled quadrilateral
+                painter.add(egui::Shape::convex_polygon(
+                    rect.corners.to_vec(),
+                    rect.fill,
+                    egui::Stroke::NONE,
+                ));
+                // Draw the outline
+                painter.add(egui::Shape::closed_line(
+                    rect.corners.to_vec(),
                     rect.stroke,
-                    egui::StrokeKind::Outside,
-                );
+                ));
             }
             Shape::Circle(circle) => {
                 painter.circle(circle.center, circle.radius, circle.fill, circle.stroke);
