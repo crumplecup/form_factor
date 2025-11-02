@@ -74,19 +74,46 @@ impl App for DemoApp {
                 ui.heading("Layers");
                 ui.separator();
 
-                for layer in self.canvas.layer_manager.layers_mut() {
-                    ui.horizontal(|ui| {
-                        let visible_icon = if layer.visible { "👁" } else { "🚫" };
-                        if ui.button(visible_icon).clicked() {
-                            layer.toggle_visibility();
-                        }
+                // Clone layers data to avoid borrow checker issues
+                let layers_data: Vec<_> = self.canvas.layer_manager.layers()
+                    .iter()
+                    .map(|l| (l.layer_type, l.visible, l.locked, l.name.clone()))
+                    .collect();
 
-                        let lock_icon = if layer.locked { "🔒" } else { "🔓" };
-                        if ui.button(lock_icon).clicked() {
-                            layer.toggle_locked();
-                        }
+                for (layer_type, visible, locked, name) in layers_data {
+                    let is_selected = self.canvas.selected_layer == Some(layer_type);
 
-                        ui.label(&layer.name);
+                    // Create a frame with background color for selected layer
+                    let frame = if is_selected {
+                        egui::Frame::default()
+                            .fill(egui::Color32::from_rgb(230, 240, 255))
+                            .inner_margin(4.0)
+                    } else {
+                        egui::Frame::default().inner_margin(4.0)
+                    };
+
+                    frame.show(ui, |ui| {
+                        ui.horizontal(|ui| {
+                            let visible_icon = if visible { "👁" } else { "🚫" };
+                            if ui.button(visible_icon).clicked()
+                                && let Some(layer) = self.canvas.layer_manager.layers_mut()
+                                    .iter_mut()
+                                    .find(|l| l.layer_type == layer_type) {
+                                layer.toggle_visibility();
+                            }
+
+                            let lock_icon = if locked { "🔒" } else { "🔓" };
+                            if ui.button(lock_icon).clicked()
+                                && let Some(layer) = self.canvas.layer_manager.layers_mut()
+                                    .iter_mut()
+                                    .find(|l| l.layer_type == layer_type) {
+                                layer.toggle_locked();
+                            }
+
+                            if ui.selectable_label(is_selected, &name).clicked() {
+                                self.canvas.selected_layer = Some(layer_type);
+                            }
+                        });
                     });
                 }
 

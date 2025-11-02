@@ -1,6 +1,6 @@
 //! Drawing canvas with interactive annotation tools
 
-use crate::drawing::{Circle, LayerManager, PolygonShape, Rectangle, Shape, ToolMode};
+use crate::drawing::{Circle, LayerManager, LayerType, PolygonShape, Rectangle, Shape, ToolMode};
 use egui::{Color32, Pos2, Stroke};
 use geo::CoordsIter;
 use serde::{Deserialize, Serialize};
@@ -31,6 +31,8 @@ pub struct DrawingCanvas {
     // Selection state (not serialized)
     #[serde(skip)]
     selected_shape: Option<usize>,
+    #[serde(skip)]
+    pub selected_layer: Option<LayerType>,
     #[serde(skip)]
     show_properties: bool,
     #[serde(skip)]
@@ -81,6 +83,7 @@ impl Default for DrawingCanvas {
             current_points: Vec::new(),
             is_drawing: false,
             selected_shape: None,
+            selected_layer: None,
             show_properties: false,
             focus_name_field: false,
             dragging_vertex: None,
