@@ -1,6 +1,8 @@
 //! Drawing canvas with interactive annotation tools
 
 use crate::drawing::{Circle, LayerManager, LayerType, PolygonShape, Rectangle, RecentProjects, Shape, ToolMode};
+#[cfg(feature = "text-detection")]
+use crate::text_detection::TextDetector;
 use egui::{Color32, Pos2, Stroke};
 use geo::CoordsIter;
 use serde::{Deserialize, Serialize};
@@ -748,6 +750,46 @@ impl DrawingCanvas {
     /// Get the number of shapes on the canvas
     pub fn shape_count(&self) -> usize {
         self.shapes.len()
+    }
+
+    /// Detect text regions in the loaded form image
+    #[cfg(feature = "text-detection")]
+    pub fn detect_text_regions(&mut self, confidence_threshold: f32) -> Result<usize, String> {
+        // Check if we have a form image loaded
+        let form_path = self.form_image_path.as_ref()
+            .ok_or_else(|| "No form image loaded".to_string())?;
+
+        tracing::info!("Detecting text regions in: {}", form_path);
+
+        // Create text detector with default model paths
+        let detector = TextDetector::default();
+
+        // Detect text regions
+        let regions = detector.detect_from_file(form_path, confidence_threshold)
+            .map_err(|e| format!("Text detection failed: {}", e))?;
+
+        let count = regions.len();
+        tracing::info!("Detected {} text regions", count);
+
+        // Create rectangle shapes for each detected region
+        for (i, region) in regions.iter().enumerate() {
+            let top_left = Pos2::new(region.x as f32, region.y as f32);
+            let bottom_right = Pos2::new(
+                (region.x + region.width) as f32,
+                (region.y + region.height) as f32,
+            );
+
+            // Create a rectangle shape with a distinctive color for text regions
+            let stroke = Stroke::new(2.0, Color32::from_rgb(255, 165, 0)); // Orange
+            let fill = Color32::from_rgba_premultiplied(255, 165, 0, 30); // Semi-transparent orange
+
+            let mut rect = Rectangle::from_corners(top_left, bottom_right, stroke, fill);
+            rect.name = format!("Text Region {} ({:.2}%)", i + 1, region.confidence * 100.0);
+
+            self.shapes.push(Shape::Rectangle(rect));
+        }
+
+        Ok(count)
     }
 
     /// Load a form image from a file path

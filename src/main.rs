@@ -66,6 +66,19 @@ impl App for DemoApp {
                     }
                 }
 
+                // Detect Text button (only available with text-detection feature)
+                #[cfg(feature = "text-detection")]
+                if ui.button("🔍 Detect Text").clicked() {
+                    match self.canvas.detect_text_regions(0.5) {
+                        Ok(count) => {
+                            tracing::info!("Detected {} text regions", count);
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to detect text: {}", e);
+                        }
+                    }
+                }
+
                 ui.separator();
 
                 ui.horizontal(|ui| {

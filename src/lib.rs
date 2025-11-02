@@ -33,6 +33,9 @@ mod backend;
 mod drawing;
 mod error;
 
+#[cfg(feature = "text-detection")]
+mod text_detection;
+
 // ============================================================================
 // Core Application Types
 // ============================================================================
@@ -94,6 +97,18 @@ pub use drawing::{Layer, LayerManager, LayerType};
 
 /// Recent projects tracking
 pub use drawing::RecentProjects;
+
+// ============================================================================
+// Text Detection
+// ============================================================================
+
+#[cfg(feature = "text-detection")]
+/// Text detector using OpenCV EAST model
+pub use text_detection::TextDetector;
+
+#[cfg(feature = "text-detection")]
+/// Detected text region
+pub use text_detection::TextRegion;
 
 // ============================================================================
 // Advanced: Direct module access for backend implementations
