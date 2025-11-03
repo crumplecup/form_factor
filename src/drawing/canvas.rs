@@ -15,6 +15,71 @@ fn default_zoom_level() -> f32 {
     5.0
 }
 
+/// Kinds of errors that can occur in canvas operations
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CanvasErrorKind {
+    /// Failed to load image file
+    ImageLoad(String),
+    /// Failed to read file from disk
+    FileRead(String),
+    /// Failed to write file to disk
+    FileWrite(String),
+    /// Failed to serialize data to JSON
+    Serialization(String),
+    /// Failed to deserialize data from JSON
+    Deserialization(String),
+    /// Operation requires a form image but none is loaded
+    NoFormImageLoaded,
+    /// Text detection operation failed
+    TextDetection(String),
+    /// No recent projects found
+    NoRecentProjects,
+    /// OCR text extraction failed
+    OCRFailed(String),
+}
+
+impl std::fmt::Display for CanvasErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CanvasErrorKind::ImageLoad(msg) => write!(f, "Failed to load image: {}", msg),
+            CanvasErrorKind::FileRead(msg) => write!(f, "Failed to read file: {}", msg),
+            CanvasErrorKind::FileWrite(msg) => write!(f, "Failed to write file: {}", msg),
+            CanvasErrorKind::Serialization(msg) => write!(f, "Failed to serialize data: {}", msg),
+            CanvasErrorKind::Deserialization(msg) => write!(f, "Failed to deserialize data: {}", msg),
+            CanvasErrorKind::NoFormImageLoaded => write!(f, "No form image loaded"),
+            CanvasErrorKind::TextDetection(msg) => write!(f, "Text detection failed: {}", msg),
+            CanvasErrorKind::NoRecentProjects => write!(f, "No recent projects found"),
+            CanvasErrorKind::OCRFailed(msg) => write!(f, "OCR text extraction failed: {}", msg),
+        }
+    }
+}
+
+/// Error type for canvas operations
+#[derive(Debug, Clone)]
+pub struct CanvasError {
+    /// The kind of error that occurred
+    pub kind: CanvasErrorKind,
+    /// Line number where the error was created
+    pub line: u32,
+    /// File where the error was created
+    pub file: &'static str,
+}
+
+impl CanvasError {
+    /// Create a new canvas error
+    pub fn new(kind: CanvasErrorKind, line: u32, file: &'static str) -> Self {
+        Self { kind, line, file }
+    }
+}
+
+impl std::fmt::Display for CanvasError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Canvas error: {} at line {} in {}", self.kind, self.line, self.file)
+    }
+}
+
+impl std::error::Error for CanvasError {}
+
 /// Drawing canvas state
 #[derive(Clone, Serialize, Deserialize, Getters)]
 pub struct DrawingCanvas {
@@ -831,10 +896,10 @@ impl DrawingCanvas {
     /// Detect text regions in the loaded form image
     #[cfg(feature = "text-detection")]
     #[instrument(skip(self), fields(confidence_threshold, existing_detections = self.detections.len()))]
-    pub fn detect_text_regions(&mut self, confidence_threshold: f32) -> Result<usize, String> {
+    pub fn detect_text_regions(&mut self, confidence_threshold: f32) -> Result<usize, CanvasError> {
         // Check if we have a form image loaded
         let form_path = self.form_image_path.as_ref()
-            .ok_or_else(|| "No form image loaded".to_string())?;
+            .ok_or_else(|| CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!()))?;
 
         tracing::info!("Detecting text regions in: {}", form_path);
 
@@ -842,8 +907,9 @@ impl DrawingCanvas {
         let detector = TextDetector::default();
 
         // Detect text regions
-        let regions = detector.detect_from_file(form_path, confidence_threshold)
-            .map_err(|e| format!("Text detection failed: {}", e))?;
+        let regions = detector.detect_from_file(form_path, confidence_threshold).map_err(|e| {
+            CanvasError::new(CanvasErrorKind::TextDetection(e.to_string()), line!(), file!())
+        })?;
 
         let count = regions.len();
         tracing::info!("Detected {} text regions", count);
@@ -884,9 +950,9 @@ impl DrawingCanvas {
     pub fn extract_text_from_detections(
         &self,
         ocr: &crate::ocr::OCREngine,
-    ) -> Result<Vec<(usize, crate::ocr::OCRResult)>, String> {
+    ) -> Result<Vec<(usize, crate::ocr::OCRResult)>, CanvasError> {
         let form_path = self.form_image_path.as_ref()
-            .ok_or_else(|| "No form image loaded".to_string())?;
+            .ok_or_else(|| CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!()))?;
 
         tracing::info!("Extracting text from {} detections", self.detections.len());
 
@@ -920,7 +986,7 @@ impl DrawingCanvas {
         ocr: &crate::ocr::OCREngine,
         image_path: &str,
         shape: &Shape,
-    ) -> Result<crate::ocr::OCRResult, String> {
+    ) -> Result<crate::ocr::OCRResult, CanvasError> {
         use crate::drawing::Shape;
 
         // Get bounding box of the shape in image pixel coordinates
@@ -967,13 +1033,17 @@ impl DrawingCanvas {
         trace!("Shape bbox in image coords: {:?}", bbox);
 
         // Extract text from this region
-        ocr.extract_text_from_region_file(image_path, bbox)
+        ocr.extract_text_from_region_file(image_path, bbox).map_err(|e| {
+            CanvasError::new(CanvasErrorKind::OCRFailed(e.to_string()), line!(), file!())
+        })
     }
 
     /// Load a form image from a file path
-    pub fn load_form_image(&mut self, path: &str, ctx: &egui::Context) -> Result<(), String> {
+    pub fn load_form_image(&mut self, path: &str, ctx: &egui::Context) -> Result<(), CanvasError> {
         // Load the image from disk
-        let img = image::open(path).map_err(|e| format!("Failed to open image: {}", e))?;
+        let img = image::open(path).map_err(|e| {
+            CanvasError::new(CanvasErrorKind::ImageLoad(e.to_string()), line!(), file!())
+        })?;
 
         // Convert to RGBA8
         let size = [img.width() as usize, img.height() as usize];
@@ -1012,14 +1082,16 @@ impl DrawingCanvas {
 
     /// Save the project state to a file
     #[instrument(skip(self), fields(path, shapes = self.shapes.len(), detections = self.detections.len()))]
-    pub fn save_to_file(&self, path: &str) -> Result<(), String> {
+    pub fn save_to_file(&self, path: &str) -> Result<(), CanvasError> {
         debug!("Saving project: shapes={}, detections={}", self.shapes.len(), self.detections.len());
 
-        let json = serde_json::to_string_pretty(self)
-            .map_err(|e| format!("Failed to serialize project: {}", e))?;
+        let json = serde_json::to_string_pretty(self).map_err(|e| {
+            CanvasError::new(CanvasErrorKind::Serialization(e.to_string()), line!(), file!())
+        })?;
 
-        std::fs::write(path, json)
-            .map_err(|e| format!("Failed to write file: {}", e))?;
+        std::fs::write(path, json).map_err(|e| {
+            CanvasError::new(CanvasErrorKind::FileWrite(e.to_string()), line!(), file!())
+        })?;
 
         // Add to recent projects
         let mut recent = RecentProjects::load();
@@ -1033,19 +1105,21 @@ impl DrawingCanvas {
     }
 
     /// Load the project state from a file
-    pub fn load_from_file(&mut self, path: &str, ctx: &egui::Context) -> Result<(), String> {
+    pub fn load_from_file(&mut self, path: &str, ctx: &egui::Context) -> Result<(), CanvasError> {
         self.load_from_file_impl(path, ctx, false)
     }
 
     /// Load the project state from a file (internal implementation)
     /// If defer_image_load is true, the image will be loaded on the next update() call
     #[instrument(skip(self, ctx), fields(path, defer_image_load))]
-    fn load_from_file_impl(&mut self, path: &str, ctx: &egui::Context, defer_image_load: bool) -> Result<(), String> {
-        let json = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read file: {}", e))?;
+    fn load_from_file_impl(&mut self, path: &str, ctx: &egui::Context, defer_image_load: bool) -> Result<(), CanvasError> {
+        let json = std::fs::read_to_string(path).map_err(|e| {
+            CanvasError::new(CanvasErrorKind::FileRead(e.to_string()), line!(), file!())
+        })?;
 
-        let loaded: DrawingCanvas = serde_json::from_str(&json)
-            .map_err(|e| format!("Failed to deserialize project: {}", e))?;
+        let loaded: DrawingCanvas = serde_json::from_str(&json).map_err(|e| {
+            CanvasError::new(CanvasErrorKind::Deserialization(e.to_string()), line!(), file!())
+        })?;
 
         debug!("Deserialized project state: shapes={}, detections={}",
                loaded.shapes.len(), loaded.detections.len());
@@ -1101,14 +1175,14 @@ impl DrawingCanvas {
     }
 
     /// Load the most recent project on startup (defers image loading)
-    pub fn load_recent_on_startup(&mut self, ctx: &egui::Context) -> Result<(), String> {
+    pub fn load_recent_on_startup(&mut self, ctx: &egui::Context) -> Result<(), CanvasError> {
         let recent = RecentProjects::load();
         if let Some(recent_path) = recent.most_recent()
             && let Some(path_str) = recent_path.to_str()
         {
             return self.load_from_file_impl(path_str, ctx, true);
         }
-        Err("No recent projects found".to_string())
+        Err(CanvasError::new(CanvasErrorKind::NoRecentProjects, line!(), file!()))
     }
 
     /// Show inline properties UI for the selected shape

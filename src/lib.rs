@@ -92,7 +92,7 @@ pub use error::{
 // ============================================================================
 
 /// Drawing canvas for form annotations
-pub use drawing::DrawingCanvas;
+pub use drawing::{CanvasError, CanvasErrorKind, DrawingCanvas};
 
 /// Shape types (rectangles, circles, polygons)
 pub use drawing::{Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeError, ShapeErrorKind};
