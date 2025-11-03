@@ -23,8 +23,8 @@
 ## Derive Policies
 
 - Data structures should derive Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, and Hash if possible.
-  Use derive_more to derive Display, FromStr, From, Deref, DerefMut, AsRef, and AsMut when appropriate.
-  For enums with no fields, use strum to derive EnumIter.
+- Use derive_more to derive Display, FromStr, From, Deref, DerefMut, AsRef, and AsMut when appropriate.
+- For enums with no fields, use strum to derive EnumIter.
 
 ## Testing
 
