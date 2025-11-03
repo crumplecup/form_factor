@@ -9,33 +9,82 @@ use egui::{Color32, Pos2, Stroke};
 use geo::{Contains, Point};
 use geo_types::{Coord, LineString, Polygon as GeoPolygon};
 use serde::{Deserialize, Serialize};
-use thiserror::Error;
+use std::fmt;
 
-/// Errors that can occur during shape creation and manipulation
-#[derive(Error, Debug, Clone, PartialEq)]
-pub enum ShapeError {
+/// Kind of error that can occur during shape creation and manipulation
+#[derive(Debug, Clone, PartialEq)]
+pub enum ShapeErrorKind {
     /// Polygon has fewer than 3 points
-    #[error("Polygon must have at least 3 points, got {0}")]
     TooFewPoints(usize),
 
     /// Coordinate contains NaN or infinity
-    #[error("Invalid coordinate: point contains NaN or infinity")]
     InvalidCoordinate,
 
     /// Circle radius is not positive
-    #[error("Circle radius must be positive, got {0}")]
     InvalidRadius(f32),
 
     /// Shape has zero area or all points are collinear
-    #[error("Degenerate shape: all points are collinear or coincident")]
     DegenerateShape,
 }
+
+impl fmt::Display for ShapeErrorKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ShapeErrorKind::TooFewPoints(n) => {
+                write!(f, "Polygon must have at least 3 points, got {}", n)
+            }
+            ShapeErrorKind::InvalidCoordinate => {
+                write!(f, "Invalid coordinate: point contains NaN or infinity")
+            }
+            ShapeErrorKind::InvalidRadius(r) => {
+                write!(f, "Circle radius must be positive, got {}", r)
+            }
+            ShapeErrorKind::DegenerateShape => {
+                write!(f, "Degenerate shape: all points are collinear or coincident")
+            }
+        }
+    }
+}
+
+/// Error wrapper that captures the error kind along with location information
+#[derive(Debug, Clone)]
+pub struct ShapeError {
+    /// The kind of error that occurred
+    pub kind: ShapeErrorKind,
+    /// Line number where the error occurred
+    pub line: u32,
+    /// Source file where the error occurred
+    pub file: &'static str,
+}
+
+impl ShapeError {
+    /// Create a new ShapeError with location information
+    pub fn new(kind: ShapeErrorKind, line: u32, file: &'static str) -> Self {
+        Self { kind, line, file }
+    }
+}
+
+impl fmt::Display for ShapeError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Shape Error: {} at line {} in {}",
+            self.kind, self.line, self.file
+        )
+    }
+}
+
+impl std::error::Error for ShapeError {}
 
 /// Convert an egui Pos2 to a geo Coord<f64>
 #[inline]
 fn pos2_to_coord(p: Pos2) -> Result<Coord<f64>, ShapeError> {
     if !p.x.is_finite() || !p.y.is_finite() {
-        return Err(ShapeError::InvalidCoordinate);
+        return Err(ShapeError::new(
+            ShapeErrorKind::InvalidCoordinate,
+            line!(),
+            file!(),
+        ));
     }
     Ok(Coord {
         x: p.x as f64,
@@ -103,7 +152,11 @@ impl Rectangle {
 
         // Check for degenerate case (zero area)
         if (max_x - min_x).abs() < f32::EPSILON || (max_y - min_y).abs() < f32::EPSILON {
-            return Err(ShapeError::DegenerateShape);
+            return Err(ShapeError::new(
+                ShapeErrorKind::DegenerateShape,
+                line!(),
+                file!(),
+            ));
         }
 
         let corners = [
@@ -321,7 +374,11 @@ impl Circle {
 
         // Validate radius
         if !radius.is_finite() || radius <= 0.0 {
-            return Err(ShapeError::InvalidRadius(radius));
+            return Err(ShapeError::new(
+                ShapeErrorKind::InvalidRadius(radius),
+                line!(),
+                file!(),
+            ));
         }
 
         Ok(Self {
@@ -351,7 +408,11 @@ impl Circle {
     /// Returns `ShapeError::InvalidRadius` if the radius is not positive and finite.
     pub fn set_radius(&mut self, radius: f32) -> Result<(), ShapeError> {
         if !radius.is_finite() || radius <= 0.0 {
-            return Err(ShapeError::InvalidRadius(radius));
+            return Err(ShapeError::new(
+                ShapeErrorKind::InvalidRadius(radius),
+                line!(),
+                file!(),
+            ));
         }
         self.radius = radius;
         Ok(())
@@ -442,7 +503,11 @@ impl PolygonShape {
         fill: Color32,
     ) -> Result<Self, ShapeError> {
         if points.len() < 3 {
-            return Err(ShapeError::TooFewPoints(points.len()));
+            return Err(ShapeError::new(
+                ShapeErrorKind::TooFewPoints(points.len()),
+                line!(),
+                file!(),
+            ));
         }
 
         // Convert egui Pos2 to geo_types Coord with validation
@@ -485,7 +550,11 @@ impl PolygonShape {
 
         // Rebuild the polygon using from_points logic
         if points.len() < 3 {
-            return Err(ShapeError::TooFewPoints(points.len()));
+            return Err(ShapeError::new(
+                ShapeErrorKind::TooFewPoints(points.len()),
+                line!(),
+                file!(),
+            ));
         }
 
         // Validate and convert all points
@@ -505,7 +574,11 @@ impl PolygonShape {
     /// Returns error if points are invalid or fewer than 3.
     pub fn set_vertices(&mut self, points: Vec<Pos2>) -> Result<(), ShapeError> {
         if points.len() < 3 {
-            return Err(ShapeError::TooFewPoints(points.len()));
+            return Err(ShapeError::new(
+                ShapeErrorKind::TooFewPoints(points.len()),
+                line!(),
+                file!(),
+            ));
         }
 
         // Validate and convert all points
