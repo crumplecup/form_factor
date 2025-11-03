@@ -27,7 +27,7 @@ image = { version = "0.25", default-features = false, features = [
   "webp",
 ] }
 leptess = { version = "0.14", optional = true }
-opencv = { version = "0.92", default-features = false, features = ["imgproc", "dnn", "imgcodecs"], optional = true }
+opencv = { version = "0.92", default-features = false, features = ["imgproc", "dnn", "imgcodecs", "clang-runtime"], optional = true }
 rfd = "0.15"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

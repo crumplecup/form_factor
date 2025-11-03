@@ -61,7 +61,7 @@
 //! ## Windows
 //! Download and install from: https://github.com/UB-Mannheim/tesseract/wiki
 
-use image::{DynamicImage, GrayImage, ImageBuffer, Luma};
+use image::{DynamicImage, GrayImage};
 use leptess::{LepTess, Variable};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
@@ -334,8 +334,23 @@ impl OCREngine {
         )
         .map_err(|e| format!("Failed to set PSM: {}", e))?;
 
-        // Set image
-        lt.set_image_from_mem(image.as_raw(), image.width() as i32, image.height() as i32, 1, image.width() as i32)
+        // Encode image as PNG for leptess (new API requires encoded image data)
+        let mut png_data = Vec::new();
+        {
+            use image::codecs::png::PngEncoder;
+            use image::ImageEncoder;
+
+            let encoder = PngEncoder::new(&mut png_data);
+            encoder.write_image(
+                image.as_raw(),
+                image.width(),
+                image.height(),
+                image::ExtendedColorType::L8
+            ).map_err(|e| format!("Failed to encode image: {}", e))?;
+        }
+
+        // Set image from encoded PNG data
+        lt.set_image_from_mem(&png_data)
             .map_err(|e| format!("Failed to set image: {}", e))?;
 
         // Get text
@@ -359,7 +374,7 @@ impl OCREngine {
     }
 
     /// Extract word-level results from Tesseract
-    fn get_word_results(&self, lt: &mut LepTess) -> Result<Vec<WordResult>, String> {
+    fn get_word_results(&self, _lt: &mut LepTess) -> Result<Vec<WordResult>, String> {
         // This is a simplified version - full implementation would use Tesseract's
         // word-level confidence API
         // For now, return empty vec

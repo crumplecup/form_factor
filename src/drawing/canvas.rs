@@ -7,7 +7,7 @@ use egui::{Color32, Pos2, Stroke};
 use geo::CoordsIter;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use tracing::{debug, instrument, trace};
+use tracing::{debug, instrument, trace, warn};
 
 /// Default zoom level for new canvases
 fn default_zoom_level() -> f32 {
@@ -870,8 +870,6 @@ impl DrawingCanvas {
         &self,
         ocr: &crate::ocr::OCREngine,
     ) -> Result<Vec<(usize, crate::ocr::OCRResult)>, String> {
-        use crate::drawing::Shape;
-
         let form_path = self.form_image_path.as_ref()
             .ok_or_else(|| "No form image loaded".to_string())?;
 
