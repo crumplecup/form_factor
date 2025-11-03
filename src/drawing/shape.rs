@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 /// Errors that can occur during shape creation and manipulation
-#[derive(Error, Debug, Clone)]
+#[derive(Error, Debug, Clone, PartialEq)]
 pub enum ShapeError {
     #[error("Polygon must have at least 3 points, got {0}")]
     TooFewPoints(usize),
@@ -46,7 +46,7 @@ fn coord_to_pos2(c: Coord<f64>) -> Pos2 {
 }
 
 /// A drawing shape on the canvas
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Shape {
     Rectangle(Rectangle),
     Circle(Circle),
@@ -57,7 +57,7 @@ pub enum Shape {
 ///
 /// Internally uses `geo::Polygon` for robust geometric operations.
 /// Corners are stored in clockwise order: top-left, top-right, bottom-right, bottom-left.
-#[derive(Debug, Clone, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct Rectangle {
     /// Internal polygon representation for geometric operations
     polygon: GeoPolygon<f64>,
@@ -271,7 +271,7 @@ impl Rectangle {
 ///
 /// Uses egui's native circle representation. Point-in-circle testing is
 /// performed using simple distance calculations.
-#[derive(Debug, Clone, Serialize, Deserialize, Getters, Builder)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters, Builder)]
 #[builder(setter(into))]
 pub struct Circle {
     pub center: Pos2,
@@ -392,7 +392,7 @@ impl Circle {
 ///
 /// Uses `geo::Polygon` for all geometric operations. The polygon is automatically
 /// closed (first point connects to last point).
-#[derive(Debug, Clone, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct PolygonShape {
     polygon: GeoPolygon<f64>,
     pub stroke: Stroke,
