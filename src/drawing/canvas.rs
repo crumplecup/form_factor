@@ -80,6 +80,43 @@ impl std::fmt::Display for CanvasError {
 
 impl std::error::Error for CanvasError {}
 
+/// Canvas interaction state
+///
+/// Represents the current user interaction mode with the canvas.
+/// This state machine prevents invalid state combinations (e.g., drawing while rotating).
+#[derive(Debug, Clone)]
+enum CanvasState {
+    /// No active interaction
+    Idle,
+    /// User is actively drawing a new shape
+    Drawing {
+        /// Starting position of the shape
+        start: Pos2,
+        /// Current end position (for rectangles/circles)
+        current_end: Option<Pos2>,
+        /// Points being drawn (for polygons)
+        points: Vec<Pos2>,
+    },
+    /// User is dragging a vertex in Edit mode
+    DraggingVertex {
+        /// Index of the vertex being dragged
+        vertex_index: usize,
+    },
+    /// User is rotating a shape in Rotate mode
+    Rotating {
+        /// Starting angle of rotation in radians
+        start_angle: f32,
+        /// Center point of rotation
+        center: Option<Pos2>,
+    },
+}
+
+impl Default for CanvasState {
+    fn default() -> Self {
+        Self::Idle
+    }
+}
+
 /// Drawing canvas state
 #[derive(Clone, Serialize, Deserialize, Getters)]
 pub struct DrawingCanvas {
@@ -96,15 +133,11 @@ pub struct DrawingCanvas {
     /// Path to the loaded form image (for serialization)
     form_image_path: Option<String>,
 
-    // Drawing state (not serialized)
+    // Interaction state (not serialized)
+    /// Current user interaction state (drawing, rotating, etc.)
     #[serde(skip)]
-    drawing_start: Option<Pos2>,
-    #[serde(skip)]
-    current_end: Option<Pos2>,
-    #[serde(skip)]
-    current_points: Vec<Pos2>,
-    #[serde(skip)]
-    is_drawing: bool,
+    #[serde(default)]
+    state: CanvasState,
 
     // Selection state (not serialized)
     #[serde(skip)]
@@ -119,20 +152,6 @@ pub struct DrawingCanvas {
     /// Whether the project name is currently being edited
     #[serde(skip)]
     editing_project_name: bool,
-
-    // Edit mode vertex dragging state (not serialized)
-    #[serde(skip)]
-    dragging_vertex: Option<usize>,
-    #[serde(skip)]
-    is_dragging_vertex: bool,
-
-    // Rotation state (not serialized)
-    #[serde(skip)]
-    is_rotating: bool,
-    #[serde(skip)]
-    rotation_start_angle: f32,
-    #[serde(skip)]
-    rotation_center: Option<Pos2>,
 
     // Form image state (not serialized)
     #[serde(skip)]
@@ -184,20 +203,12 @@ impl Default for DrawingCanvas {
             current_tool: ToolMode::default(),
             layer_manager: LayerManager::new(),
             form_image_path: None,
-            drawing_start: None,
-            current_end: None,
-            current_points: Vec::new(),
-            is_drawing: false,
+            state: CanvasState::default(),
             selected_shape: None,
             selected_layer: None,
             show_properties: false,
             focus_name_field: false,
             editing_project_name: false,
-            dragging_vertex: None,
-            is_dragging_vertex: false,
-            is_rotating: false,
-            rotation_start_angle: 0.0,
-            rotation_center: None,
             form_image: None,
             form_image_size: None,
             pending_image_load: None,
@@ -544,18 +555,18 @@ impl DrawingCanvas {
                     let canvas_pos = transform_pos(pos);
                     if response.drag_started() {
                         self.start_vertex_drag(canvas_pos);
-                    } else if response.dragged() && self.is_dragging_vertex {
+                    } else if response.dragged() && matches!(self.state, CanvasState::DraggingVertex { .. }) {
                         self.continue_vertex_drag(canvas_pos);
                     }
                 }
 
                 // Check if drag ended
-                if response.drag_stopped() && self.is_dragging_vertex {
+                if response.drag_stopped() && matches!(self.state, CanvasState::DraggingVertex { .. }) {
                     self.finish_vertex_drag();
                 }
 
                 // Also handle selection clicks when not dragging
-                if response.clicked() && !self.is_dragging_vertex {
+                if response.clicked() && matches!(self.state, CanvasState::Idle) {
                     if let Some(pos) = response.interact_pointer_pos() {
                         let canvas_pos = transform_pos(pos);
                         self.handle_selection_click(canvas_pos);
@@ -571,22 +582,23 @@ impl DrawingCanvas {
                     let canvas_pos = transform_pos(pos);
                     if response.drag_started() {
                         self.start_drawing(canvas_pos);
-                    } else if response.dragged() && self.is_drawing {
+                    } else if response.dragged() && matches!(self.state, CanvasState::Drawing { .. }) {
                         self.continue_drawing(canvas_pos, painter, transform);
                     }
                 }
 
                 // Check if mouse was released (drag ended) for drawing tools
-                if response.drag_stopped() && self.is_drawing {
+                if response.drag_stopped() && matches!(self.state, CanvasState::Drawing { .. }) {
                     self.finalize_shape();
                 }
             }
             ToolMode::Rotate => {
+                let is_rotating = matches!(self.state, CanvasState::Rotating { .. });
                 let _span = tracing::debug_span!(
                     "rotate_tool",
                     selected_layer = ?self.selected_layer,
                     selected_shape = ?self.selected_shape,
-                    is_rotating = self.is_rotating
+                    is_rotating
                 ).entered();
 
                 debug!(
@@ -594,7 +606,7 @@ impl DrawingCanvas {
                     drag_started = response.drag_started(),
                     dragged = response.dragged(),
                     drag_stopped = response.drag_stopped(),
-                    is_rotating = self.is_rotating,
+                    is_rotating,
                     ?self.selected_layer,
                     ?self.selected_shape,
                     "Rotate tool input events"
@@ -607,17 +619,17 @@ impl DrawingCanvas {
                     if response.drag_started() {
                         debug!(?canvas_pos, "Drag started - calling start_rotation");
                         self.start_rotation(canvas_pos);
-                    } else if response.dragged() && self.is_rotating {
+                    } else if response.dragged() && matches!(self.state, CanvasState::Rotating { .. }) {
                         debug!(?canvas_pos, "Dragging - calling continue_rotation");
                         self.continue_rotation(canvas_pos);
-                    } else if response.dragged() && !self.is_rotating {
+                    } else if response.dragged() && !matches!(self.state, CanvasState::Rotating { .. }) {
                         debug!("Dragging but is_rotating is false");
                     }
                 }
 
                 // Check if drag ended
                 if response.drag_stopped() {
-                    if self.is_rotating {
+                    if matches!(self.state, CanvasState::Rotating { .. }) {
                         debug!("Drag stopped - calling finish_rotation");
                         self.finish_rotation();
                     } else {
@@ -626,7 +638,7 @@ impl DrawingCanvas {
                 }
 
                 // Also handle selection clicks when not rotating
-                if response.clicked() && !self.is_rotating {
+                if response.clicked() && matches!(self.state, CanvasState::Idle) {
                     debug!("Click detected - handling selection");
                     if let Some(pos) = response.interact_pointer_pos() {
                         let canvas_pos = transform_pos(pos);
@@ -704,24 +716,28 @@ impl DrawingCanvas {
     }
 
     fn start_drawing(&mut self, pos: Pos2) {
-        self.drawing_start = Some(pos);
-        self.current_end = Some(pos);
-        self.is_drawing = true;
+        let points = if self.current_tool == ToolMode::Freehand {
+            vec![pos]
+        } else {
+            Vec::new()
+        };
 
-        if self.current_tool == ToolMode::Freehand {
-            self.current_points.clear();
-            self.current_points.push(pos);
-        }
+        self.state = CanvasState::Drawing {
+            start: pos,
+            current_end: Some(pos),
+            points,
+        };
     }
 
     fn continue_drawing(&mut self, pos: Pos2, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
-        self.current_end = Some(pos);
+        // Update the drawing state with the new position
+        if let CanvasState::Drawing { start, current_end, points } = &mut self.state {
+            *current_end = Some(pos);
 
-        match self.current_tool {
-            ToolMode::Rectangle => {
-                if let Some(start) = self.drawing_start {
+            match self.current_tool {
+                ToolMode::Rectangle => {
                     // Transform the rectangle corners for preview
-                    let rect = egui::Rect::from_two_pos(start, pos);
+                    let rect = egui::Rect::from_two_pos(*start, pos);
                     let transformed_rect = egui::Rect::from_min_max(
                         transform.mul_pos(rect.min),
                         transform.mul_pos(rect.max),
@@ -729,107 +745,106 @@ impl DrawingCanvas {
                     painter.rect_filled(transformed_rect, 0.0, self.fill_color);
                     painter.rect_stroke(transformed_rect, 0.0, self.stroke, egui::StrokeKind::Outside);
                 }
-            }
-            ToolMode::Circle => {
-                if let Some(center) = self.drawing_start {
-                    let radius = center.distance(pos);
-                    let transformed_center = transform.mul_pos(center);
+                ToolMode::Circle => {
+                    let radius = start.distance(pos);
+                    let transformed_center = transform.mul_pos(*start);
                     let transformed_radius = radius * self.zoom_level;
                     painter.circle(transformed_center, transformed_radius, self.fill_color, self.stroke);
                 }
-            }
-            ToolMode::Freehand => {
-                self.current_points.push(pos);
-                if self.current_points.len() > 2 {
-                    // Transform points for preview
-                    let transformed_points: Vec<Pos2> = self.current_points
-                        .iter()
-                        .map(|p| transform.mul_pos(*p))
-                        .collect();
-                    // Draw preview as a closed polygon
-                    painter.add(egui::Shape::convex_polygon(
-                        transformed_points.clone(),
-                        self.fill_color,
-                        egui::Stroke::NONE,
-                    ));
-                    painter.add(egui::Shape::closed_line(
-                        transformed_points,
-                        self.stroke,
-                    ));
-                } else if self.current_points.len() > 1 {
-                    // Transform points for preview line
-                    let transformed_points: Vec<Pos2> = self.current_points
-                        .iter()
-                        .map(|p| transform.mul_pos(*p))
-                        .collect();
-                    // Draw preview line until we have enough points
-                    painter.add(egui::Shape::line(
-                        transformed_points,
-                        self.stroke,
-                    ));
+                ToolMode::Freehand => {
+                    points.push(pos);
+                    if points.len() > 2 {
+                        // Transform points for preview
+                        let transformed_points: Vec<Pos2> = points
+                            .iter()
+                            .map(|p| transform.mul_pos(*p))
+                            .collect();
+                        // Draw preview as a closed polygon
+                        painter.add(egui::Shape::convex_polygon(
+                            transformed_points.clone(),
+                            self.fill_color,
+                            egui::Stroke::NONE,
+                        ));
+                        painter.add(egui::Shape::closed_line(
+                            transformed_points,
+                            self.stroke,
+                        ));
+                    } else if points.len() > 1 {
+                        // Transform points for preview line
+                        let transformed_points: Vec<Pos2> = points
+                            .iter()
+                            .map(|p| transform.mul_pos(*p))
+                            .collect();
+                        // Draw preview line until we have enough points
+                        painter.add(egui::Shape::line(
+                            transformed_points,
+                            self.stroke,
+                        ));
+                    }
                 }
-            }
-            ToolMode::Select => {
-                // Selection preview could go here
-            }
-            ToolMode::Edit => {
-                // Edit mode doesn't draw new shapes
-            }
-            ToolMode::Rotate => {
-                // Rotate mode doesn't draw new shapes
+                ToolMode::Select => {
+                    // Selection preview could go here
+                }
+                ToolMode::Edit => {
+                    // Edit mode doesn't draw new shapes
+                }
+                ToolMode::Rotate => {
+                    // Rotate mode doesn't draw new shapes
+                }
             }
         }
     }
 
     fn finalize_shape(&mut self) {
-        let shape = match self.current_tool {
-            ToolMode::Rectangle => {
-                if let (Some(start), Some(end)) = (self.drawing_start, self.current_end) {
-                    Rectangle::from_corners(start, end, self.stroke, self.fill_color)
-                        .map(Shape::Rectangle)
-                        .map_err(|e| {
-                            warn!("Failed to create rectangle: {}", e);
-                            e
-                        })
-                        .ok()
-                } else {
-                    None
+        let shape = if let CanvasState::Drawing { start, current_end, points } = &self.state {
+            match self.current_tool {
+                ToolMode::Rectangle => {
+                    if let Some(end) = current_end {
+                        Rectangle::from_corners(*start, *end, self.stroke, self.fill_color)
+                            .map(Shape::Rectangle)
+                            .map_err(|e| {
+                                warn!("Failed to create rectangle: {}", e);
+                                e
+                            })
+                            .ok()
+                    } else {
+                        None
+                    }
                 }
-            }
-            ToolMode::Circle => {
-                if let (Some(center), Some(edge)) = (self.drawing_start, self.current_end) {
-                    let radius = center.distance(edge);
-                    Circle::new(center, radius, self.stroke, self.fill_color)
-                        .map(Shape::Circle)
-                        .map_err(|e| {
-                            warn!("Failed to create circle: {}", e);
-                            e
-                        })
-                        .ok()
-                } else {
-                    None
+                ToolMode::Circle => {
+                    if let Some(edge) = current_end {
+                        let radius = start.distance(*edge);
+                        Circle::new(*start, radius, self.stroke, self.fill_color)
+                            .map(Shape::Circle)
+                            .map_err(|e| {
+                                warn!("Failed to create circle: {}", e);
+                                e
+                            })
+                            .ok()
+                    } else {
+                        None
+                    }
                 }
-            }
-            ToolMode::Freehand => {
-                if self.current_points.len() >= 3 {
-                    // Create a closed polygon from the points
-                    let points: Vec<Pos2> = self.current_points.drain(..).collect();
-                    PolygonShape::from_points(points, self.stroke, self.fill_color)
-                        .map(Shape::Polygon)
-                        .map_err(|e| {
-                            warn!("Failed to create polygon: {}", e);
-                            e
-                        })
-                        .ok()
-                } else {
-                    // Clear points if we don't have enough for a polygon
-                    self.current_points.clear();
-                    None
+                ToolMode::Freehand => {
+                    if points.len() >= 3 {
+                        // Create a closed polygon from the points
+                        PolygonShape::from_points(points.clone(), self.stroke, self.fill_color)
+                            .map(Shape::Polygon)
+                            .map_err(|e| {
+                                warn!("Failed to create polygon: {}", e);
+                                e
+                            })
+                            .ok()
+                    } else {
+                        None
+                    }
                 }
+                ToolMode::Select => None,
+                ToolMode::Edit => None,
+                ToolMode::Rotate => None,
             }
-            ToolMode::Select => None,
-            ToolMode::Edit => None,
-            ToolMode::Rotate => None,
+        } else {
+            None
         };
 
         if let Some(shape) = shape {
@@ -847,11 +862,8 @@ impl DrawingCanvas {
             );
         }
 
-        // Reset drawing state
-        self.drawing_start = None;
-        self.current_end = None;
-        self.current_points.clear();
-        self.is_drawing = false;
+        // Reset to idle state
+        self.state = CanvasState::Idle;
     }
 
     /// Clear all shapes and detections from the canvas
@@ -1567,14 +1579,13 @@ impl DrawingCanvas {
 
         if let Some(vertex_idx) = clicked_vertex {
             debug!(vertex_idx, "Starting vertex drag");
-            self.dragging_vertex = Some(vertex_idx);
-            self.is_dragging_vertex = true;
+            self.state = CanvasState::DraggingVertex { vertex_index: vertex_idx };
         }
     }
 
     /// Continue dragging a vertex
     fn continue_vertex_drag(&mut self, pos: Pos2) {
-        let Some(vertex_idx) = self.dragging_vertex else {
+        let CanvasState::DraggingVertex { vertex_index: vertex_idx } = self.state else {
             return;
         };
 
@@ -1626,8 +1637,7 @@ impl DrawingCanvas {
     /// Finish dragging a vertex
     fn finish_vertex_drag(&mut self) {
         debug!("Finishing vertex drag");
-        self.dragging_vertex = None;
-        self.is_dragging_vertex = false;
+        self.state = CanvasState::Idle;
     }
 
     /// Start rotation interaction
@@ -1657,10 +1667,12 @@ impl DrawingCanvas {
                     debug!(shape_idx = idx, "Shape is selected");
                     if let Some(shape) = self.shapes.get(idx) {
                         let center = self.get_shape_center(shape);
-                        self.rotation_center = Some(center);
-                        self.rotation_start_angle = Self::calculate_angle(center, pos);
-                        self.is_rotating = true;
-                        debug!(?center, start_angle = self.rotation_start_angle, "Started rotating shape");
+                        let start_angle = Self::calculate_angle(center, pos);
+                        self.state = CanvasState::Rotating {
+                            start_angle,
+                            center: Some(center),
+                        };
+                        debug!(?center, start_angle, "Started rotating shape");
                     } else {
                         debug!(shape_idx = idx, "Shape index out of bounds");
                     }
@@ -1671,19 +1683,23 @@ impl DrawingCanvas {
             Some(LayerType::Grid) => {
                 debug!("Grid layer selected - rotating grid");
                 // Rotate the grid around the canvas center
-                self.rotation_center = Some(Pos2::ZERO);
-                self.rotation_start_angle = Self::calculate_angle(Pos2::ZERO, pos);
-                self.is_rotating = true;
-                debug!(rotation_center = ?Pos2::ZERO, start_angle = self.rotation_start_angle, "Started rotating grid");
+                let start_angle = Self::calculate_angle(Pos2::ZERO, pos);
+                self.state = CanvasState::Rotating {
+                    start_angle,
+                    center: Some(Pos2::ZERO),
+                };
+                debug!(rotation_center = ?Pos2::ZERO, start_angle, "Started rotating grid");
             }
             Some(LayerType::Canvas) => {
                 debug!(has_form_image = self.form_image.is_some(), "Canvas layer selected");
                 // Rotate the form image if one is loaded
                 if self.form_image.is_some() {
-                    self.rotation_center = Some(Pos2::ZERO);
-                    self.rotation_start_angle = Self::calculate_angle(Pos2::ZERO, pos);
-                    self.is_rotating = true;
-                    debug!(rotation_center = ?Pos2::ZERO, start_angle = self.rotation_start_angle, "Started rotating form image");
+                    let start_angle = Self::calculate_angle(Pos2::ZERO, pos);
+                    self.state = CanvasState::Rotating {
+                        start_angle,
+                        center: Some(Pos2::ZERO),
+                    };
+                    debug!(rotation_center = ?Pos2::ZERO, start_angle, "Started rotating form image");
                 } else {
                     debug!("No form image loaded - cannot rotate");
                 }
@@ -1696,66 +1712,71 @@ impl DrawingCanvas {
             }
         }
 
-        debug!(is_rotating = self.is_rotating, "Rotation state after start_rotation");
+        debug!(is_rotating = matches!(self.state, CanvasState::Rotating { .. }), "Rotation state after start_rotation");
     }
 
     /// Continue rotation interaction
     fn continue_rotation(&mut self, pos: Pos2) {
-        if let Some(center) = self.rotation_center {
-            let current_angle = Self::calculate_angle(center, pos);
-            let angle_delta = current_angle - self.rotation_start_angle;
+        let CanvasState::Rotating { start_angle, center } = &mut self.state else {
+            return;
+        };
 
-            debug!(?pos, ?center, current_angle, angle_delta, "Continuing rotation");
+        let Some(center_pos) = *center else {
+            return;
+        };
 
-            // Apply rotation based on selected layer (negated for inverted axis)
-            match self.selected_layer {
-                Some(LayerType::Shapes) => {
-                    // Rotate the selected shape using the new transformation method
-                    if let Some(idx) = self.selected_shape
-                        && let Some(shape) = self.shapes.get_mut(idx)
-                    {
-                        let rotation_angle = -angle_delta; // Negate for inverted axis
-                        match shape {
-                            Shape::Rectangle(rect) => {
-                                if let Err(e) = rect.rotate(rotation_angle, center) {
-                                    warn!("Failed to rotate rectangle: {}", e);
-                                }
+        let current_angle = Self::calculate_angle(center_pos, pos);
+        let angle_delta = current_angle - *start_angle;
+
+        debug!(?pos, ?center_pos, current_angle, angle_delta, "Continuing rotation");
+
+        // Apply rotation based on selected layer (negated for inverted axis)
+        match self.selected_layer {
+            Some(LayerType::Shapes) => {
+                // Rotate the selected shape using the new transformation method
+                if let Some(idx) = self.selected_shape
+                    && let Some(shape) = self.shapes.get_mut(idx)
+                {
+                    let rotation_angle = -angle_delta; // Negate for inverted axis
+                    match shape {
+                        Shape::Rectangle(rect) => {
+                            if let Err(e) = rect.rotate(rotation_angle, center_pos) {
+                                warn!("Failed to rotate rectangle: {}", e);
                             }
-                            Shape::Circle(circle) => {
-                                if let Err(e) = circle.rotate(rotation_angle, center) {
-                                    warn!("Failed to rotate circle: {}", e);
-                                }
+                        }
+                        Shape::Circle(circle) => {
+                            if let Err(e) = circle.rotate(rotation_angle, center_pos) {
+                                warn!("Failed to rotate circle: {}", e);
                             }
-                            Shape::Polygon(poly) => {
-                                if let Err(e) = poly.rotate(rotation_angle, center) {
-                                    warn!("Failed to rotate polygon: {}", e);
-                                }
+                        }
+                        Shape::Polygon(poly) => {
+                            if let Err(e) = poly.rotate(rotation_angle, center_pos) {
+                                warn!("Failed to rotate polygon: {}", e);
                             }
                         }
                     }
                 }
-                Some(LayerType::Grid) => {
-                    self.grid_rotation_angle -= angle_delta;
-                }
-                Some(LayerType::Canvas) => {
-                    self.form_image_rotation -= angle_delta;
-                }
-                Some(LayerType::Detections) => {
-                    // Detections cannot be rotated
-                }
-                None => {}
             }
-
-            // Update start angle for next frame
-            self.rotation_start_angle = current_angle;
+            Some(LayerType::Grid) => {
+                self.grid_rotation_angle -= angle_delta;
+            }
+            Some(LayerType::Canvas) => {
+                self.form_image_rotation -= angle_delta;
+            }
+            Some(LayerType::Detections) => {
+                // Detections cannot be rotated
+            }
+            None => {}
         }
+
+        // Update start angle for next frame
+        *start_angle = current_angle;
     }
 
     /// Finish rotation interaction
     fn finish_rotation(&mut self) {
         debug!("Finishing rotation");
-        self.is_rotating = false;
-        self.rotation_center = None;
+        self.state = CanvasState::Idle;
     }
 
     /// Calculate angle from center to position in radians
