@@ -149,9 +149,11 @@ impl App for DemoApp {
                 ui.separator();
 
                 // Clone layers data to avoid borrow checker issues
-                let layers_data: Vec<_> = self.canvas.layer_manager.layers_in_order()
+                // Display in reverse order (Grid at top, Canvas at bottom) to match visual z-order
+                let mut layers_data: Vec<_> = self.canvas.layer_manager.layers_in_order()
                     .map(|l| (*l.layer_type(), *l.visible(), *l.locked(), l.name().clone()))
                     .collect();
+                layers_data.reverse();
 
                 for (layer_type, visible, locked, name) in layers_data {
                     let is_selected = self.canvas.selected_layer == Some(layer_type);
