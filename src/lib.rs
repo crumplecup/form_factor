@@ -28,6 +28,7 @@
 //! ```
 
 #![warn(missing_docs)]
+#![forbid(unsafe_code)]
 
 // Module declarations (private - users import from root)
 mod app;
