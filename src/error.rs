@@ -51,7 +51,7 @@ impl FormError {
 }
 
 /// Categories of errors that can occur in form_factor
-#[derive(Debug)]
+#[derive(Debug, derive_more::From)]
 pub enum FormErrorKind {
     /// AccessKit-related errors (accessibility)
     AccessKit(AccessKitError),
@@ -70,6 +70,9 @@ pub enum FormErrorKind {
 
     /// Application-level errors
     App(AppError),
+
+    /// Canvas drawing errors
+    Canvas(crate::drawing::CanvasError),
 }
 
 // ============================================================================
@@ -86,7 +89,7 @@ pub struct AccessKitError {
     pub line: u32,
 
     /// File where the error occurred
-    pub file: String,
+    pub file: &'static str,
 
     /// Optional additional context
     pub context: Option<String>,
@@ -94,11 +97,11 @@ pub struct AccessKitError {
 
 impl AccessKitError {
     /// Create a new AccessKitError
-    pub fn new(desc: impl Into<String>, line: u32, file: impl Into<String>) -> Self {
+    pub fn new(desc: impl Into<String>, line: u32, file: &'static str) -> Self {
         Self {
             desc: desc.into(),
             line,
-            file: file.into(),
+            file,
             context: None,
         }
     }
@@ -120,7 +123,7 @@ pub struct EguiError {
     pub line: u32,
 
     /// File where the error occurred
-    pub file: String,
+    pub file: &'static str,
 
     /// Widget or component that caused the error
     pub component: Option<String>,
@@ -128,11 +131,11 @@ pub struct EguiError {
 
 impl EguiError {
     /// Create a new EguiError
-    pub fn new(desc: impl Into<String>, line: u32, file: impl Into<String>) -> Self {
+    pub fn new(desc: impl Into<String>, line: u32, file: &'static str) -> Self {
         Self {
             desc: desc.into(),
             line,
-            file: file.into(),
+            file,
             component: None,
         }
     }
@@ -157,7 +160,7 @@ pub struct BackendError {
     pub line: u32,
 
     /// File where the error occurred
-    pub file: String,
+    pub file: &'static str,
 
     /// Underlying error from the backend
     pub source_error: Option<String>,
@@ -169,13 +172,13 @@ impl BackendError {
         desc: impl Into<String>,
         backend_type: impl Into<String>,
         line: u32,
-        file: impl Into<String>,
+        file: &'static str,
     ) -> Self {
         Self {
             desc: desc.into(),
             backend_type: backend_type.into(),
             line,
-            file: file.into(),
+            file,
             source_error: None,
         }
     }
@@ -200,7 +203,7 @@ pub struct IoError {
     pub line: u32,
 
     /// File where the error occurred
-    pub file: String,
+    pub file: &'static str,
 
     /// The I/O operation that failed
     pub operation: IoOperation,
@@ -213,13 +216,13 @@ impl IoError {
         path: impl Into<String>,
         operation: IoOperation,
         line: u32,
-        file: impl Into<String>,
+        file: &'static str,
     ) -> Self {
         Self {
             desc: desc.into(),
             path: path.into(),
             line,
-            file: file.into(),
+            file,
             operation,
         }
     }
@@ -271,18 +274,18 @@ pub struct ConfigError {
     pub line: u32,
 
     /// File where the error occurred
-    pub file: String,
+    pub file: &'static str,
 }
 
 impl ConfigError {
     /// Create a new ConfigError
-    pub fn new(desc: impl Into<String>, line: u32, file: impl Into<String>) -> Self {
+    pub fn new(desc: impl Into<String>, line: u32, file: &'static str) -> Self {
         Self {
             desc: desc.into(),
             key: None,
             expected: None,
             line,
-            file: file.into(),
+            file,
         }
     }
 
@@ -312,7 +315,7 @@ pub struct AppError {
     pub line: u32,
 
     /// File where the error occurred
-    pub file: String,
+    pub file: &'static str,
 
     /// Whether the error is recoverable
     pub recoverable: bool,
@@ -320,12 +323,12 @@ pub struct AppError {
 
 impl AppError {
     /// Create a new AppError
-    pub fn new(desc: impl Into<String>, line: u32, file: impl Into<String>) -> Self {
+    pub fn new(desc: impl Into<String>, line: u32, file: &'static str) -> Self {
         Self {
             desc: desc.into(),
             state: None,
             line,
-            file: file.into(),
+            file,
             recoverable: true,
         }
     }
@@ -349,19 +352,20 @@ impl AppError {
 
 impl fmt::Display for FormError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.0)
+        write!(f, "Form Error: {}", self.0)
     }
 }
 
 impl fmt::Display for FormErrorKind {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            FormErrorKind::AccessKit(e) => write!(f, "AccessKit error: {}", e),
-            FormErrorKind::Egui(e) => write!(f, "Egui error: {}", e),
-            FormErrorKind::Backend(e) => write!(f, "Backend error: {}", e),
-            FormErrorKind::Io(e) => write!(f, "I/O error: {}", e),
-            FormErrorKind::Config(e) => write!(f, "Configuration error: {}", e),
-            FormErrorKind::App(e) => write!(f, "Application error: {}", e),
+            FormErrorKind::AccessKit(e) => write!(f, "{}", e),
+            FormErrorKind::Egui(e) => write!(f, "{}", e),
+            FormErrorKind::Backend(e) => write!(f, "{}", e),
+            FormErrorKind::Io(e) => write!(f, "{}", e),
+            FormErrorKind::Config(e) => write!(f, "{}", e),
+            FormErrorKind::App(e) => write!(f, "{}", e),
+            FormErrorKind::Canvas(e) => write!(f, "{}", e),
         }
     }
 }
@@ -449,6 +453,7 @@ impl std::error::Error for FormError {
             FormErrorKind::Io(e) => Some(e),
             FormErrorKind::Config(e) => Some(e),
             FormErrorKind::App(e) => Some(e),
+            FormErrorKind::Canvas(e) => Some(e),
         }
     }
 }
@@ -464,39 +469,53 @@ impl std::error::Error for AppError {}
 // Conversion Implementations (From trait)
 // ============================================================================
 
+// derive_more::From on FormErrorKind automatically provides From<AccessKitError> for FormErrorKind,
+// so we implement FormError conversions via FormErrorKind
+impl From<FormErrorKind> for FormError {
+    fn from(kind: FormErrorKind) -> Self {
+        FormError::new(kind)
+    }
+}
+
 impl From<AccessKitError> for FormError {
     fn from(err: AccessKitError) -> Self {
-        FormError::new(FormErrorKind::AccessKit(err))
+        FormError::new(FormErrorKind::from(err))
     }
 }
 
 impl From<EguiError> for FormError {
     fn from(err: EguiError) -> Self {
-        FormError::new(FormErrorKind::Egui(err))
+        FormError::new(FormErrorKind::from(err))
     }
 }
 
 impl From<BackendError> for FormError {
     fn from(err: BackendError) -> Self {
-        FormError::new(FormErrorKind::Backend(err))
+        FormError::new(FormErrorKind::from(err))
     }
 }
 
 impl From<IoError> for FormError {
     fn from(err: IoError) -> Self {
-        FormError::new(FormErrorKind::Io(err))
+        FormError::new(FormErrorKind::from(err))
     }
 }
 
 impl From<ConfigError> for FormError {
     fn from(err: ConfigError) -> Self {
-        FormError::new(FormErrorKind::Config(err))
+        FormError::new(FormErrorKind::from(err))
     }
 }
 
 impl From<AppError> for FormError {
     fn from(err: AppError) -> Self {
-        FormError::new(FormErrorKind::App(err))
+        FormError::new(FormErrorKind::from(err))
+    }
+}
+
+impl From<crate::drawing::CanvasError> for FormError {
+    fn from(err: crate::drawing::CanvasError) -> Self {
+        FormError::new(FormErrorKind::from(err))
     }
 }
 
