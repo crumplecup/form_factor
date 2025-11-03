@@ -228,11 +228,17 @@ impl IoError {
 /// Type of I/O operation that failed
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IoOperation {
+    /// File read operation
     Read,
+    /// File write operation
     Write,
+    /// File creation operation
     Create,
+    /// File deletion operation
     Delete,
+    /// File open operation
     Open,
+    /// File close operation
     Close,
 }
 

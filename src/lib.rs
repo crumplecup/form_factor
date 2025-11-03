@@ -27,6 +27,8 @@
 //! }
 //! ```
 
+#![warn(missing_docs)]
+
 // Module declarations (private - users import from root)
 mod app;
 mod backend;

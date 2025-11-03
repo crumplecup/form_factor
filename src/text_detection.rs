@@ -11,10 +11,15 @@ use tracing::debug;
 /// A detected text region
 #[derive(Debug, Clone)]
 pub struct TextRegion {
+    /// X coordinate of the top-left corner
     pub x: i32,
+    /// Y coordinate of the top-left corner
     pub y: i32,
+    /// Width of the text region in pixels
     pub width: i32,
+    /// Height of the text region in pixels
     pub height: i32,
+    /// Detection confidence score between 0.0 and 1.0
     pub confidence: f32,
 }
 

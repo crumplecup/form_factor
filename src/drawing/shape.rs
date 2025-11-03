@@ -14,15 +14,19 @@ use thiserror::Error;
 /// Errors that can occur during shape creation and manipulation
 #[derive(Error, Debug, Clone, PartialEq)]
 pub enum ShapeError {
+    /// Polygon has fewer than 3 points
     #[error("Polygon must have at least 3 points, got {0}")]
     TooFewPoints(usize),
 
+    /// Coordinate contains NaN or infinity
     #[error("Invalid coordinate: point contains NaN or infinity")]
     InvalidCoordinate,
 
+    /// Circle radius is not positive
     #[error("Circle radius must be positive, got {0}")]
     InvalidRadius(f32),
 
+    /// Shape has zero area or all points are collinear
     #[error("Degenerate shape: all points are collinear or coincident")]
     DegenerateShape,
 }
@@ -48,8 +52,11 @@ fn coord_to_pos2(c: Coord<f64>) -> Pos2 {
 /// A drawing shape on the canvas
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum Shape {
+    /// A rectangular shape
     Rectangle(Rectangle),
+    /// A circular shape
     Circle(Circle),
+    /// A polygonal shape
     Polygon(PolygonShape),
 }
 
@@ -63,8 +70,11 @@ pub struct Rectangle {
     polygon: GeoPolygon<f64>,
     /// Four corners for efficient rendering (cached from polygon)
     corners: [Pos2; 4],
+    /// Stroke style for the outline
     pub stroke: Stroke,
+    /// Fill color
     pub fill: Color32,
+    /// User-defined name for this shape
     pub name: String,
 }
 
@@ -75,7 +85,12 @@ impl Rectangle {
     ///
     /// Returns `ShapeError::InvalidCoordinate` if any coordinate is NaN or infinite.
     /// Returns `ShapeError::DegenerateShape` if start and end are the same point.
-    pub fn from_corners(start: Pos2, end: Pos2, stroke: Stroke, fill: Color32) -> Result<Self, ShapeError> {
+    pub fn from_corners(
+        start: Pos2,
+        end: Pos2,
+        stroke: Stroke,
+        fill: Color32,
+    ) -> Result<Self, ShapeError> {
         // Validate coordinates
         pos2_to_coord(start)?;
         pos2_to_coord(end)?;
@@ -122,12 +137,14 @@ impl Rectangle {
     /// # Errors
     ///
     /// Returns `ShapeError::InvalidCoordinate` if any coordinate is NaN or infinite.
-    pub fn from_four_corners(corners: [Pos2; 4], stroke: Stroke, fill: Color32) -> Result<Self, ShapeError> {
+    pub fn from_four_corners(
+        corners: [Pos2; 4],
+        stroke: Stroke,
+        fill: Color32,
+    ) -> Result<Self, ShapeError> {
         // Validate all corners
-        let coords: Result<Vec<Coord<f64>>, ShapeError> = corners
-            .iter()
-            .map(|&p| pos2_to_coord(p))
-            .collect();
+        let coords: Result<Vec<Coord<f64>>, ShapeError> =
+            corners.iter().map(|&p| pos2_to_coord(p)).collect();
         let coords = coords?;
 
         let polygon = GeoPolygon::new(LineString::from(coords), vec![]);
@@ -163,7 +180,8 @@ impl Rectangle {
         self.corners[index] = pos;
 
         // Rebuild the polygon from updated corners
-        let coords: Vec<Coord<f64>> = self.corners
+        let coords: Vec<Coord<f64>> = self
+            .corners
             .iter()
             .map(|&p| pos2_to_coord(p).expect("Already validated"))
             .collect();
@@ -186,7 +204,8 @@ impl Rectangle {
         self.corners = corners;
 
         // Rebuild the polygon
-        let coords: Vec<Coord<f64>> = self.corners
+        let coords: Vec<Coord<f64>> = self
+            .corners
             .iter()
             .map(|&p| pos2_to_coord(p).expect("Already validated"))
             .collect();
@@ -228,10 +247,7 @@ impl Rectangle {
             let rotated_y = dx * sin + dy * cos;
 
             // Translate back
-            new_corners[i] = Pos2::new(
-                rotated_x + pivot.x,
-                rotated_y + pivot.y,
-            );
+            new_corners[i] = Pos2::new(rotated_x + pivot.x, rotated_y + pivot.y);
         }
 
         // Update using the setter to maintain consistency
@@ -274,10 +290,15 @@ impl Rectangle {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters, Builder)]
 #[builder(setter(into))]
 pub struct Circle {
+    /// Center point of the circle
     pub center: Pos2,
+    /// Radius of the circle
     pub radius: f32,
+    /// Stroke style for the outline
     pub stroke: Stroke,
+    /// Fill color
     pub fill: Color32,
+    /// User-defined name for this shape
     #[builder(default = "String::new()")]
     pub name: String,
 }
@@ -289,7 +310,12 @@ impl Circle {
     ///
     /// Returns `ShapeError::InvalidCoordinate` if center contains NaN or infinity.
     /// Returns `ShapeError::InvalidRadius` if radius is not positive and finite.
-    pub fn new(center: Pos2, radius: f32, stroke: Stroke, fill: Color32) -> Result<Self, ShapeError> {
+    pub fn new(
+        center: Pos2,
+        radius: f32,
+        stroke: Stroke,
+        fill: Color32,
+    ) -> Result<Self, ShapeError> {
         // Validate center coordinate
         pos2_to_coord(center)?;
 
@@ -357,10 +383,7 @@ impl Circle {
         let rotated_y = dx * sin + dy * cos;
 
         // Translate back
-        let new_center = Pos2::new(
-            rotated_x + pivot.x,
-            rotated_y + pivot.y,
-        );
+        let new_center = Pos2::new(rotated_x + pivot.x, rotated_y + pivot.y);
 
         self.set_center(new_center)?;
         Ok(())
@@ -394,9 +417,13 @@ impl Circle {
 /// closed (first point connects to last point).
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct PolygonShape {
+    /// Internal polygon representation
     polygon: GeoPolygon<f64>,
+    /// Stroke style for the outline
     pub stroke: Stroke,
+    /// Fill color
     pub fill: Color32,
+    /// User-defined name for this shape
     pub name: String,
 }
 
@@ -409,16 +436,18 @@ impl PolygonShape {
     ///
     /// Returns `ShapeError::TooFewPoints` if fewer than 3 points are provided.
     /// Returns `ShapeError::InvalidCoordinate` if any point contains NaN or infinity.
-    pub fn from_points(points: Vec<Pos2>, stroke: Stroke, fill: Color32) -> Result<Self, ShapeError> {
+    pub fn from_points(
+        points: Vec<Pos2>,
+        stroke: Stroke,
+        fill: Color32,
+    ) -> Result<Self, ShapeError> {
         if points.len() < 3 {
             return Err(ShapeError::TooFewPoints(points.len()));
         }
 
         // Convert egui Pos2 to geo_types Coord with validation
-        let coords: Result<Vec<Coord<f64>>, ShapeError> = points
-            .iter()
-            .map(|&p| pos2_to_coord(p))
-            .collect();
+        let coords: Result<Vec<Coord<f64>>, ShapeError> =
+            points.iter().map(|&p| pos2_to_coord(p)).collect();
         let coords = coords?;
 
         // Create a closed LineString (polygon exterior)
@@ -460,10 +489,8 @@ impl PolygonShape {
         }
 
         // Validate and convert all points
-        let coords: Result<Vec<Coord<f64>>, ShapeError> = points
-            .iter()
-            .map(|&p| pos2_to_coord(p))
-            .collect();
+        let coords: Result<Vec<Coord<f64>>, ShapeError> =
+            points.iter().map(|&p| pos2_to_coord(p)).collect();
         let coords = coords?;
 
         self.polygon = GeoPolygon::new(LineString::from(coords), vec![]);
@@ -482,10 +509,8 @@ impl PolygonShape {
         }
 
         // Validate and convert all points
-        let coords: Result<Vec<Coord<f64>>, ShapeError> = points
-            .iter()
-            .map(|&p| pos2_to_coord(p))
-            .collect();
+        let coords: Result<Vec<Coord<f64>>, ShapeError> =
+            points.iter().map(|&p| pos2_to_coord(p)).collect();
         let coords = coords?;
 
         self.polygon = GeoPolygon::new(LineString::from(coords), vec![]);
@@ -534,10 +559,7 @@ impl PolygonShape {
                 let rotated_y = dx * sin + dy * cos;
 
                 // Translate back
-                Pos2::new(
-                    rotated_x + pivot.x,
-                    rotated_y + pivot.y,
-                )
+                Pos2::new(rotated_x + pivot.x, rotated_y + pivot.y)
             })
             .collect();
 
@@ -552,10 +574,7 @@ impl PolygonShape {
     /// Returns `ShapeError::InvalidCoordinate` if translation produces invalid coordinates.
     pub fn translate(&mut self, delta: egui::Vec2) -> Result<(), ShapeError> {
         let points = self.to_egui_points();
-        let translated_points: Vec<Pos2> = points
-            .iter()
-            .map(|p| *p + delta)
-            .collect();
+        let translated_points: Vec<Pos2> = points.iter().map(|p| *p + delta).collect();
 
         self.set_vertices(translated_points)?;
         Ok(())

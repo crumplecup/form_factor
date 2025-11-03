@@ -50,8 +50,10 @@ impl eframe::App for EframeApp {
     }
 }
 
+/// Errors that can occur when using the eframe backend
 #[derive(Debug, thiserror::Error)]
 pub enum EframeError {
+    /// Failed to initialize the eframe backend
     #[error("Failed to initialize eframe: {0}")]
     InitError(#[from] eframe::Error),
 }

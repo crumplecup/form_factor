@@ -168,7 +168,9 @@ pub struct LogoDetectionResult {
 /// Location of a detected logo
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct LogoLocation {
+    /// X coordinate of the top-left corner
     pub x: i32,
+    /// Y coordinate of the top-left corner
     pub y: i32,
 }
 
@@ -190,7 +192,9 @@ impl From<LogoLocation> for Point {
 /// Size of a detected logo
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct LogoSize {
+    /// Width of the logo in pixels
     pub width: i32,
+    /// Height of the logo in pixels
     pub height: i32,
 }
 
@@ -589,7 +593,7 @@ mod tests {
 
     #[test]
     fn test_logo_management() {
-        let mut detector = LogoDetector::new();
+        let detector = LogoDetector::new();
         assert_eq!(detector.logo_count(), 0);
 
         // Note: Can't test add_logo without actual image files

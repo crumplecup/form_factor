@@ -3,18 +3,26 @@ use serde::{Deserialize, Serialize};
 /// Types of layers in the canvas
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LayerType {
+    /// The canvas layer (background form image)
     Canvas,
+    /// The detections layer (automatically detected regions)
     Detections,
+    /// The shapes layer (user-drawn annotations)
     Shapes,
+    /// The grid layer (alignment grid overlay)
     Grid,
 }
 
 /// A layer with visibility control
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Layer {
+    /// Display name of the layer
     pub name: String,
+    /// Type of this layer
     pub layer_type: LayerType,
+    /// Whether the layer is visible
     pub visible: bool,
+    /// Whether the layer is locked (non-editable)
     pub locked: bool,
 }
 

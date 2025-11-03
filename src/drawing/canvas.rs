@@ -43,12 +43,14 @@ pub struct DrawingCanvas {
     // Selection state (not serialized)
     #[serde(skip)]
     selected_shape: Option<usize>,
+    /// Currently selected layer type
     #[serde(skip)]
     pub selected_layer: Option<LayerType>,
     #[serde(skip)]
     show_properties: bool,
     #[serde(skip)]
     focus_name_field: bool,
+    /// Whether the project name is currently being edited
     #[serde(skip)]
     pub editing_project_name: bool,
 
@@ -75,8 +77,10 @@ pub struct DrawingCanvas {
     pending_image_load: Option<String>,
 
     // Zoom and pan state
+    /// Current zoom level for the canvas
     #[serde(default = "default_zoom_level")]
     pub zoom_level: f32,
+    /// Current pan offset for the canvas view
     #[serde(default)]
     pub pan_offset: egui::Vec2,
 
@@ -89,15 +93,19 @@ pub struct DrawingCanvas {
     grid_spacing_horizontal: f32,
     #[serde(skip)]
     grid_spacing_vertical: f32,
+    /// Rotation angle of the grid overlay in radians
     #[serde(default)]
     pub grid_rotation_angle: f32,
 
     // Form image rotation
+    /// Rotation angle of the form image in radians
     #[serde(default)]
     pub form_image_rotation: f32,
 
     // Style settings
+    /// Stroke style for drawing shapes
     pub stroke: Stroke,
+    /// Fill color for drawing shapes
     pub fill_color: Color32,
 }
 
