@@ -73,6 +73,12 @@ pub enum FormErrorKind {
 
     /// Canvas drawing errors
     Canvas(crate::drawing::CanvasError),
+
+    /// Layer management errors
+    Layer(crate::drawing::LayerError),
+
+    /// Shape creation and manipulation errors
+    Shape(crate::drawing::ShapeError),
 }
 
 // ============================================================================
@@ -366,6 +372,8 @@ impl fmt::Display for FormErrorKind {
             FormErrorKind::Config(e) => write!(f, "{}", e),
             FormErrorKind::App(e) => write!(f, "{}", e),
             FormErrorKind::Canvas(e) => write!(f, "{}", e),
+            FormErrorKind::Layer(e) => write!(f, "{}", e),
+            FormErrorKind::Shape(e) => write!(f, "{}", e),
         }
     }
 }
@@ -454,6 +462,8 @@ impl std::error::Error for FormError {
             FormErrorKind::Config(e) => Some(e),
             FormErrorKind::App(e) => Some(e),
             FormErrorKind::Canvas(e) => Some(e),
+            FormErrorKind::Layer(e) => Some(e),
+            FormErrorKind::Shape(e) => Some(e),
         }
     }
 }
@@ -515,6 +525,18 @@ impl From<AppError> for FormError {
 
 impl From<crate::drawing::CanvasError> for FormError {
     fn from(err: crate::drawing::CanvasError) -> Self {
+        FormError::new(FormErrorKind::from(err))
+    }
+}
+
+impl From<crate::drawing::LayerError> for FormError {
+    fn from(err: crate::drawing::LayerError) -> Self {
+        FormError::new(FormErrorKind::from(err))
+    }
+}
+
+impl From<crate::drawing::ShapeError> for FormError {
+    fn from(err: crate::drawing::ShapeError) -> Self {
         FormError::new(FormErrorKind::from(err))
     }
 }
