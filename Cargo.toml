@@ -53,3 +53,6 @@ logo-detection = ["dep:opencv"]
 ocr = ["dep:leptess"]
 dev = ["text-detection", "logo-detection", "ocr"]
 # backend-miniquad = ["dep:egui-miniquad"]  # Planned for future when ecosystem catches up
+
+[build-dependencies]
+dotenvy = "0.15"
