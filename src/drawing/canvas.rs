@@ -3,6 +3,7 @@
 use crate::drawing::{Circle, LayerManager, LayerType, PolygonShape, Rectangle, RecentProjects, Shape, ToolMode};
 #[cfg(feature = "text-detection")]
 use crate::text_detection::TextDetector;
+use derive_getters::Getters;
 use egui::{Color32, Pos2, Stroke};
 use geo::CoordsIter;
 use serde::{Deserialize, Serialize};
@@ -15,20 +16,20 @@ fn default_zoom_level() -> f32 {
 }
 
 /// Drawing canvas state
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Getters)]
 pub struct DrawingCanvas {
     /// Project name
-    pub project_name: String,
+    project_name: String,
     /// All completed shapes
-    pub shapes: Vec<Shape>,
+    shapes: Vec<Shape>,
     /// Detected text regions
-    pub detections: Vec<Shape>,
+    detections: Vec<Shape>,
     /// Currently active tool
-    pub current_tool: ToolMode,
+    current_tool: ToolMode,
     /// Layer management
-    pub layer_manager: LayerManager,
+    layer_manager: LayerManager,
     /// Path to the loaded form image (for serialization)
-    pub form_image_path: Option<String>,
+    form_image_path: Option<String>,
 
     // Drawing state (not serialized)
     #[serde(skip)]
@@ -45,14 +46,14 @@ pub struct DrawingCanvas {
     selected_shape: Option<usize>,
     /// Currently selected layer type
     #[serde(skip)]
-    pub selected_layer: Option<LayerType>,
+    selected_layer: Option<LayerType>,
     #[serde(skip)]
     show_properties: bool,
     #[serde(skip)]
     focus_name_field: bool,
     /// Whether the project name is currently being edited
     #[serde(skip)]
-    pub editing_project_name: bool,
+    editing_project_name: bool,
 
     // Edit mode vertex dragging state (not serialized)
     #[serde(skip)]
@@ -79,10 +80,10 @@ pub struct DrawingCanvas {
     // Zoom and pan state
     /// Current zoom level for the canvas
     #[serde(default = "default_zoom_level")]
-    pub zoom_level: f32,
+    zoom_level: f32,
     /// Current pan offset for the canvas view
     #[serde(default)]
-    pub pan_offset: egui::Vec2,
+    pan_offset: egui::Vec2,
 
     // Settings state (not serialized)
     #[serde(skip)]
@@ -95,18 +96,18 @@ pub struct DrawingCanvas {
     grid_spacing_vertical: f32,
     /// Rotation angle of the grid overlay in radians
     #[serde(default)]
-    pub grid_rotation_angle: f32,
+    grid_rotation_angle: f32,
 
     // Form image rotation
     /// Rotation angle of the form image in radians
     #[serde(default)]
-    pub form_image_rotation: f32,
+    form_image_rotation: f32,
 
     // Style settings
     /// Stroke style for drawing shapes
-    pub stroke: Stroke,
+    stroke: Stroke,
     /// Fill color for drawing shapes
-    pub fill_color: Color32,
+    fill_color: Color32,
 }
 
 impl Default for DrawingCanvas {
@@ -2063,5 +2064,27 @@ impl DrawingCanvas {
                 }
             }
         }
+    }
+
+    // Setter methods for externally mutated fields
+
+    /// Set the currently selected layer
+    pub fn set_selected_layer(&mut self, layer: Option<LayerType>) {
+        self.selected_layer = layer;
+    }
+
+    /// Set whether the project name is being edited
+    pub fn set_editing_project_name(&mut self, editing: bool) {
+        self.editing_project_name = editing;
+    }
+
+    /// Set the project name
+    pub fn set_project_name(&mut self, name: impl Into<String>) {
+        self.project_name = name.into();
+    }
+
+    /// Get a mutable reference to the layer manager
+    pub fn layer_manager_mut(&mut self) -> &mut LayerManager {
+        &mut self.layer_manager
     }
 }

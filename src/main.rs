@@ -150,13 +150,13 @@ impl App for DemoApp {
 
                 // Clone layers data to avoid borrow checker issues
                 // Display in reverse order (Grid at top, Canvas at bottom) to match visual z-order
-                let mut layers_data: Vec<_> = self.canvas.layer_manager.layers_in_order()
+                let mut layers_data: Vec<_> = self.canvas.layer_manager().layers_in_order()
                     .map(|l| (*l.layer_type(), *l.visible(), *l.locked(), l.name().clone()))
                     .collect();
                 layers_data.reverse();
 
                 for (layer_type, visible, locked, name) in layers_data {
-                    let is_selected = self.canvas.selected_layer == Some(layer_type);
+                    let is_selected = *self.canvas.selected_layer() == Some(layer_type);
 
                     // Frame for row with background highlight when selected
                     let frame = if is_selected {
@@ -172,12 +172,12 @@ impl App for DemoApp {
                         ui.horizontal(|ui| {
                             let visible_icon = if visible { "👁" } else { "🚫" };
                             if ui.button(visible_icon).clicked() {
-                                self.canvas.layer_manager.toggle_layer(layer_type);
+                                self.canvas.layer_manager_mut().toggle_layer(layer_type);
                             }
 
                             let lock_icon = if locked { "🔒" } else { "🔓" };
                             if ui.button(lock_icon).clicked() {
-                                self.canvas.layer_manager.toggle_locked(layer_type);
+                                self.canvas.layer_manager_mut().toggle_locked(layer_type);
                             }
 
                             // Clear button for each layer type
@@ -195,9 +195,9 @@ impl App for DemoApp {
                             if ui.label(&name).clicked() {
                                 // Toggle selection: if already selected, unselect; otherwise select
                                 if is_selected {
-                                    self.canvas.selected_layer = None;
+                                    self.canvas.set_selected_layer(None);
                                 } else {
-                                    self.canvas.selected_layer = Some(layer_type);
+                                    self.canvas.set_selected_layer(Some(layer_type));
                                 }
                             }
                         });
@@ -213,12 +213,17 @@ impl App for DemoApp {
                 ui.horizontal(|ui| {
                     ui.label("Name:");
 
-                    if self.canvas.editing_project_name {
-                        let response = ui.text_edit_singleline(&mut self.canvas.project_name);
+                    if *self.canvas.editing_project_name() {
+                        // Use a temporary variable for editing since we need a mutable reference
+                        let mut temp_name = self.canvas.project_name().clone();
+                        let response = ui.text_edit_singleline(&mut temp_name);
+
+                        // Update the canvas with the modified name
+                        self.canvas.set_project_name(temp_name);
 
                         // Stop editing on Enter or focus loss
                         if response.lost_focus() || ui.input(|i| i.key_pressed(egui::Key::Enter)) {
-                            self.canvas.editing_project_name = false;
+                            self.canvas.set_editing_project_name(false);
                         }
 
                         // Request focus when starting to edit
@@ -227,8 +232,8 @@ impl App for DemoApp {
                         }
                     } else {
                         // Show project name as clickable label
-                        if ui.selectable_label(false, &self.canvas.project_name).clicked() {
-                            self.canvas.editing_project_name = true;
+                        if ui.selectable_label(false, self.canvas.project_name()).clicked() {
+                            self.canvas.set_editing_project_name(true);
                         }
                     }
                 });
@@ -239,7 +244,7 @@ impl App for DemoApp {
                     if ui.button("💾 Save").clicked()
                     && let Some(path) = rfd::FileDialog::new()
                         .add_filter("Form Factor Project", &["ffp"])
-                        .set_file_name(format!("{}.ffp", self.canvas.project_name))
+                        .set_file_name(format!("{}.ffp", self.canvas.project_name()))
                         .save_file()
                     && let Some(path_str) = path.to_str()
                 {
