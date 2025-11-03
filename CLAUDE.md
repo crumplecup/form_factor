@@ -46,6 +46,24 @@
   - Use derive_more to derive From to streamline conversion from a new error to the crate level error (e.g. use `#[from(NewError)]` above the variant `NewError(NewError)`)
 - If a function or method returns a single unique error type, use that type. If the body contains more than one error type in its result types, convert the unique error types to the crate level type, and use the crate level error in the return type of the function or method signature.
 
+## Module Organization
+
+- When a module file exceeds ~500-1000 lines, consider splitting it into a module directory with focused submodules organized by responsibility (e.g., core, io, tools, rendering).
+- Use pub(super) visibility for fields and methods that need to be accessible across submodules within the same module directory.
+- Create a mod.rs file to re-export the public API and keep internal organization private.
+- When using derive_getters on structs in module directories, mark fields as pub(super) to allow cross-submodule access while maintaining encapsulation from external modules.
+- Add helper methods (setters, mut accessors) to the core struct for clean cross-submodule communication instead of directly accessing pub(super) fields.
+
+## Error Field Types
+
+- Error struct `file` fields should use `&'static str` (not `String`) to match the return type of the `file!()` macro, reducing allocations.
+- Use `#[derive(Debug, derive_more::From)]` on crate-level error enums to automatically generate From implementations for all error variants.
+
+## Common Refactoring Patterns
+
+- **State Machine Extraction**: When multiple boolean flags represent mutually exclusive states, extract them into an enum state machine to prevent invalid state combinations.
+- **Borrow Checker**: When encountering borrow checker errors with simultaneous immutable and mutable borrows, extract needed values before taking mutable references (e.g., `let value = *self.field(); /* then mutably borrow */`).
+
 ## Unsafe
 
 - Use the forbid unsafe lint at the top level of lib.rs to prevent unsafe code.
