@@ -36,15 +36,15 @@
   - For specific errors types capturing initial error condition, wrap enums in a struct that include the line and file where the error occurred using the line! and file! macros.
   - The idiom is to call the enumeration something like MyErrorKind, and the wrapper struct MyError.
   - The idiom for MyError is to have fields kind, line and file.
+  - Error struct `file` fields should use `&'static str` (not `String`) to match the return type of the `file!()` macro, reducing allocations.
   - Omit the enum type and kind field when a static message conveys sufficient information, but still include the line and file.
   - Implement a specific error message in the display impl for each variant of the enum, then wrap this msg in the display impl for the wrapper. E.g. If the display for MyErrorKind is e, then MyError displays "My Error: {e} at line {line} in {file}" so the user can see the whole context.
   - Use the derive_more crate to implement Display and Error when convenient.
   - Expand and improve error structs and enums as necessary to capture sufficient information about the error conditions to gain insight into the nature of the problem.
-- After creating a new unique error type, add a variant to the crate level error enum using the new error name as a variant type, including the new error type as a field (i.e. CrateErrorKind { ... NewError(NewError)})
+- After creating a new unique error type, add a variant to the crate level error enum using the new error name as a variant type, including the new error type as a field (e.g. `FormErrorKind::Canvas(CanvasError)`)
+  - Use `#[derive(Debug, derive_more::From)]` on the crate-level error enum to automatically generate From implementations for all error variants.
   - The display impl for the crate-level enum should forward the impl from the original error (e.g. If the display value of NewError is e, then the display for CrateErrorKind is "{e}").
   - The display impl for the wrapper struct around the crate-level enum should include the display value of its kind field (e.g. If the display value of CrateErrorKind is e, then CrateError displays "Form Error: {e}").
-  - Use the derive_more crate to implement Display and Error when convenient.
-  - Use derive_more to derive From to streamline conversion from a new error to the crate level error (e.g. use `#[from(NewError)]` above the variant `NewError(NewError)`)
 - If a function or method returns a single unique error type, use that type. If the body contains more than one error type in its result types, convert the unique error types to the crate level type, and use the crate level error in the return type of the function or method signature.
 
 ## Module Organization
@@ -53,11 +53,6 @@
 - Create a mod.rs file to re-export the public API and keep internal organization private.
 - Export types from lib.rs at the crate level, then import them using `use crate::{Type}` in any modules that need them. This provides a single, consistent import path throughout the codebase.
 - Add helper methods (setters, mut accessors) to core structs for clean cross-module communication instead of directly accessing fields.
-
-## Error Field Types
-
-- Error struct `file` fields should use `&'static str` (not `String`) to match the return type of the `file!()` macro, reducing allocations.
-- Use `#[derive(Debug, derive_more::From)]` on crate-level error enums to automatically generate From implementations for all error variants.
 
 ## Common Refactoring Patterns
 
