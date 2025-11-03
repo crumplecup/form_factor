@@ -13,7 +13,7 @@
 //! # Example
 //!
 //! ```
-//! use form_factor::error::{FormError, AccessKitError};
+//! use form_factor::{FormError, AccessKitError};
 //!
 //! fn do_something() -> Result<(), FormError> {
 //!     Err(AccessKitError::new(
