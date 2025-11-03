@@ -3,6 +3,8 @@
 //! This module provides geometric shapes for canvas annotations, leveraging
 //! the `geo` crate for robust geometry operations and spatial queries.
 
+use derive_builder::Builder;
+use derive_getters::Getters;
 use egui::{Color32, Pos2, Stroke};
 use geo::{Contains, Point};
 use geo_types::{Coord, LineString, Polygon as GeoPolygon};
@@ -55,7 +57,7 @@ pub enum Shape {
 ///
 /// Internally uses `geo::Polygon` for robust geometric operations.
 /// Corners are stored in clockwise order: top-left, top-right, bottom-right, bottom-left.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Getters)]
 pub struct Rectangle {
     /// Internal polygon representation for geometric operations
     polygon: GeoPolygon<f64>,
@@ -139,9 +141,58 @@ impl Rectangle {
         })
     }
 
-    /// Get the corners of this rectangle
-    pub fn corners(&self) -> &[Pos2; 4] {
-        &self.corners
+    /// Update a corner and rebuild the internal polygon
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - Corner index (0-3)
+    /// * `pos` - New position for the corner
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if the new position is invalid.
+    pub fn set_corner(&mut self, index: usize, pos: Pos2) -> Result<(), ShapeError> {
+        if index >= 4 {
+            return Ok(()); // Silently ignore out of bounds
+        }
+
+        // Validate the new position
+        pos2_to_coord(pos)?;
+
+        // Update the corner
+        self.corners[index] = pos;
+
+        // Rebuild the polygon from updated corners
+        let coords: Vec<Coord<f64>> = self.corners
+            .iter()
+            .map(|&p| pos2_to_coord(p).expect("Already validated"))
+            .collect();
+        self.polygon = GeoPolygon::new(LineString::from(coords), vec![]);
+
+        Ok(())
+    }
+
+    /// Update all corners at once and rebuild the internal polygon
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if any coordinate is invalid.
+    pub fn set_corners(&mut self, corners: [Pos2; 4]) -> Result<(), ShapeError> {
+        // Validate all corners first
+        for &corner in &corners {
+            pos2_to_coord(corner)?;
+        }
+
+        self.corners = corners;
+
+        // Rebuild the polygon
+        let coords: Vec<Coord<f64>> = self.corners
+            .iter()
+            .map(|&p| pos2_to_coord(p).expect("Already validated"))
+            .collect();
+        self.polygon = GeoPolygon::new(LineString::from(coords), vec![]);
+
+        Ok(())
     }
 
     /// Test if a point is inside this quadrilateral
@@ -160,12 +211,14 @@ impl Rectangle {
 ///
 /// Uses egui's native circle representation. Point-in-circle testing is
 /// performed using simple distance calculations.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Getters, Builder)]
+#[builder(setter(into))]
 pub struct Circle {
     pub center: Pos2,
     pub radius: f32,
     pub stroke: Stroke,
     pub fill: Color32,
+    #[builder(default = "String::new()")]
     pub name: String,
 }
 
@@ -194,6 +247,30 @@ impl Circle {
         })
     }
 
+    /// Set the center position
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if the position is invalid.
+    pub fn set_center(&mut self, center: Pos2) -> Result<(), ShapeError> {
+        pos2_to_coord(center)?;
+        self.center = center;
+        Ok(())
+    }
+
+    /// Set the radius
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidRadius` if the radius is not positive and finite.
+    pub fn set_radius(&mut self, radius: f32) -> Result<(), ShapeError> {
+        if !radius.is_finite() || radius <= 0.0 {
+            return Err(ShapeError::InvalidRadius(radius));
+        }
+        self.radius = radius;
+        Ok(())
+    }
+
     /// Test if a point is inside this circle
     pub fn contains_point(&self, pos: Pos2) -> bool {
         // Early return if point is invalid
@@ -210,7 +287,7 @@ impl Circle {
 ///
 /// Uses `geo::Polygon` for all geometric operations. The polygon is automatically
 /// closed (first point connects to last point).
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Getters)]
 pub struct PolygonShape {
     polygon: GeoPolygon<f64>,
     pub stroke: Stroke,
@@ -251,9 +328,64 @@ impl PolygonShape {
         })
     }
 
-    /// Get access to the underlying geo polygon
-    pub fn polygon(&self) -> &GeoPolygon<f64> {
-        &self.polygon
+    /// Update a vertex of the polygon
+    ///
+    /// # Arguments
+    ///
+    /// * `index` - Vertex index
+    /// * `pos` - New position for the vertex
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if the new position is invalid.
+    pub fn set_vertex(&mut self, index: usize, pos: Pos2) -> Result<(), ShapeError> {
+        // Get current points
+        let mut points = self.to_egui_points();
+
+        if index >= points.len() {
+            return Ok(()); // Silently ignore out of bounds
+        }
+
+        // Update the vertex
+        points[index] = pos;
+
+        // Rebuild the polygon using from_points logic
+        if points.len() < 3 {
+            return Err(ShapeError::TooFewPoints(points.len()));
+        }
+
+        // Validate and convert all points
+        let coords: Result<Vec<Coord<f64>>, ShapeError> = points
+            .iter()
+            .map(|&p| pos2_to_coord(p))
+            .collect();
+        let coords = coords?;
+
+        self.polygon = GeoPolygon::new(LineString::from(coords), vec![]);
+
+        Ok(())
+    }
+
+    /// Update all vertices at once
+    ///
+    /// # Errors
+    ///
+    /// Returns error if points are invalid or fewer than 3.
+    pub fn set_vertices(&mut self, points: Vec<Pos2>) -> Result<(), ShapeError> {
+        if points.len() < 3 {
+            return Err(ShapeError::TooFewPoints(points.len()));
+        }
+
+        // Validate and convert all points
+        let coords: Result<Vec<Coord<f64>>, ShapeError> = points
+            .iter()
+            .map(|&p| pos2_to_coord(p))
+            .collect();
+        let coords = coords?;
+
+        self.polygon = GeoPolygon::new(LineString::from(coords), vec![]);
+
+        Ok(())
     }
 
     /// Convert polygon to egui points for rendering

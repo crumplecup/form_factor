@@ -1507,28 +1507,35 @@ impl DrawingCanvas {
 
         // Update the vertex position based on which shape and vertex
         match shape {
-            Shape::Rectangle(_rect) => {
-                // Note: vertex editing for rectangles not yet implemented with new geo-based structure
-                // Would need to rebuild polygon from updated corners
-                warn!("Rectangle vertex editing not implemented");
+            Shape::Rectangle(rect) => {
+                // Update the specific corner using setter method
+                if let Err(e) = rect.set_corner(vertex_idx, pos) {
+                    warn!("Failed to update rectangle corner {}: {}", vertex_idx, e);
+                }
             }
             Shape::Circle(circle) => {
                 match vertex_idx {
                     0 => {
                         // Moving center - maintain radius
-                        circle.center = pos;
+                        if let Err(e) = circle.set_center(pos) {
+                            warn!("Failed to update circle center: {}", e);
+                        }
                     }
                     1 => {
                         // Moving edge - update radius
-                        circle.radius = circle.center.distance(pos);
+                        let new_radius = circle.center.distance(pos);
+                        if let Err(e) = circle.set_radius(new_radius) {
+                            warn!("Failed to update circle radius: {}", e);
+                        }
                     }
                     _ => {}
                 }
             }
-            Shape::Polygon(_poly) => {
-                // Note: vertex editing for polygons not yet implemented with private polygon field
-                // Would need to rebuild polygon from updated points using from_points constructor
-                warn!("Polygon vertex editing not implemented");
+            Shape::Polygon(poly) => {
+                // Update the specific vertex using setter method
+                if let Err(e) = poly.set_vertex(vertex_idx, pos) {
+                    warn!("Failed to update polygon vertex {}: {}", vertex_idx, e);
+                }
             }
         }
     }
