@@ -95,7 +95,7 @@ pub use error::{
 pub use drawing::DrawingCanvas;
 
 /// Shape types (rectangles, circles, polygons)
-pub use drawing::{Circle, PolygonShape, Rectangle, Shape, ShapeError};
+pub use drawing::{Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeError, ShapeErrorKind};
 
 /// Drawing tool mode (rectangle, circle, freehand, select)
 pub use drawing::ToolMode;
