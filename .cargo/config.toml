@@ -1,12 +1,4 @@
-# Note: Environment variables for build scripts must be set in your shell
-# Add to ~/.bashrc or ~/.zshrc:
-#   export LIBCLANG_PATH=/usr/lib
-#   export LD_LIBRARY_PATH=/usr/lib
-#
-# Or build with:
-#   LIBCLANG_PATH=/usr/lib LD_LIBRARY_PATH=/usr/lib cargo build --release
-
-[env]
-# These apply to the final binary, not build scripts
-LIBCLANG_PATH = "/usr/lib"
-LD_LIBRARY_PATH = "/usr/lib"
+# Note: LIBCLANG_PATH and LD_LIBRARY_PATH must be set in ~/.bashrc
+# The [env] section below only applies to the final binary, not build scripts.
+# Build scripts for opencv-sys and tesseract-sys run before any cargo config
+# can help, so shell environment variables are required.

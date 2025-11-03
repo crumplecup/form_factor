@@ -28,3 +28,6 @@ flamegraph.svg
 *.gcda
 *.gcno
 *.profraw
+
+# Models for OCR
+/models
