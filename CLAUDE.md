@@ -49,10 +49,9 @@
 ## Module Organization
 
 - When a module file exceeds ~500-1000 lines, consider splitting it into a module directory with focused submodules organized by responsibility (e.g., core, io, tools, rendering).
-- Use pub(super) visibility for fields and methods that need to be accessible across submodules within the same module directory.
 - Create a mod.rs file to re-export the public API and keep internal organization private.
-- When using derive_getters on structs in module directories, mark fields as pub(super) to allow cross-submodule access while maintaining encapsulation from external modules.
-- Add helper methods (setters, mut accessors) to the core struct for clean cross-submodule communication instead of directly accessing pub(super) fields.
+- Export types from lib.rs at the crate level, then import them using `use crate::{Type}` in any modules that need them. This provides a single, consistent import path throughout the codebase.
+- Add helper methods (setters, mut accessors) to core structs for clean cross-module communication instead of directly accessing fields.
 
 ## Error Field Types
 
