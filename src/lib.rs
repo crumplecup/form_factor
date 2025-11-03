@@ -101,7 +101,7 @@ pub use drawing::{Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeEr
 pub use drawing::ToolMode;
 
 /// Layer management types
-pub use drawing::{Layer, LayerManager, LayerType};
+pub use drawing::{Layer, LayerError, LayerManager, LayerType};
 
 /// Recent projects tracking
 pub use drawing::RecentProjects;

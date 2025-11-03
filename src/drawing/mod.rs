@@ -9,7 +9,7 @@ mod shape;
 mod tool;
 
 pub use canvas::DrawingCanvas;
-pub use layer::{Layer, LayerManager, LayerType};
+pub use layer::{Layer, LayerError, LayerManager, LayerType};
 pub use recent_projects::RecentProjects;
 pub use shape::{Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeError, ShapeErrorKind};
 pub use tool::ToolMode;
