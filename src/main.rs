@@ -149,9 +149,8 @@ impl App for DemoApp {
                 ui.separator();
 
                 // Clone layers data to avoid borrow checker issues
-                let layers_data: Vec<_> = self.canvas.layer_manager.layers()
-                    .iter()
-                    .map(|l| (l.layer_type, l.visible, l.locked, l.name.clone()))
+                let layers_data: Vec<_> = self.canvas.layer_manager.layers_in_order()
+                    .map(|l| (*l.layer_type(), *l.visible(), *l.locked(), l.name().clone()))
                     .collect();
 
                 for (layer_type, visible, locked, name) in layers_data {
@@ -170,19 +169,13 @@ impl App for DemoApp {
                     frame.show(ui, |ui| {
                         ui.horizontal(|ui| {
                             let visible_icon = if visible { "👁" } else { "🚫" };
-                            if ui.button(visible_icon).clicked()
-                                && let Some(layer) = self.canvas.layer_manager.layers_mut()
-                                    .iter_mut()
-                                    .find(|l| l.layer_type == layer_type) {
-                                layer.toggle_visibility();
+                            if ui.button(visible_icon).clicked() {
+                                self.canvas.layer_manager.toggle_layer(layer_type);
                             }
 
                             let lock_icon = if locked { "🔒" } else { "🔓" };
-                            if ui.button(lock_icon).clicked()
-                                && let Some(layer) = self.canvas.layer_manager.layers_mut()
-                                    .iter_mut()
-                                    .find(|l| l.layer_type == layer_type) {
-                                layer.toggle_locked();
+                            if ui.button(lock_icon).clicked() {
+                                self.canvas.layer_manager.toggle_locked(layer_type);
                             }
 
                             // Clear button for each layer type
