@@ -1627,9 +1627,29 @@ impl DrawingCanvas {
             // Apply rotation based on selected layer (negated for inverted axis)
             match self.selected_layer {
                 Some(LayerType::Shapes) => {
-                    // Note: rotation_angle removed from shapes
-                    // Individual shape rotation would need to be implemented differently
-                    // For now, only grid rotation is supported
+                    // Rotate the selected shape using the new transformation method
+                    if let Some(idx) = self.selected_shape
+                        && let Some(shape) = self.shapes.get_mut(idx)
+                    {
+                        let rotation_angle = -angle_delta; // Negate for inverted axis
+                        match shape {
+                            Shape::Rectangle(rect) => {
+                                if let Err(e) = rect.rotate(rotation_angle, center) {
+                                    warn!("Failed to rotate rectangle: {}", e);
+                                }
+                            }
+                            Shape::Circle(circle) => {
+                                if let Err(e) = circle.rotate(rotation_angle, center) {
+                                    warn!("Failed to rotate circle: {}", e);
+                                }
+                            }
+                            Shape::Polygon(poly) => {
+                                if let Err(e) = poly.rotate(rotation_angle, center) {
+                                    warn!("Failed to rotate polygon: {}", e);
+                                }
+                            }
+                        }
+                    }
                 }
                 Some(LayerType::Grid) => {
                     self.grid_rotation_angle -= angle_delta;

@@ -195,6 +195,66 @@ impl Rectangle {
         Ok(())
     }
 
+    /// Get the center point of this rectangle
+    pub fn center(&self) -> Pos2 {
+        let sum_x: f32 = self.corners.iter().map(|p| p.x).sum();
+        let sum_y: f32 = self.corners.iter().map(|p| p.y).sum();
+        Pos2::new(sum_x / 4.0, sum_y / 4.0)
+    }
+
+    /// Rotate this rectangle around a pivot point
+    ///
+    /// # Arguments
+    ///
+    /// * `angle` - Rotation angle in radians (positive = counter-clockwise)
+    /// * `pivot` - Point to rotate around
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if rotation produces invalid coordinates.
+    pub fn rotate(&mut self, angle: f32, pivot: Pos2) -> Result<(), ShapeError> {
+        // Rotate each corner around the pivot
+        let cos = angle.cos();
+        let sin = angle.sin();
+
+        let mut new_corners = [Pos2::ZERO; 4];
+        for (i, corner) in self.corners.iter().enumerate() {
+            // Translate to origin
+            let dx = corner.x - pivot.x;
+            let dy = corner.y - pivot.y;
+
+            // Rotate
+            let rotated_x = dx * cos - dy * sin;
+            let rotated_y = dx * sin + dy * cos;
+
+            // Translate back
+            new_corners[i] = Pos2::new(
+                rotated_x + pivot.x,
+                rotated_y + pivot.y,
+            );
+        }
+
+        // Update using the setter to maintain consistency
+        self.set_corners(new_corners)?;
+        Ok(())
+    }
+
+    /// Translate this rectangle by a delta vector
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if translation produces invalid coordinates.
+    pub fn translate(&mut self, delta: egui::Vec2) -> Result<(), ShapeError> {
+        let new_corners = [
+            self.corners[0] + delta,
+            self.corners[1] + delta,
+            self.corners[2] + delta,
+            self.corners[3] + delta,
+        ];
+        self.set_corners(new_corners)?;
+        Ok(())
+    }
+
     /// Test if a point is inside this quadrilateral
     ///
     /// Uses the robust `geo` crate implementation for point-in-polygon testing.
@@ -268,6 +328,51 @@ impl Circle {
             return Err(ShapeError::InvalidRadius(radius));
         }
         self.radius = radius;
+        Ok(())
+    }
+
+    /// Rotate this circle around a pivot point
+    ///
+    /// For circles, only the center rotates; the radius remains unchanged.
+    ///
+    /// # Arguments
+    ///
+    /// * `angle` - Rotation angle in radians (positive = counter-clockwise)
+    /// * `pivot` - Point to rotate around
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if rotation produces invalid coordinates.
+    pub fn rotate(&mut self, angle: f32, pivot: Pos2) -> Result<(), ShapeError> {
+        // Rotate the center around the pivot
+        let cos = angle.cos();
+        let sin = angle.sin();
+
+        // Translate to origin
+        let dx = self.center.x - pivot.x;
+        let dy = self.center.y - pivot.y;
+
+        // Rotate
+        let rotated_x = dx * cos - dy * sin;
+        let rotated_y = dx * sin + dy * cos;
+
+        // Translate back
+        let new_center = Pos2::new(
+            rotated_x + pivot.x,
+            rotated_y + pivot.y,
+        );
+
+        self.set_center(new_center)?;
+        Ok(())
+    }
+
+    /// Translate this circle by a delta vector
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if translation produces invalid coordinates.
+    pub fn translate(&mut self, delta: egui::Vec2) -> Result<(), ShapeError> {
+        self.set_center(self.center + delta)?;
         Ok(())
     }
 
@@ -385,6 +490,74 @@ impl PolygonShape {
 
         self.polygon = GeoPolygon::new(LineString::from(coords), vec![]);
 
+        Ok(())
+    }
+
+    /// Get the center point of this polygon (centroid)
+    pub fn center(&self) -> Pos2 {
+        let points = self.to_egui_points();
+        if points.is_empty() {
+            return Pos2::ZERO;
+        }
+
+        let sum_x: f32 = points.iter().map(|p| p.x).sum();
+        let sum_y: f32 = points.iter().map(|p| p.y).sum();
+        let count = points.len() as f32;
+
+        Pos2::new(sum_x / count, sum_y / count)
+    }
+
+    /// Rotate this polygon around a pivot point
+    ///
+    /// # Arguments
+    ///
+    /// * `angle` - Rotation angle in radians (positive = counter-clockwise)
+    /// * `pivot` - Point to rotate around
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if rotation produces invalid coordinates.
+    pub fn rotate(&mut self, angle: f32, pivot: Pos2) -> Result<(), ShapeError> {
+        let points = self.to_egui_points();
+        let cos = angle.cos();
+        let sin = angle.sin();
+
+        let rotated_points: Vec<Pos2> = points
+            .iter()
+            .map(|point| {
+                // Translate to origin
+                let dx = point.x - pivot.x;
+                let dy = point.y - pivot.y;
+
+                // Rotate
+                let rotated_x = dx * cos - dy * sin;
+                let rotated_y = dx * sin + dy * cos;
+
+                // Translate back
+                Pos2::new(
+                    rotated_x + pivot.x,
+                    rotated_y + pivot.y,
+                )
+            })
+            .collect();
+
+        self.set_vertices(rotated_points)?;
+        Ok(())
+    }
+
+    /// Translate this polygon by a delta vector
+    ///
+    /// # Errors
+    ///
+    /// Returns `ShapeError::InvalidCoordinate` if translation produces invalid coordinates.
+    pub fn translate(&mut self, delta: egui::Vec2) -> Result<(), ShapeError> {
+        let points = self.to_egui_points();
+        let translated_points: Vec<Pos2> = points
+            .iter()
+            .map(|p| *p + delta)
+            .collect();
+
+        self.set_vertices(translated_points)?;
         Ok(())
     }
 
