@@ -15,4 +15,4 @@
   - Omit the enum type and kind field when a static message conveys sufficient information, but still include the line and file.
   - Implement a specific error message in the display impl for each variant of the enum, then wrap this msg in the display impl for the wrapper. E.g. If the display for MyErrorKind is e, then MyError displays "My Error: {e} at line {line} in {file}" so the user can see the whole context.
   - Expand and improve error structs and enums as necessary to capture sufficient information about the error conditions to gain insight into the nature of the problem.
-
+- Do not place mod tests in the module next to the code.  Place unit tests in the tests directory.
