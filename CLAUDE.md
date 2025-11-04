@@ -27,6 +27,19 @@
 - Use derive_more to derive Display, FromStr, From, Deref, DerefMut, AsRef, and AsMut when appropriate.
 - For enums with no fields, use strum to derive EnumIter.
 
+## Documentation
+
+- Use `///` for item documentation (functions, structs, enums, fields, methods).
+- Use `//!` for module-level documentation at the top of files.
+- All public types, functions, and methods must have documentation (enforced by `#![warn(missing_docs)]`).
+- Document:
+  - **What** the item does (concise first line)
+  - **Why** it exists or when to use it (for non-obvious cases)
+  - **Parameters and returns** for functions (when not obvious from types)
+  - **Examples** for complex APIs or non-obvious usage
+  - **Errors** that can be returned (for Result-returning functions)
+- Keep documentation concise but informative - avoid stating the obvious from the signature.
+
 ## Testing
 
 - Do not place mod tests in the module next to the code. Place unit tests in the tests directory.
