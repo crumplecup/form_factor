@@ -34,9 +34,9 @@ tracing-subscriber = { workspace = true }
 [features]
 default = ["backend-eframe"]
 backend-eframe = ["dep:form_factor_backends"]
-text-detection = ["dep:form_factor_cv", "form_factor_cv/text-detection"]
-logo-detection = ["dep:form_factor_cv", "form_factor_cv/logo-detection"]
-ocr = ["dep:form_factor_ocr"]
+text-detection = ["dep:form_factor_cv", "form_factor_cv/text-detection", "form_factor_drawing/text-detection"]
+logo-detection = ["dep:form_factor_cv", "form_factor_cv/logo-detection", "form_factor_drawing/logo-detection"]
+ocr = ["dep:form_factor_ocr", "form_factor_drawing/ocr"]
 dev = ["text-detection", "logo-detection", "ocr"]
 
 [build-dependencies]
