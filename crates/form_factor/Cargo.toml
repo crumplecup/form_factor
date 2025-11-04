@@ -1,0 +1,47 @@
+[package]
+name = "form_factor"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "A GUI for tagging scanned forms with OCR metadata."
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "form_factor"
+
+[dependencies]
+# Workspace crates
+form_factor_core = { workspace = true }
+form_factor_drawing = { workspace = true }
+form_factor_cv = { workspace = true, optional = true }
+form_factor_ocr = { workspace = true, optional = true }
+form_factor_backends = { workspace = true, features = ["eframe"], optional = true }
+
+# Direct dependencies for error types and demo app
+egui = { workspace = true }
+thiserror = { workspace = true }
+derive_more = { workspace = true }
+dotenvy = { workspace = true }
+rfd = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[features]
+default = ["backend-eframe"]
+backend-eframe = ["dep:form_factor_backends"]
+text-detection = ["dep:form_factor_cv", "form_factor_cv/text-detection"]
+logo-detection = ["dep:form_factor_cv", "form_factor_cv/logo-detection"]
+ocr = ["dep:form_factor_ocr"]
+dev = ["text-detection", "logo-detection", "ocr"]
+
+[build-dependencies]
+dotenvy = { workspace = true }
+
+[dev-dependencies]
+strum = { workspace = true }
+serde_json = { workspace = true }

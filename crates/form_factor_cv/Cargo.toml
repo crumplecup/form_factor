@@ -1,0 +1,21 @@
+[package]
+name = "form_factor_cv"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Computer vision capabilities (text/logo detection) for form_factor"
+
+[dependencies]
+opencv = { workspace = true }
+derive_builder = { workspace = true }
+derive-getters = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[features]
+default = []
+text-detection = []
+logo-detection = []

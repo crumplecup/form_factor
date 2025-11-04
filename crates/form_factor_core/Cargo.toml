@@ -1,0 +1,11 @@
+[package]
+name = "form_factor_core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Core traits and types for the form_factor framework"
+
+[dependencies]
+egui = { workspace = true }

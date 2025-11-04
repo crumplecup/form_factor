@@ -1,63 +1,66 @@
-[package]
-name = "form_factor"
+[workspace]
+resolver = "2"
+members = [
+    "crates/form_factor_core",
+    "crates/form_factor_drawing",
+    "crates/form_factor_cv",
+    "crates/form_factor_ocr",
+    "crates/form_factor_backends",
+    "crates/form_factor",
+]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
 authors = ["Erik Rose <erik.w.rose@gmail.com>"]
-description = "A GUI for tagging scanned forms with OCR metadata."
 license = "Apache-2.0 OR MIT"
-# keywords = ["economics", "finance", "rest"]
-# categories = ["asynchronous", "finance"]
+repository = "https://github.com/crumplecup/form_factor"
 
-[lib]
-path = "src/lib.rs"
+[workspace.dependencies]
+# Core dependencies
+egui = { version = "0.33.0", features = ["accesskit", "serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tracing = "0.1"
 
-[[bin]]
-path = "src/main.rs"
-name = "form_factor"
-
-[dependencies]
+# Utility dependencies
 accesskit = { version = "0.21.1", features = ["serde"] }
 derive-getters = "0.5"
 derive_builder = "0.20"
 derive_more = { version = "1.0", features = ["display", "error", "from"] }
 dotenvy = "0.15"
-egui = { version = "0.33.0", features = ["accesskit", "serde"] }
 enum-map = { version = "2.7", features = ["serde"] }
 geo = "0.31"
 geo-types = { version = "0.7", features = ["serde"] }
 strum = { version = "0.26", features = ["derive"] }
-image = { version = "0.25", default-features = false, features = [
-  "png",
-  "jpeg",
-  "webp",
-] }
-leptess = { version = "0.14", optional = true }
-opencv = { version = "0.92", default-features = false, features = ["imgproc", "dnn", "imgcodecs", "clang-runtime"], optional = true }
-rfd = "0.15"
-serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
 thiserror = "2.0"
-tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-# Backend dependencies (optional)
-eframe = { version = "0.33.0", optional = true, features = [
-  "accesskit",
-  "wgpu",
-] }
+# Image processing
+image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp"] }
 
-# Note: miniquad backend disabled until egui-miniquad updates to egui 0.33+
-# Current latest egui-miniquad (0.16.0) only supports egui 0.31.1
-# egui-miniquad = { version = "0.16.0", optional = true }
+# Computer vision (heavy dependencies)
+opencv = { version = "0.92", default-features = false, features = ["imgproc", "dnn", "imgcodecs", "clang-runtime"] }
+leptess = "0.14"
 
-[features]
-default = ["backend-eframe"]
-backend-eframe = ["dep:eframe"]
-text-detection = ["dep:opencv"]
-logo-detection = ["dep:opencv"]
-ocr = ["dep:leptess"]
-dev = ["text-detection", "logo-detection", "ocr"]
-# backend-miniquad = ["dep:egui-miniquad"]  # Planned for future when ecosystem catches up
+# Backend dependencies
+eframe = { version = "0.33.0", features = ["accesskit", "wgpu"] }
 
-[build-dependencies]
-dotenvy = "0.15"
+# File dialogs
+rfd = "0.15"
+
+# Workspace crates
+form_factor_core = { path = "crates/form_factor_core" }
+form_factor_drawing = { path = "crates/form_factor_drawing" }
+form_factor_cv = { path = "crates/form_factor_cv" }
+form_factor_ocr = { path = "crates/form_factor_ocr" }
+form_factor_backends = { path = "crates/form_factor_backends" }
+
+[profile.dev]
+opt-level = 1  # Slightly optimize dependencies for faster builds
+incremental = true
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

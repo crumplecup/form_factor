@@ -30,48 +30,32 @@
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
 
-// Module declarations (private - users import from root)
-mod app;
-mod backend;
-mod drawing;
+// Top-level error module stays here (aggregates errors from all crates)
 mod error;
-
-#[cfg(feature = "text-detection")]
-mod text_detection;
-
-#[cfg(feature = "logo-detection")]
-mod logo_detection;
-
-#[cfg(feature = "ocr")]
-mod ocr;
 
 // ============================================================================
 // Core Application Types
 // ============================================================================
 
 /// Core application trait - implement this to define your GUI logic
-pub use app::App;
+pub use form_factor_core::App;
 
 /// Context provided to your app each frame (egui context, timing, etc.)
-pub use app::AppContext;
+pub use form_factor_core::AppContext;
 
 // ============================================================================
 // Backend System
 // ============================================================================
 
 /// Trait for backend implementations (eframe, miniquad, etc.)
-pub use backend::Backend;
+pub use form_factor_core::Backend;
 
 /// Configuration for backend initialization (window size, vsync, etc.)
-pub use backend::BackendConfig;
+pub use form_factor_core::BackendConfig;
 
 // Backend implementations (conditional compilation)
 #[cfg(feature = "backend-eframe")]
-pub use backend::eframe_backend::{EframeBackend, EframeError};
-
-// Note: MiniquadBackend is not yet available - waiting for egui 0.33 support
-// #[cfg(feature = "backend-miniquad")]
-// pub use backend::miniquad_backend::{MiniquadBackend, MiniquadError};
+pub use form_factor_backends::{EframeBackend, EframeError};
 
 // ============================================================================
 // Error Types
@@ -83,29 +67,32 @@ pub use error::FormError;
 /// Error category enum
 pub use error::FormErrorKind;
 
+/// I/O error types (re-exported from core)
+pub use form_factor_core::{IoError, IoOperation};
+
 /// Specific error types for each category
-pub use error::{
-    AccessKitError, AppError, BackendError, ConfigError, EguiError, IoError, IoOperation,
-};
+pub use error::{AccessKitError, AppError, BackendError, ConfigError, EguiError};
 
 // ============================================================================
 // Drawing Tools
 // ============================================================================
 
 /// Drawing canvas for form annotations
-pub use drawing::{CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas};
+pub use form_factor_drawing::{CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas};
 
 /// Shape types (rectangles, circles, polygons)
-pub use drawing::{Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeError, ShapeErrorKind};
+pub use form_factor_drawing::{
+    Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeError, ShapeErrorKind,
+};
 
 /// Drawing tool mode (rectangle, circle, freehand, select)
-pub use drawing::ToolMode;
+pub use form_factor_drawing::ToolMode;
 
 /// Layer management types
-pub use drawing::{Layer, LayerError, LayerManager, LayerType};
+pub use form_factor_drawing::{Layer, LayerError, LayerManager, LayerType};
 
 /// Recent projects tracking
-pub use drawing::RecentProjects;
+pub use form_factor_drawing::RecentProjects;
 
 // ============================================================================
 // Text Detection
@@ -113,19 +100,19 @@ pub use drawing::RecentProjects;
 
 #[cfg(feature = "text-detection")]
 /// Text detector using OpenCV DB model
-pub use text_detection::TextDetector;
+pub use form_factor_cv::TextDetector;
 
 #[cfg(feature = "text-detection")]
 /// Detected text region
-pub use text_detection::TextRegion;
+pub use form_factor_cv::TextRegion;
 
 #[cfg(feature = "text-detection")]
 /// Text detection error
-pub use text_detection::TextDetectionError;
+pub use form_factor_cv::TextDetectionError;
 
 #[cfg(feature = "text-detection")]
 /// Text detection error kind
-pub use text_detection::TextDetectionErrorKind;
+pub use form_factor_cv::TextDetectionErrorKind;
 
 // ============================================================================
 // Logo Detection
@@ -133,27 +120,27 @@ pub use text_detection::TextDetectionErrorKind;
 
 #[cfg(feature = "logo-detection")]
 /// Logo detector using OpenCV template and feature matching
-pub use logo_detection::LogoDetector;
+pub use form_factor_cv::LogoDetector;
 
 #[cfg(feature = "logo-detection")]
 /// Logo detection method (template matching or feature matching)
-pub use logo_detection::LogoDetectionMethod;
+pub use form_factor_cv::LogoDetectionMethod;
 
 #[cfg(feature = "logo-detection")]
 /// Logo template for detection
-pub use logo_detection::Logo;
+pub use form_factor_cv::Logo;
 
 #[cfg(feature = "logo-detection")]
 /// Logo detection result
-pub use logo_detection::LogoDetectionResult;
+pub use form_factor_cv::LogoDetectionResult;
 
 #[cfg(feature = "logo-detection")]
 /// Logo location in image
-pub use logo_detection::LogoLocation;
+pub use form_factor_cv::LogoLocation;
 
 #[cfg(feature = "logo-detection")]
 /// Logo size
-pub use logo_detection::LogoSize;
+pub use form_factor_cv::LogoSize;
 
 // ============================================================================
 // OCR (Optical Character Recognition)
@@ -161,39 +148,39 @@ pub use logo_detection::LogoSize;
 
 #[cfg(feature = "ocr")]
 /// OCR engine for text extraction using Tesseract
-pub use ocr::OCREngine;
+pub use form_factor_ocr::OCREngine;
 
 #[cfg(feature = "ocr")]
 /// OCR configuration options
-pub use ocr::OCRConfig;
+pub use form_factor_ocr::OCRConfig;
 
 #[cfg(feature = "ocr")]
 /// Page segmentation mode for OCR
-pub use ocr::PageSegmentationMode;
+pub use form_factor_ocr::PageSegmentationMode;
 
 #[cfg(feature = "ocr")]
 /// OCR engine mode (LSTM, Legacy, or both)
-pub use ocr::EngineMode;
+pub use form_factor_ocr::EngineMode;
 
 #[cfg(feature = "ocr")]
 /// Result of OCR text extraction
-pub use ocr::OCRResult;
+pub use form_factor_ocr::OCRResult;
 
 #[cfg(feature = "ocr")]
 /// Word-level OCR result with bounding box
-pub use ocr::WordResult;
+pub use form_factor_ocr::WordResult;
 
 #[cfg(feature = "ocr")]
 /// Bounding box for text regions
-pub use ocr::BoundingBox;
+pub use form_factor_ocr::BoundingBox;
 
 #[cfg(feature = "ocr")]
 /// OCR error
-pub use ocr::OCRError;
+pub use form_factor_ocr::OCRError;
 
 #[cfg(feature = "ocr")]
 /// OCR error kind
-pub use ocr::OCRErrorKind;
+pub use form_factor_ocr::OCRErrorKind;
 
 // ============================================================================
 // Advanced: Direct module access for backend implementations
@@ -205,7 +192,5 @@ pub use ocr::OCRErrorKind;
 /// This module is provided for advanced use cases.
 pub mod backends {
     #[cfg(feature = "backend-eframe")]
-    pub use crate::backend::eframe_backend;
-
-    pub use crate::backend::miniquad_backend;
+    pub use form_factor_backends::eframe_backend;
 }

@@ -1,0 +1,19 @@
+[package]
+name = "form_factor_backends"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Backend implementations (eframe, etc.) for form_factor"
+
+[dependencies]
+form_factor_core = { workspace = true }
+egui = { workspace = true }
+accesskit = { workspace = true }
+eframe = { workspace = true, optional = true }
+thiserror = { workspace = true }
+
+[features]
+default = ["eframe"]
+eframe = ["dep:eframe"]

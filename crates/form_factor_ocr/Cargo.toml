@@ -1,0 +1,17 @@
+[package]
+name = "form_factor_ocr"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "OCR (Optical Character Recognition) for form_factor using Tesseract"
+
+[dependencies]
+leptess = { workspace = true }
+derive_more = { workspace = true }
+derive-getters = { workspace = true }
+serde = { workspace = true }
+image = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
