@@ -27,6 +27,16 @@
 - Use derive_more to derive Display, FromStr, From, Deref, DerefMut, AsRef, and AsMut when appropriate.
 - For enums with no fields, use strum to derive EnumIter.
 
+## Serialization
+
+- Derive `Serialize` and `Deserialize` for types that need to be persisted or transmitted (project state, configuration, etc.).
+- Use `#[serde(skip)]` for fields that should not be serialized (runtime state, caches, UI state, texture handles).
+- Use `#[serde(default)]` for fields that should use their `Default` value when missing during deserialization.
+- Use `#[serde(default = "function_name")]` to specify a custom default function for a field.
+- Use `#[serde(rename = "name")]` when the serialized field name should differ from the Rust field name.
+- Group related `#[serde(skip)]` attributes with comments explaining why they're not serialized (e.g., "// Runtime state (not serialized)").
+- For complex serialization needs, implement custom `Serialize`/`Deserialize` instead of using derives.
+
 ## Documentation
 
 - Use `///` for item documentation (functions, structs, enums, fields, methods).
