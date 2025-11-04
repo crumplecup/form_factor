@@ -10,14 +10,19 @@
 //! - OCR text extraction (with feature flag)
 
 use super::core::{CanvasError, CanvasErrorKind, DrawingCanvas};
-use crate::{LayerType, RecentProjects, Rectangle, Shape};
+use crate::{LayerType, RecentProjects};
+#[cfg(any(feature = "text-detection", feature = "logo-detection"))]
+use crate::{Rectangle, Shape};
 #[cfg(feature = "text-detection")]
 use form_factor_cv::TextDetector;
 #[cfg(feature = "logo-detection")]
 use form_factor_cv::LogoDetector;
+#[cfg(any(feature = "text-detection", feature = "logo-detection"))]
 use egui::{Color32, Pos2, Stroke};
 use std::path::PathBuf;
-use tracing::{debug, instrument, trace, warn};
+use tracing::{debug, instrument, warn};
+#[cfg(any(feature = "text-detection", feature = "logo-detection"))]
+use tracing::trace;
 
 impl DrawingCanvas {
     /// Clear all shapes and detections from the canvas
