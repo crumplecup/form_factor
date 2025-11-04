@@ -150,6 +150,9 @@ pub struct DrawingCanvas {
     /// Whether the project name is currently being edited
     #[serde(skip)]
     pub(super) editing_project_name: bool,
+    /// Whether the Detections layer dropdown is expanded
+    #[serde(skip)]
+    pub(super) detections_expanded: bool,
 
     // Form image state (not serialized)
     #[serde(skip)]
@@ -207,6 +210,7 @@ impl Default for DrawingCanvas {
             show_properties: false,
             focus_name_field: false,
             editing_project_name: false,
+            detections_expanded: false,
             form_image: None,
             form_image_size: None,
             pending_image_load: None,
@@ -324,5 +328,41 @@ impl DrawingCanvas {
     /// Get the number of shapes on the canvas
     pub fn shape_count(&self) -> usize {
         self.shapes.len()
+    }
+
+    /// Get the number of text detections on the canvas
+    pub fn text_detection_count(&self) -> usize {
+        self.detections
+            .iter()
+            .filter(|shape| {
+                match shape {
+                    Shape::Rectangle(rect) => rect.name.starts_with("Text Region"),
+                    _ => false,
+                }
+            })
+            .count()
+    }
+
+    /// Get the number of logo detections on the canvas
+    pub fn logo_detection_count(&self) -> usize {
+        self.detections
+            .iter()
+            .filter(|shape| {
+                match shape {
+                    Shape::Rectangle(rect) => rect.name.starts_with("Logo:"),
+                    _ => false,
+                }
+            })
+            .count()
+    }
+
+    /// Toggle the detections layer dropdown expansion state
+    pub fn toggle_detections_expanded(&mut self) {
+        self.detections_expanded = !self.detections_expanded;
+    }
+
+    /// Check if the detections layer dropdown is expanded
+    pub fn is_detections_expanded(&self) -> bool {
+        self.detections_expanded
     }
 }

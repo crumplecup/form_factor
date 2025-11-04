@@ -168,6 +168,7 @@ impl App for DemoApp {
                     .collect();
                 layers_data.reverse();
 
+                use form_factor::LayerType;
                 for (layer_type, visible, locked, name) in layers_data {
                     let is_selected = *self.canvas.selected_layer() == Some(layer_type);
 
@@ -194,7 +195,6 @@ impl App for DemoApp {
                             }
 
                             // Clear button for each layer type
-                            use form_factor::LayerType;
                             if ui.button("🗑").on_hover_text("Clear layer").clicked() {
                                 match layer_type {
                                     LayerType::Shapes => self.canvas.clear_shapes(),
@@ -204,17 +204,53 @@ impl App for DemoApp {
                                 }
                             }
 
-                            // Use regular label instead of selectable_label since we're highlighting the whole row
-                            if ui.label(&name).clicked() {
-                                // Toggle selection: if already selected, unselect; otherwise select
-                                if is_selected {
-                                    self.canvas.set_selected_layer(None);
-                                } else {
-                                    self.canvas.set_selected_layer(Some(layer_type));
+                            // Special handling for Detections layer with dropdown
+                            if layer_type == LayerType::Detections {
+                                let is_expanded = self.canvas.is_detections_expanded();
+                                let arrow = if is_expanded { "▼" } else { "▶" };
+
+                                if ui.button(arrow).clicked() {
+                                    self.canvas.toggle_detections_expanded();
+                                }
+
+                                if ui.label(&name).clicked() {
+                                    // Toggle selection: if already selected, unselect; otherwise select
+                                    if is_selected {
+                                        self.canvas.set_selected_layer(None);
+                                    } else {
+                                        self.canvas.set_selected_layer(Some(layer_type));
+                                    }
+                                }
+                            } else {
+                                // Use regular label for other layers
+                                if ui.label(&name).clicked() {
+                                    // Toggle selection: if already selected, unselect; otherwise select
+                                    if is_selected {
+                                        self.canvas.set_selected_layer(None);
+                                    } else {
+                                        self.canvas.set_selected_layer(Some(layer_type));
+                                    }
                                 }
                             }
                         });
                     });
+
+                    // Show sub-items if Detections layer is expanded
+                    if layer_type == LayerType::Detections && self.canvas.is_detections_expanded() {
+                        let text_count = self.canvas.text_detection_count();
+                        let logo_count = self.canvas.logo_detection_count();
+
+                        // Indent sub-items
+                        ui.horizontal(|ui| {
+                            ui.add_space(40.0); // Indent for sub-items
+                            ui.label(format!("📝 Text: {}", text_count));
+                        });
+
+                        ui.horizontal(|ui| {
+                            ui.add_space(40.0); // Indent for sub-items
+                            ui.label(format!("🏢 Logos: {}", logo_count));
+                        });
+                    }
                 }
 
                 ui.separator();
