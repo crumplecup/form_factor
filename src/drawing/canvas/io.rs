@@ -13,6 +13,8 @@ use super::core::{CanvasError, CanvasErrorKind, DrawingCanvas};
 use crate::{LayerType, RecentProjects, Rectangle, Shape};
 #[cfg(feature = "text-detection")]
 use crate::TextDetector;
+#[cfg(feature = "logo-detection")]
+use crate::LogoDetector;
 use egui::{Color32, Pos2, Stroke};
 use std::path::PathBuf;
 use tracing::{debug, instrument, trace, warn};
@@ -339,5 +341,135 @@ impl DrawingCanvas {
         ocr.extract_text_from_region_file(image_path, bbox).map_err(|e| {
             CanvasError::new(CanvasErrorKind::OCRFailed(e.to_string()), line!(), file!())
         })
+    }
+
+    /// Detect logos in the loaded form image
+    ///
+    /// Loads all logo templates from the "logos" directory and detects them in the form image.
+    /// Detected logos are added as rectangles to the Detections layer.
+    ///
+    /// # Returns
+    ///
+    /// Returns the number of logos detected.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - No form image is loaded
+    /// - Logo templates cannot be loaded
+    /// - Logo detection fails
+    #[cfg(feature = "logo-detection")]
+    #[instrument(skip(self), fields(existing_detections = self.detections.len()))]
+    pub fn detect_logos(&mut self) -> Result<usize, CanvasError> {
+        // Check if we have a form image loaded
+        let form_path = self.form_image_path.as_ref()
+            .ok_or_else(|| CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!()))?;
+
+        tracing::info!("Detecting logos in: {}", form_path);
+
+        // Create logo detector with default settings
+        let mut detector = LogoDetector::builder()
+            .template_matching()
+            .with_confidence_threshold(0.7)
+            .with_scales(vec![0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
+            .build();
+
+        // Load all logo templates from the logos directory
+        let logos_dir = std::path::Path::new("logos");
+        if !logos_dir.exists() {
+            return Err(CanvasError::new(
+                CanvasErrorKind::LogoDetection("logos directory does not exist".to_string()),
+                line!(),
+                file!(),
+            ));
+        }
+
+        let mut logo_count = 0;
+        for entry in std::fs::read_dir(logos_dir).map_err(|e| {
+            CanvasError::new(
+                CanvasErrorKind::LogoDetection(format!("Failed to read logos directory: {}", e)),
+                line!(),
+                file!(),
+            )
+        })? {
+            let entry = entry.map_err(|e| {
+                CanvasError::new(
+                    CanvasErrorKind::LogoDetection(format!("Failed to read directory entry: {}", e)),
+                    line!(),
+                    file!(),
+                )
+            })?;
+
+            let path = entry.path();
+            if path.is_file() {
+                // Check if it's an image file
+                if let Some(ext) = path.extension() {
+                    let ext_str = ext.to_string_lossy().to_lowercase();
+                    if ext_str == "png" || ext_str == "jpg" || ext_str == "jpeg" || ext_str == "webp" {
+                        // Get the logo name from the filename (without extension)
+                        let logo_name = path.file_stem()
+                            .and_then(|s| s.to_str())
+                            .unwrap_or("unknown");
+
+                        debug!("Loading logo: {} from {:?}", logo_name, path);
+                        if let Err(e) = detector.add_logo(logo_name, &path) {
+                            warn!("Failed to load logo {}: {}", logo_name, e);
+                        } else {
+                            logo_count += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        if logo_count == 0 {
+            return Err(CanvasError::new(
+                CanvasErrorKind::LogoDetection("No logo templates found in logos directory".to_string()),
+                line!(),
+                file!(),
+            ));
+        }
+
+        tracing::info!("Loaded {} logo templates", logo_count);
+
+        // Detect logos in the form image
+        let results = detector.detect_logos_from_path(form_path.as_str()).map_err(|e| {
+            CanvasError::new(CanvasErrorKind::LogoDetection(e), line!(), file!())
+        })?;
+
+        let detection_count = results.len();
+        tracing::info!("Detected {} logo instances", detection_count);
+
+        // Create rectangle shapes for each detected logo
+        for (i, result) in results.iter().enumerate() {
+            let top_left = Pos2::new(result.location.x as f32, result.location.y as f32);
+            let bottom_right = Pos2::new(
+                (result.location.x + result.size.width) as f32,
+                (result.location.y + result.size.height) as f32,
+            );
+
+            // Create a rectangle shape with a distinctive color for logo detections
+            let stroke = Stroke::new(3.0, Color32::from_rgb(0, 255, 0)); // Green
+            let fill = Color32::TRANSPARENT; // No fill, outline only
+
+            match Rectangle::from_corners(top_left, bottom_right, stroke, fill) {
+                Ok(mut rect) => {
+                    rect.name = format!(
+                        "Logo: {} ({:.1}%, scale={:.2}x)",
+                        result.logo_name,
+                        result.confidence * 100.0,
+                        result.scale
+                    );
+                    self.detections.push(Shape::Rectangle(rect));
+                }
+                Err(e) => {
+                    warn!("Failed to create detection rectangle for logo {}: {}", i, e);
+                }
+            }
+        }
+
+        debug!("Added {} logo detections, total detections now: {}", detection_count, self.detections.len());
+
+        Ok(detection_count)
     }
 }

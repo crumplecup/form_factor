@@ -83,6 +83,19 @@ impl App for DemoApp {
                     }
                 }
 
+                // Detect Logos button (only available with logo-detection feature)
+                #[cfg(feature = "logo-detection")]
+                if ui.button("🏢 Detect Logos").clicked() {
+                    match self.canvas.detect_logos() {
+                        Ok(count) => {
+                            tracing::info!("Detected {} logos", count);
+                        }
+                        Err(e) => {
+                            tracing::error!("Failed to detect logos: {}", e);
+                        }
+                    }
+                }
+
                 // Extract Text (OCR) button (only available with ocr feature)
                 #[cfg(feature = "ocr")]
                 if ui.button("📝 Extract Text (OCR)").clicked() {

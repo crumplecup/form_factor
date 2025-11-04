@@ -27,6 +27,8 @@ pub enum CanvasErrorKind {
     NoFormImageLoaded,
     /// Text detection operation failed
     TextDetection(String),
+    /// Logo detection operation failed
+    LogoDetection(String),
     /// No recent projects found
     NoRecentProjects,
     /// OCR text extraction failed
@@ -43,6 +45,7 @@ impl std::fmt::Display for CanvasErrorKind {
             CanvasErrorKind::Deserialization(msg) => write!(f, "Failed to deserialize data: {}", msg),
             CanvasErrorKind::NoFormImageLoaded => write!(f, "No form image loaded"),
             CanvasErrorKind::TextDetection(msg) => write!(f, "Text detection failed: {}", msg),
+            CanvasErrorKind::LogoDetection(msg) => write!(f, "Logo detection failed: {}", msg),
             CanvasErrorKind::NoRecentProjects => write!(f, "No recent projects found"),
             CanvasErrorKind::OCRFailed(msg) => write!(f, "OCR text extraction failed: {}", msg),
         }

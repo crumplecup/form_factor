@@ -79,6 +79,18 @@ pub enum FormErrorKind {
 
     /// Shape creation and manipulation errors
     Shape(crate::ShapeError),
+
+    /// Text detection errors
+    ///
+    /// Available with the `text-detection` feature.
+    #[cfg(feature = "text-detection")]
+    TextDetection(crate::TextDetectionError),
+
+    /// OCR errors
+    ///
+    /// Available with the `ocr` feature.
+    #[cfg(feature = "ocr")]
+    Ocr(crate::OCRError),
 }
 
 // ============================================================================
@@ -374,6 +386,10 @@ impl fmt::Display for FormErrorKind {
             FormErrorKind::Canvas(e) => write!(f, "{}", e),
             FormErrorKind::Layer(e) => write!(f, "{}", e),
             FormErrorKind::Shape(e) => write!(f, "{}", e),
+            #[cfg(feature = "text-detection")]
+            FormErrorKind::TextDetection(e) => write!(f, "{}", e),
+            #[cfg(feature = "ocr")]
+            FormErrorKind::Ocr(e) => write!(f, "{}", e),
         }
     }
 }
@@ -464,6 +480,10 @@ impl std::error::Error for FormError {
             FormErrorKind::Canvas(e) => Some(e),
             FormErrorKind::Layer(e) => Some(e),
             FormErrorKind::Shape(e) => Some(e),
+            #[cfg(feature = "text-detection")]
+            FormErrorKind::TextDetection(e) => Some(e),
+            #[cfg(feature = "ocr")]
+            FormErrorKind::Ocr(e) => Some(e),
         }
     }
 }
@@ -537,6 +557,20 @@ impl From<crate::LayerError> for FormError {
 
 impl From<crate::ShapeError> for FormError {
     fn from(err: crate::ShapeError) -> Self {
+        FormError::new(FormErrorKind::from(err))
+    }
+}
+
+#[cfg(feature = "text-detection")]
+impl From<crate::TextDetectionError> for FormError {
+    fn from(err: crate::TextDetectionError) -> Self {
+        FormError::new(FormErrorKind::from(err))
+    }
+}
+
+#[cfg(feature = "ocr")]
+impl From<crate::OCRError> for FormError {
+    fn from(err: crate::OCRError) -> Self {
         FormError::new(FormErrorKind::from(err))
     }
 }
