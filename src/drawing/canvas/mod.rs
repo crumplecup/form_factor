@@ -12,4 +12,4 @@ mod rendering;
 mod tools;
 
 // Re-export public types
-pub use core::{CanvasError, CanvasErrorKind, DrawingCanvas};
+pub use core::{CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas};

@@ -115,6 +115,15 @@ impl Default for CanvasState {
     }
 }
 
+/// Detection sub-type for filtering detections layer
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DetectionSubtype {
+    /// Logo detections
+    Logos,
+    /// Text detections
+    Text,
+}
+
 /// Drawing canvas state
 #[derive(Clone, Serialize, Deserialize, Getters)]
 pub struct DrawingCanvas {
@@ -153,6 +162,9 @@ pub struct DrawingCanvas {
     /// Whether the Detections layer dropdown is expanded
     #[serde(skip)]
     pub(super) detections_expanded: bool,
+    /// Selected detection sub-type (Logos or Text)
+    #[serde(skip)]
+    pub(super) selected_detection_subtype: Option<DetectionSubtype>,
 
     // Form image state (not serialized)
     #[serde(skip)]
@@ -211,6 +223,7 @@ impl Default for DrawingCanvas {
             focus_name_field: false,
             editing_project_name: false,
             detections_expanded: false,
+            selected_detection_subtype: None,
             form_image: None,
             form_image_size: None,
             pending_image_load: None,
@@ -364,5 +377,10 @@ impl DrawingCanvas {
     /// Check if the detections layer dropdown is expanded
     pub fn is_detections_expanded(&self) -> bool {
         self.detections_expanded
+    }
+
+    /// Set the selected detection sub-type
+    pub fn set_selected_detection_subtype(&mut self, subtype: Option<DetectionSubtype>) {
+        self.selected_detection_subtype = subtype;
     }
 }

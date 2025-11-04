@@ -8,7 +8,7 @@ mod recent_projects;
 mod shape;
 mod tool;
 
-pub use canvas::{CanvasError, CanvasErrorKind, DrawingCanvas};
+pub use canvas::{CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas};
 pub use layer::{Layer, LayerError, LayerManager, LayerType};
 pub use recent_projects::RecentProjects;
 pub use shape::{Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeError, ShapeErrorKind};

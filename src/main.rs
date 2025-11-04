@@ -237,18 +237,49 @@ impl App for DemoApp {
 
                     // Show sub-items if Detections layer is expanded
                     if layer_type == LayerType::Detections && self.canvas.is_detections_expanded() {
-                        let text_count = self.canvas.text_detection_count();
-                        let logo_count = self.canvas.logo_detection_count();
+                        use form_factor::DetectionSubtype;
 
-                        // Indent sub-items
+                        let logo_count = self.canvas.logo_detection_count();
+                        let text_count = self.canvas.text_detection_count();
+
+                        // Alphabetical order: Logos first, then Text
+
+                        // Logos sub-item
+                        let logos_selected = *self.canvas.selected_detection_subtype() == Some(DetectionSubtype::Logos);
+
                         ui.horizontal(|ui| {
                             ui.add_space(40.0); // Indent for sub-items
-                            ui.label(format!("📝 Text: {}", text_count));
+
+                            if logos_selected {
+                                ui.visuals_mut().selection.bg_fill = ui.visuals().selection.bg_fill;
+                            }
+
+                            if ui.selectable_label(logos_selected, format!("🏢 Logos: {}", logo_count)).clicked() {
+                                if logos_selected {
+                                    self.canvas.set_selected_detection_subtype(None);
+                                } else {
+                                    self.canvas.set_selected_detection_subtype(Some(DetectionSubtype::Logos));
+                                }
+                            }
                         });
 
+                        // Text sub-item
+                        let text_selected = *self.canvas.selected_detection_subtype() == Some(DetectionSubtype::Text);
+
                         ui.horizontal(|ui| {
                             ui.add_space(40.0); // Indent for sub-items
-                            ui.label(format!("🏢 Logos: {}", logo_count));
+
+                            if text_selected {
+                                ui.visuals_mut().selection.bg_fill = ui.visuals().selection.bg_fill;
+                            }
+
+                            if ui.selectable_label(text_selected, format!("📝 Text: {}", text_count)).clicked() {
+                                if text_selected {
+                                    self.canvas.set_selected_detection_subtype(None);
+                                } else {
+                                    self.canvas.set_selected_detection_subtype(Some(DetectionSubtype::Text));
+                                }
+                            }
                         });
                     }
                 }
