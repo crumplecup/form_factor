@@ -47,6 +47,71 @@
   - The display impl for the wrapper struct around the crate-level enum should include the display value of its kind field (e.g. If the display value of CrateErrorKind is e, then CrateError displays "Form Error: {e}").
 - If a function or method returns a single unique error type, use that type. If the body contains more than one error type in its result types, convert the unique error types to the crate level type, and use the crate level error in the return type of the function or method signature.
 
+### Error Handling Example
+
+```rust
+// Module-level error
+#[derive(Debug, Clone, PartialEq)]
+pub enum CanvasErrorKind {
+    ImageLoad(String),
+    NoFormImageLoaded,
+}
+
+impl std::fmt::Display for CanvasErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            CanvasErrorKind::ImageLoad(msg) => write!(f, "Failed to load image: {}", msg),
+            CanvasErrorKind::NoFormImageLoaded => write!(f, "No form image loaded"),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct CanvasError {
+    pub kind: CanvasErrorKind,
+    pub line: u32,
+    pub file: &'static str,
+}
+
+impl std::fmt::Display for CanvasError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Canvas Error: {} at line {} in {}", self.kind, self.line, self.file)
+    }
+}
+
+impl std::error::Error for CanvasError {}
+
+// Crate-level error
+#[derive(Debug, derive_more::From)]
+pub enum FormErrorKind {
+    Canvas(CanvasError),
+    // ... other variants
+}
+
+impl std::fmt::Display for FormErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FormErrorKind::Canvas(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct FormError(Box<FormErrorKind>);
+
+impl std::fmt::Display for FormError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Form Error: {}", self.0)
+    }
+}
+
+impl From<CanvasError> for FormError {
+    fn from(err: CanvasError) -> Self {
+        FormError(Box::new(FormErrorKind::from(err)))
+    }
+}
+```
+
 ## Module Organization
 
 - When a module file exceeds ~500-1000 lines, consider splitting it into a module directory with focused submodules organized by responsibility (e.g., core, io, tools, rendering).
