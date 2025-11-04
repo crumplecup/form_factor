@@ -102,8 +102,8 @@ impl App for DemoApp {
                                         tracing::info!(
                                             "Detection {}: '{}' ({:.1}% confidence)",
                                             idx,
-                                            result.text.trim(),
-                                            result.confidence
+                                            result.text().trim(),
+                                            result.confidence()
                                         );
                                     }
                                     self.ocr_results = results;

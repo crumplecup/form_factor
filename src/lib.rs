@@ -183,6 +183,18 @@ pub use ocr::OCRResult;
 /// Word-level OCR result with bounding box
 pub use ocr::WordResult;
 
+#[cfg(feature = "ocr")]
+/// Bounding box for text regions
+pub use ocr::BoundingBox;
+
+#[cfg(feature = "ocr")]
+/// OCR error
+pub use ocr::OCRError;
+
+#[cfg(feature = "ocr")]
+/// OCR error kind
+pub use ocr::OCRErrorKind;
+
 // ============================================================================
 // Advanced: Direct module access for backend implementations
 // ============================================================================

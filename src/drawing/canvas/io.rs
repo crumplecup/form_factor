@@ -267,8 +267,8 @@ impl DrawingCanvas {
                     debug!(
                         "Detection {}: extracted {} chars with {:.1}% confidence",
                         idx,
-                        result.text.len(),
-                        result.confidence
+                        result.text().len(),
+                        result.confidence()
                     );
                     results.push((idx, result));
                 }

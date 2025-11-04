@@ -23,8 +23,8 @@
 //!
 //! // Extract text from an image
 //! let result = ocr.extract_text_from_file("document.png")?;
-//! println!("Text: {}", result.text);
-//! println!("Confidence: {:.1}%", result.confidence);
+//! println!("Text: {}", result.text());
+//! println!("Confidence: {:.1}%", result.confidence());
 //!
 //! // Extract from a specific region
 //! let region = (100, 200, 300, 50); // x, y, width, height
@@ -61,48 +61,204 @@
 //! ## Windows
 //! Download and install from: https://github.com/UB-Mannheim/tesseract/wiki
 
+use derive_getters::Getters;
 use image::{DynamicImage, GrayImage};
 use leptess::{LepTess, Variable};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tracing::{debug, info, instrument, trace, warn};
 
-/// OCR configuration options
+// ============================================================================
+// Constants
+// ============================================================================
+
+/// Default minimum confidence threshold (0-100)
+const DEFAULT_MIN_CONFIDENCE: i32 = 60;
+
+/// Default language for OCR
+const DEFAULT_LANGUAGE: &str = "eng";
+
+/// Maximum pixel value for grayscale images
+const MAX_PIXEL_VALUE: u8 = 255;
+
+/// Minimum pixel value for grayscale images
+const MIN_PIXEL_VALUE: u8 = 0;
+
+/// Minimum valid confidence value
+const MIN_CONFIDENCE: f32 = 0.0;
+
+/// Maximum valid confidence value
+const MAX_CONFIDENCE: f32 = 100.0;
+
+// ============================================================================
+// Error Types
+// ============================================================================
+
+/// Kinds of errors that can occur during OCR
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum OCRErrorKind {
+    /// Failed to initialize Tesseract engine
+    Initialization(String),
+    /// Failed to load image file
+    ImageLoad(String),
+    /// Failed to encode or process image
+    ImageProcessing(String),
+    /// Text extraction failed
+    Extraction(String),
+    /// Invalid region specified
+    InvalidRegion(String),
+    /// Invalid parameter value
+    InvalidParameter(String),
+}
+
+impl std::fmt::Display for OCRErrorKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            OCRErrorKind::Initialization(msg) => write!(f, "Failed to initialize Tesseract: {}", msg),
+            OCRErrorKind::ImageLoad(msg) => write!(f, "Failed to load image: {}", msg),
+            OCRErrorKind::ImageProcessing(msg) => write!(f, "Image processing error: {}", msg),
+            OCRErrorKind::Extraction(msg) => write!(f, "Text extraction failed: {}", msg),
+            OCRErrorKind::InvalidRegion(msg) => write!(f, "Invalid region: {}", msg),
+            OCRErrorKind::InvalidParameter(msg) => write!(f, "Invalid parameter: {}", msg),
+        }
+    }
+}
+
+/// OCR error with location information
 #[derive(Debug, Clone)]
+pub struct OCRError {
+    /// Error category
+    pub kind: OCRErrorKind,
+    /// Line number where error occurred
+    pub line: u32,
+    /// File where error occurred
+    pub file: &'static str,
+}
+
+impl OCRError {
+    /// Create a new OCR error
+    pub fn new(kind: OCRErrorKind, line: u32, file: &'static str) -> Self {
+        Self { kind, line, file }
+    }
+}
+
+impl std::fmt::Display for OCRError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "OCR Error: {} at line {} in {}", self.kind, self.line, self.file)
+    }
+}
+
+impl std::error::Error for OCRError {}
+
+// ============================================================================
+// Bounding Box
+// ============================================================================
+
+/// Bounding box for detected text regions
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+pub struct BoundingBox {
+    /// X coordinate of top-left corner
+    #[serde(default)]
+    pub x: i32,
+    /// Y coordinate of top-left corner
+    #[serde(default)]
+    pub y: i32,
+    /// Width in pixels
+    #[serde(default)]
+    pub width: i32,
+    /// Height in pixels
+    #[serde(default)]
+    pub height: i32,
+}
+
+impl BoundingBox {
+    /// Create a new bounding box
+    ///
+    /// # Errors
+    ///
+    /// Returns error if width or height is not positive
+    pub fn new(x: i32, y: i32, width: i32, height: i32) -> Result<Self, OCRError> {
+        if width <= 0 {
+            return Err(OCRError::new(
+                OCRErrorKind::InvalidParameter(format!("Width must be positive, got: {}", width)),
+                line!(),
+                file!(),
+            ));
+        }
+        if height <= 0 {
+            return Err(OCRError::new(
+                OCRErrorKind::InvalidParameter(format!("Height must be positive, got: {}", height)),
+                line!(),
+                file!(),
+            ));
+        }
+        Ok(Self { x, y, width, height })
+    }
+
+    /// Convert to tuple (x, y, width, height)
+    pub fn to_tuple(&self) -> (i32, i32, i32, i32) {
+        (self.x, self.y, self.width, self.height)
+    }
+
+    /// Create from tuple (x, y, width, height)
+    pub fn from_tuple(tuple: (i32, i32, i32, i32)) -> Result<Self, OCRError> {
+        Self::new(tuple.0, tuple.1, tuple.2, tuple.3)
+    }
+}
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+/// OCR configuration options
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct OCRConfig {
     /// Language(s) to use for OCR (e.g., "eng", "spa", "eng+spa")
-    /// Default: "eng"
+    #[serde(default = "default_language")]
     pub language: String,
 
     /// Page Segmentation Mode
-    /// Default: Auto
+    #[serde(default)]
     pub page_segmentation_mode: PageSegmentationMode,
 
     /// OCR Engine Mode
-    /// Default: Default (LSTM + Legacy)
+    #[serde(default)]
     pub engine_mode: EngineMode,
 
     /// Minimum confidence threshold (0-100)
     /// Results below this confidence will be flagged
-    /// Default: 60
+    #[serde(default = "default_min_confidence")]
     pub min_confidence: i32,
 
     /// Enable preprocessing (deskew, denoise, etc.)
-    /// Default: true
+    #[serde(default = "default_preprocess")]
     pub preprocess: bool,
 
     /// Tesseract data path (optional)
     /// If None, uses system default
+    #[serde(default)]
     pub tessdata_path: Option<String>,
+}
+
+fn default_language() -> String {
+    DEFAULT_LANGUAGE.to_string()
+}
+
+fn default_min_confidence() -> i32 {
+    DEFAULT_MIN_CONFIDENCE
+}
+
+fn default_preprocess() -> bool {
+    true
 }
 
 impl Default for OCRConfig {
     fn default() -> Self {
         Self {
-            language: "eng".to_string(),
+            language: DEFAULT_LANGUAGE.to_string(),
             page_segmentation_mode: PageSegmentationMode::Auto,
             engine_mode: EngineMode::Default,
-            min_confidence: 60,
+            min_confidence: DEFAULT_MIN_CONFIDENCE,
             preprocess: true,
             tessdata_path: None,
         }
@@ -111,6 +267,8 @@ impl Default for OCRConfig {
 
 impl OCRConfig {
     /// Create a new configuration with English language
+    ///
+    /// This is equivalent to `OCRConfig::default()`
     pub fn new() -> Self {
         Self::default()
     }
@@ -153,7 +311,7 @@ impl OCRConfig {
 }
 
 /// Page Segmentation Mode - how Tesseract should segment the page
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum PageSegmentationMode {
     /// Orientation and script detection (OSD) only
     OsdOnly = 0,
@@ -162,6 +320,7 @@ pub enum PageSegmentationMode {
     /// Automatic page segmentation, but no OSD or OCR
     AutoOnly = 2,
     /// Fully automatic page segmentation, but no OSD (Default)
+    #[default]
     Auto = 3,
     /// Assume a single column of text of variable sizes
     SingleColumn = 4,
@@ -186,7 +345,7 @@ pub enum PageSegmentationMode {
 }
 
 /// OCR Engine Mode - which Tesseract engine to use
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum EngineMode {
     /// Legacy engine only
     TesseractOnly = 0,
@@ -195,36 +354,59 @@ pub enum EngineMode {
     /// Legacy + LSTM engines
     TesseractLstm = 2,
     /// Default, based on what is available (LSTM + Legacy)
+    #[default]
     Default = 3,
 }
 
 /// Result of OCR text extraction
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct OCRResult {
     /// Extracted text
-    pub text: String,
+    #[serde(default)]
+    text: String,
 
     /// Mean confidence score (0-100)
-    pub confidence: f32,
+    #[serde(default)]
+    confidence: f32,
 
     /// Whether confidence is above minimum threshold
-    pub meets_threshold: bool,
+    #[serde(default)]
+    meets_threshold: bool,
 
-    /// Individual word-level results (if available)
-    pub words: Vec<WordResult>,
+    /// Individual word-level results (currently not implemented)
+    ///
+    /// This field is reserved for future word-level confidence and bounding box data.
+    /// Currently always None.
+    #[serde(default)]
+    words: Option<Vec<WordResult>>,
+}
+
+impl OCRResult {
+    /// Create a new OCR result
+    pub(crate) fn new(text: String, confidence: f32, meets_threshold: bool) -> Self {
+        Self {
+            text,
+            confidence,
+            meets_threshold,
+            words: None,
+        }
+    }
 }
 
 /// Word-level OCR result with position and confidence
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
 pub struct WordResult {
     /// The recognized word
-    pub text: String,
+    #[serde(default)]
+    text: String,
 
     /// Confidence for this word (0-100)
-    pub confidence: f32,
+    #[serde(default)]
+    confidence: f32,
 
-    /// Bounding box (x, y, width, height)
-    pub bbox: (i32, i32, i32, i32),
+    /// Bounding box
+    #[serde(default)]
+    bbox: BoundingBox,
 }
 
 /// OCR Engine for text extraction
@@ -250,10 +432,10 @@ impl OCREngine {
     ///     .with_psm(form_factor::PageSegmentationMode::Auto);
     ///
     /// let ocr = OCREngine::new(config)?;
-    /// # Ok::<(), String>(())
+    /// # Ok::<(), form_factor::OCRError>(())
     /// ```
     #[instrument(skip_all, fields(language = %config.language, psm = ?config.page_segmentation_mode))]
-    pub fn new(config: OCRConfig) -> Result<Self, String> {
+    pub fn new(config: OCRConfig) -> Result<Self, OCRError> {
         // Test that Tesseract can be initialized with this config
         Self::test_tesseract(&config)?;
 
@@ -266,18 +448,30 @@ impl OCREngine {
     }
 
     /// Test that Tesseract can be initialized with the given config
-    fn test_tesseract(config: &OCRConfig) -> Result<(), String> {
+    fn test_tesseract(config: &OCRConfig) -> Result<(), OCRError> {
         let mut lt = if let Some(ref path) = config.tessdata_path {
             LepTess::new(Some(path), &config.language)
-                .map_err(|e| format!("Failed to initialize Tesseract with custom path: {}", e))?
+                .map_err(|e| OCRError::new(
+                    OCRErrorKind::Initialization(format!("Failed with custom path: {}", e)),
+                    line!(),
+                    file!(),
+                ))?
         } else {
             LepTess::new(None, &config.language)
-                .map_err(|e| format!("Failed to initialize Tesseract (is it installed?): {}", e))?
+                .map_err(|e| OCRError::new(
+                    OCRErrorKind::Initialization(format!("Is Tesseract installed? {}", e)),
+                    line!(),
+                    file!(),
+                ))?
         };
 
         // Test setting PSM
         lt.set_variable(Variable::TesseditPagesegMode, &(config.page_segmentation_mode as i32).to_string())
-            .map_err(|e| format!("Failed to set page segmentation mode: {}", e))?;
+            .map_err(|e| OCRError::new(
+                OCRErrorKind::Initialization(format!("Failed to set PSM: {}", e)),
+                line!(),
+                file!(),
+            ))?;
 
         debug!("Tesseract initialized successfully");
         Ok(())
@@ -289,12 +483,16 @@ impl OCREngine {
     ///
     /// Returns an error if the file cannot be read or OCR fails.
     #[instrument(skip(self), fields(path))]
-    pub fn extract_text_from_file(&self, path: impl AsRef<Path>) -> Result<OCRResult, String> {
+    pub fn extract_text_from_file(&self, path: impl AsRef<Path>) -> Result<OCRResult, OCRError> {
         let path = path.as_ref();
-        debug!("Loading image from {:?}", path);
+        debug!(path = ?path, "Loading image");
 
         let img = image::open(path)
-            .map_err(|e| format!("Failed to load image: {}", e))?;
+            .map_err(|e| OCRError::new(
+                OCRErrorKind::ImageLoad(format!("{}", e)),
+                line!(),
+                file!(),
+            ))?;
 
         self.extract_text(&img)
     }
@@ -305,7 +503,7 @@ impl OCREngine {
     ///
     /// Returns an error if OCR fails.
     #[instrument(skip(self, image), fields(width = image.width(), height = image.height()))]
-    pub fn extract_text(&self, image: &DynamicImage) -> Result<OCRResult, String> {
+    pub fn extract_text(&self, image: &DynamicImage) -> Result<OCRResult, OCRError> {
         let processed = if self.config.preprocess {
             trace!("Preprocessing image");
             Self::preprocess_image(image)
@@ -318,21 +516,29 @@ impl OCREngine {
 
     /// Extract text from a grayscale image
     #[instrument(skip(self, image), fields(width = image.width(), height = image.height()))]
-    fn extract_text_from_gray(&self, image: &GrayImage) -> Result<OCRResult, String> {
+    fn extract_text_from_gray(&self, image: &GrayImage) -> Result<OCRResult, OCRError> {
         // Initialize Tesseract for this operation
         let mut lt = if let Some(ref path) = self.config.tessdata_path {
             LepTess::new(Some(path), &self.config.language)
         } else {
             LepTess::new(None, &self.config.language)
         }
-        .map_err(|e| format!("Failed to initialize Tesseract: {}", e))?;
+        .map_err(|e| OCRError::new(
+            OCRErrorKind::Initialization(format!("{}", e)),
+            line!(),
+            file!(),
+        ))?;
 
         // Configure Tesseract
         lt.set_variable(
             Variable::TesseditPagesegMode,
             &(self.config.page_segmentation_mode as i32).to_string(),
         )
-        .map_err(|e| format!("Failed to set PSM: {}", e))?;
+        .map_err(|e| OCRError::new(
+            OCRErrorKind::Initialization(format!("Failed to set PSM: {}", e)),
+            line!(),
+            file!(),
+        ))?;
 
         // Encode image as PNG for leptess (new API requires encoded image data)
         let mut png_data = Vec::new();
@@ -346,39 +552,37 @@ impl OCREngine {
                 image.width(),
                 image.height(),
                 image::ExtendedColorType::L8
-            ).map_err(|e| format!("Failed to encode image: {}", e))?;
+            ).map_err(|e| OCRError::new(
+                OCRErrorKind::ImageProcessing(format!("Failed to encode image: {}", e)),
+                line!(),
+                file!(),
+            ))?;
         }
 
         // Set image from encoded PNG data
         lt.set_image_from_mem(&png_data)
-            .map_err(|e| format!("Failed to set image: {}", e))?;
+            .map_err(|e| OCRError::new(
+                OCRErrorKind::ImageProcessing(format!("Failed to set image: {}", e)),
+                line!(),
+                file!(),
+            ))?;
 
         // Get text
         let text = lt.get_utf8_text()
-            .map_err(|e| format!("Failed to extract text: {}", e))?;
+            .map_err(|e| OCRError::new(
+                OCRErrorKind::Extraction(format!("{}", e)),
+                line!(),
+                file!(),
+            ))?;
 
-        // Get confidence
-        let confidence = lt.mean_text_conf() as f32;
+        // Get confidence and clamp to valid range
+        let confidence = (lt.mean_text_conf() as f32).clamp(MIN_CONFIDENCE, MAX_CONFIDENCE);
 
-        debug!("Extracted {} chars with {:.1}% confidence", text.len(), confidence);
+        debug!(chars = text.len(), confidence = %confidence, "Text extraction complete");
 
-        // Get word-level results
-        let words = self.get_word_results(&mut lt)?;
+        let meets_threshold = confidence >= self.config.min_confidence as f32;
 
-        Ok(OCRResult {
-            text,
-            confidence,
-            meets_threshold: confidence >= self.config.min_confidence as f32,
-            words,
-        })
-    }
-
-    /// Extract word-level results from Tesseract
-    fn get_word_results(&self, _lt: &mut LepTess) -> Result<Vec<WordResult>, String> {
-        // This is a simplified version - full implementation would use Tesseract's
-        // word-level confidence API
-        // For now, return empty vec
-        Ok(Vec::new())
+        Ok(OCRResult::new(text, confidence, meets_threshold))
     }
 
     /// Extract text from a specific region of an image file
@@ -396,12 +600,16 @@ impl OCREngine {
         &self,
         path: impl AsRef<Path>,
         region: (u32, u32, u32, u32),
-    ) -> Result<OCRResult, String> {
+    ) -> Result<OCRResult, OCRError> {
         let path = path.as_ref();
-        debug!("Loading image from {:?}", path);
+        debug!(path = ?path, "Loading image");
 
         let img = image::open(path)
-            .map_err(|e| format!("Failed to load image: {}", e))?;
+            .map_err(|e| OCRError::new(
+                OCRErrorKind::ImageLoad(format!("{}", e)),
+                line!(),
+                file!(),
+            ))?;
 
         self.extract_text_from_region(&img, region)
     }
@@ -421,23 +629,35 @@ impl OCREngine {
         &self,
         image: &DynamicImage,
         region: (u32, u32, u32, u32),
-    ) -> Result<OCRResult, String> {
+    ) -> Result<OCRResult, OCRError> {
         let (x, y, width, height) = region;
 
-        // Validate region
+        // Validate region bounds
         if x + width > image.width() || y + height > image.height() {
-            return Err(format!(
-                "Region ({}, {}, {}, {}) exceeds image bounds ({}x{})",
-                x,
-                y,
-                width,
-                height,
-                image.width(),
-                image.height()
+            return Err(OCRError::new(
+                OCRErrorKind::InvalidRegion(
+                    format!(
+                        "Region ({}, {}, {}, {}) exceeds image bounds ({}x{})",
+                        x, y, width, height, image.width(), image.height()
+                    )
+                ),
+                line!(),
+                file!(),
             ));
         }
 
-        debug!("Extracting region: {}x{} at ({}, {})", width, height, x, y);
+        // Validate region has positive dimensions
+        if width == 0 || height == 0 {
+            return Err(OCRError::new(
+                OCRErrorKind::InvalidRegion(
+                    format!("Region must have positive width and height, got: {}x{}", width, height)
+                ),
+                line!(),
+                file!(),
+            ));
+        }
+
+        debug!(width, height, x, y, "Extracting region");
 
         // Crop to region
         let cropped = image.crop_imm(x, y, width, height);
@@ -450,16 +670,12 @@ impl OCREngine {
     /// Applies:
     /// - Grayscale conversion
     /// - Contrast enhancement
-    /// - Noise reduction
     fn preprocess_image(image: &DynamicImage) -> GrayImage {
         // Convert to grayscale
         let mut gray = image.to_luma8();
 
         // Apply contrast enhancement using simple histogram stretching
         Self::enhance_contrast(&mut gray);
-
-        // Apply basic noise reduction (optional)
-        // Self::reduce_noise(&mut gray);
 
         gray
     }
@@ -469,8 +685,8 @@ impl OCREngine {
         let (width, height) = image.dimensions();
 
         // Find min and max pixel values
-        let mut min_val = 255u8;
-        let mut max_val = 0u8;
+        let mut min_val = MAX_PIXEL_VALUE;
+        let mut max_val = MIN_PIXEL_VALUE;
 
         for y in 0..height {
             for x in 0..width {
@@ -490,12 +706,12 @@ impl OCREngine {
         for y in 0..height {
             for x in 0..width {
                 let pixel = image.get_pixel_mut(x, y);
-                let stretched = ((pixel[0] - min_val) as f32 / range * 255.0) as u8;
+                let stretched = ((pixel[0] - min_val) as f32 / range * MAX_PIXEL_VALUE as f32) as u8;
                 pixel[0] = stretched;
             }
         }
 
-        trace!("Enhanced contrast: range {} -> 255", range);
+        trace!(range, "Contrast enhancement complete");
     }
 
     /// Get the current configuration
