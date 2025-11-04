@@ -29,5 +29,8 @@ flamegraph.svg
 *.gcno
 *.profraw
 
+# Testing data
+/logos
+
 # Models for OCR
 /models
