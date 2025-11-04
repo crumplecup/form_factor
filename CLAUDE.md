@@ -6,6 +6,7 @@
   1. Run cargo test and clear all errors.
   2. Run cargo clippy and clear all warnings.
   3. Commit the changes to git using best practices for code auditing.
+  4. Push the changes to their respective github branch.
 - Avoid running cargo clean often, to take advantage of incremental compilation during development.
 
 ## Linting
@@ -127,4 +128,3 @@ impl From<CanvasError> for FormError {
 ## Unsafe
 
 - Use the forbid unsafe lint at the top level of lib.rs to prevent unsafe code.
-
