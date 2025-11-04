@@ -40,6 +40,20 @@
   - **Errors** that can be returned (for Result-returning functions)
 - Keep documentation concise but informative - avoid stating the obvious from the signature.
 
+## Logging and Tracing
+
+- Use the `tracing` crate for all logging (never `println!` in library code).
+- Choose appropriate log levels:
+  - `trace!()` - Very detailed, fine-grained information (loop iterations, individual calculations)
+  - `debug!()` - General debugging information (function entry/exit, state changes)
+  - `info!()` - Important runtime information (initialization, major events)
+  - `warn!()` - Warnings about unusual but recoverable conditions
+  - `error!()` - Errors that should be investigated
+- Use structured logging with fields: `debug!(count = items.len(), "Processing items")`
+- Use `#[instrument]` macro on functions for automatic entry/exit logging with arguments
+- Use `?` prefix for Debug formatting in field values: `debug!(value = ?self.field())`
+- Binary applications can use `println!` for user-facing output, but use `tracing` for diagnostics
+
 ## Testing
 
 - Do not place mod tests in the module next to the code. Place unit tests in the tests directory.
