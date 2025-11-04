@@ -413,10 +413,13 @@ impl LogoDetector {
                 continue;
             }
 
-            let mut result = unsafe {
-                Mat::new_size(result_size, CV_32FC1)
-                    .map_err(|e| format!("Failed to create result matrix: {}", e))?
-            };
+            let mut result = Mat::new_rows_cols_with_default(
+                result_size.height,
+                result_size.width,
+                CV_32FC1,
+                core::Scalar::all(0.0),
+            )
+            .map_err(|e| format!("Failed to create result matrix: {}", e))?;
 
             imgproc::match_template(
                 image_gray,

@@ -1,6 +1,6 @@
 //! Core canvas state and error types
 
-use crate::drawing::{LayerManager, LayerType, Shape, ToolMode};
+use crate::{LayerManager, LayerType, Shape, ToolMode};
 use derive_getters::Getters;
 use egui::{Color32, Pos2, Stroke};
 use serde::{Deserialize, Serialize};

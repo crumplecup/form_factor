@@ -11,7 +11,7 @@
 //! - Coordinate transformation utilities
 
 use super::core::DrawingCanvas;
-use crate::drawing::{Shape, ToolMode};
+use crate::{LayerType, Shape, ToolMode};
 use egui::{Color32, Pos2, Stroke};
 use geo::CoordsIter;
 use tracing::{debug, trace, warn};
@@ -89,7 +89,7 @@ impl DrawingCanvas {
         }
 
         // Paint background if Canvas layer is visible
-        if self.layer_manager.is_visible(crate::drawing::LayerType::Canvas) {
+        if self.layer_manager.is_visible(LayerType::Canvas) {
             painter.rect_filled(
                 response.rect,
                 0.0,
@@ -104,7 +104,7 @@ impl DrawingCanvas {
             * egui::emath::TSTransform::from_translation(-canvas_center.to_vec2());
 
         // Draw form image on Canvas layer if loaded
-        if self.layer_manager.is_visible(crate::drawing::LayerType::Canvas)
+        if self.layer_manager.is_visible(LayerType::Canvas)
             && let (Some(texture), Some(image_size)) = (&self.form_image, self.form_image_size)
         {
             // Calculate scaling to fit image within canvas while maintaining aspect ratio
@@ -192,7 +192,7 @@ impl DrawingCanvas {
 
         // Draw detections if Detections layer is visible (with zoom transformation)
         // Note: Detections are stored in image pixel coordinates and need to be mapped to canvas space
-        let detections_visible = self.layer_manager.is_visible(crate::drawing::LayerType::Detections);
+        let detections_visible = self.layer_manager.is_visible(LayerType::Detections);
         if !self.detections.is_empty() {
             debug!("Rendering frame: detections={}, layer_visible={}, image_size={:?}, canvas_size={:?}",
                    self.detections.len(), detections_visible, self.form_image_size, response.rect.size());
@@ -224,7 +224,7 @@ impl DrawingCanvas {
         }
 
         // Draw existing shapes if Shapes layer is visible (with zoom transformation)
-        let shapes_visible = self.layer_manager.is_visible(crate::drawing::LayerType::Shapes);
+        let shapes_visible = self.layer_manager.is_visible(LayerType::Shapes);
         if shapes_visible {
             for (idx, shape) in self.shapes.iter().enumerate() {
                 self.render_shape_transformed(shape, &painter, &to_screen);
@@ -267,7 +267,7 @@ impl DrawingCanvas {
         }
 
         // Draw grid on top of everything if Grid layer is visible
-        if self.layer_manager.is_visible(crate::drawing::LayerType::Grid) {
+        if self.layer_manager.is_visible(LayerType::Grid) {
             debug!(
                 grid_visible = true,
                 grid_spacing_h = self.grid_spacing_horizontal,
@@ -892,7 +892,7 @@ impl DrawingCanvas {
     /// Detections are stored in image pixel space (e.g., 0-3400 x 0-4400),
     /// but need to be converted to canvas space where the image is scaled and centered
     fn map_detection_to_canvas(&self, detection: &Shape, scale: f32, image_offset: Pos2) -> Shape {
-        use crate::drawing::{Circle, PolygonShape, Rectangle};
+        use crate::{Circle, PolygonShape, Rectangle};
 
         match detection {
             Shape::Rectangle(rect) => {

@@ -9,7 +9,7 @@
 //! The interaction state machine prevents invalid state combinations
 //! (e.g., drawing while rotating) and ensures consistent behavior.
 
-use crate::drawing::{Circle, LayerType, PolygonShape, Rectangle, Shape};
+use crate::{Circle, LayerType, PolygonShape, Rectangle, Shape, ToolMode};
 use egui::Pos2;
 use tracing::{debug, instrument, trace, warn};
 
@@ -27,7 +27,7 @@ impl DrawingCanvas {
             transform.inverse().mul_pos(screen_pos)
         };
         match self.current_tool() {
-            crate::drawing::ToolMode::Select => {
+            ToolMode::Select => {
                 let _span = tracing::debug_span!("selection").entered();
 
                 // Handle selection clicks
@@ -52,7 +52,7 @@ impl DrawingCanvas {
                     }
                 }
             }
-            crate::drawing::ToolMode::Edit => {
+            ToolMode::Edit => {
                 let _span = tracing::debug_span!("edit_vertices").entered();
 
                 // Handle vertex editing
@@ -81,7 +81,7 @@ impl DrawingCanvas {
                     }
                 }
             }
-            crate::drawing::ToolMode::Rectangle | crate::drawing::ToolMode::Circle | crate::drawing::ToolMode::Freehand => {
+            ToolMode::Rectangle | ToolMode::Circle | ToolMode::Freehand => {
                 // Handle drawing tools
                 if let Some(pos) = response.interact_pointer_pos() {
                     let canvas_pos = transform_pos(pos);
@@ -97,7 +97,7 @@ impl DrawingCanvas {
                     self.finalize_shape();
                 }
             }
-            crate::drawing::ToolMode::Rotate => {
+            ToolMode::Rotate => {
                 let is_rotating = matches!(self.state(), super::core::CanvasState::Rotating { .. });
                 let _span = tracing::debug_span!(
                     "rotate_tool",
@@ -231,7 +231,7 @@ impl DrawingCanvas {
     /// For freehand polygons, starts collecting points. For rectangles
     /// and circles, records the starting position.
     pub(super) fn start_drawing(&mut self, pos: Pos2) {
-        let points = if *self.current_tool() == crate::drawing::ToolMode::Freehand {
+        let points = if *self.current_tool() == ToolMode::Freehand {
             vec![pos]
         } else {
             Vec::new()
@@ -261,7 +261,7 @@ impl DrawingCanvas {
             *current_end = Some(pos);
 
             match current_tool {
-                crate::drawing::ToolMode::Rectangle => {
+                ToolMode::Rectangle => {
                     // Transform the rectangle corners for preview
                     let rect = egui::Rect::from_two_pos(*start, pos);
                     let transformed_rect = egui::Rect::from_min_max(
@@ -271,13 +271,13 @@ impl DrawingCanvas {
                     painter.rect_filled(transformed_rect, 0.0, fill_color);
                     painter.rect_stroke(transformed_rect, 0.0, stroke, egui::StrokeKind::Outside);
                 }
-                crate::drawing::ToolMode::Circle => {
+                ToolMode::Circle => {
                     let radius = start.distance(pos);
                     let transformed_center = transform.mul_pos(*start);
                     let transformed_radius = radius * zoom_level;
                     painter.circle(transformed_center, transformed_radius, fill_color, stroke);
                 }
-                crate::drawing::ToolMode::Freehand => {
+                ToolMode::Freehand => {
                     points.push(pos);
                     if points.len() > 2 {
                         // Transform points for preview
@@ -308,13 +308,13 @@ impl DrawingCanvas {
                         ));
                     }
                 }
-                crate::drawing::ToolMode::Select => {
+                ToolMode::Select => {
                     // Selection preview could go here
                 }
-                crate::drawing::ToolMode::Edit => {
+                ToolMode::Edit => {
                     // Edit mode doesn't draw new shapes
                 }
-                crate::drawing::ToolMode::Rotate => {
+                ToolMode::Rotate => {
                     // Rotate mode doesn't draw new shapes
                 }
             }
@@ -329,7 +329,7 @@ impl DrawingCanvas {
     pub(super) fn finalize_shape(&mut self) {
         let shape = if let super::core::CanvasState::Drawing { start, current_end, points } = self.state() {
             match self.current_tool() {
-                crate::drawing::ToolMode::Rectangle => {
+                ToolMode::Rectangle => {
                     if let Some(end) = current_end {
                         Rectangle::from_corners(*start, *end, *self.stroke(), *self.fill_color())
                             .map(Shape::Rectangle)
@@ -342,7 +342,7 @@ impl DrawingCanvas {
                         None
                     }
                 }
-                crate::drawing::ToolMode::Circle => {
+                ToolMode::Circle => {
                     if let Some(edge) = current_end {
                         let radius = start.distance(*edge);
                         Circle::new(*start, radius, *self.stroke(), *self.fill_color())
@@ -356,7 +356,7 @@ impl DrawingCanvas {
                         None
                     }
                 }
-                crate::drawing::ToolMode::Freehand => {
+                ToolMode::Freehand => {
                     if points.len() >= 3 {
                         // Create a closed polygon from the points
                         PolygonShape::from_points(points.clone(), *self.stroke(), *self.fill_color())
@@ -370,9 +370,9 @@ impl DrawingCanvas {
                         None
                     }
                 }
-                crate::drawing::ToolMode::Select => None,
-                crate::drawing::ToolMode::Edit => None,
-                crate::drawing::ToolMode::Rotate => None,
+                ToolMode::Select => None,
+                ToolMode::Edit => None,
+                ToolMode::Rotate => None,
             }
         } else {
             None

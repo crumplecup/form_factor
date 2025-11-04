@@ -10,11 +10,12 @@
 //! - OCR text extraction (with feature flag)
 
 use super::core::{CanvasError, CanvasErrorKind, DrawingCanvas};
-use crate::drawing::{LayerType, RecentProjects};
+use crate::{LayerType, RecentProjects, Rectangle, Shape};
 #[cfg(feature = "text-detection")]
-use crate::text_detection::TextDetector;
+use crate::TextDetector;
+use egui::{Color32, Pos2, Stroke};
 use std::path::PathBuf;
-use tracing::{debug, instrument, warn};
+use tracing::{debug, instrument, trace, warn};
 
 impl DrawingCanvas {
     /// Clear all shapes and detections from the canvas
@@ -249,8 +250,8 @@ impl DrawingCanvas {
     #[instrument(skip(self, ocr), fields(detections = self.detections.len()))]
     pub fn extract_text_from_detections(
         &self,
-        ocr: &crate::ocr::OCREngine,
-    ) -> Result<Vec<(usize, crate::ocr::OCRResult)>, CanvasError> {
+        ocr: &crate::OCREngine,
+    ) -> Result<Vec<(usize, crate::OCRResult)>, CanvasError> {
         let form_path = self.form_image_path.as_ref()
             .ok_or_else(|| CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!()))?;
 
@@ -283,11 +284,11 @@ impl DrawingCanvas {
     #[cfg(feature = "ocr")]
     fn extract_text_from_shape(
         &self,
-        ocr: &crate::ocr::OCREngine,
+        ocr: &crate::OCREngine,
         image_path: &str,
         shape: &Shape,
-    ) -> Result<crate::ocr::OCRResult, CanvasError> {
-        use crate::drawing::Shape;
+    ) -> Result<crate::OCRResult, CanvasError> {
+        use crate::Shape;
 
         // Get bounding box of the shape in image pixel coordinates
         let bbox = match shape {
