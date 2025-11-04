@@ -37,6 +37,20 @@
 - Group related `#[serde(skip)]` attributes with comments explaining why they're not serialized (e.g., "// Runtime state (not serialized)").
 - For complex serialization needs, implement custom `Serialize`/`Deserialize` instead of using derives.
 
+## Feature Flags
+
+- Use `#[cfg(feature = "feature-name")]` to conditionally compile code based on features.
+- Document feature-gated public APIs with a note in the documentation: `/// Available with the `feature-name` feature.`
+- Available features:
+  - `backend-eframe` - eframe/wgpu rendering backend (enabled by default)
+  - `text-detection` - OpenCV-based text detection
+  - `logo-detection` - OpenCV-based logo detection
+  - `ocr` - Tesseract-based OCR text extraction
+  - `dev` - Enables all optional features for development
+- When adding new feature-gated code, ensure the crate still compiles with only default features.
+- Use `cargo check --no-default-features` to verify the crate works without optional features.
+- Use `cargo check --all-features` to verify all features compile together.
+
 ## Documentation
 
 - Use `///` for item documentation (functions, structs, enums, fields, methods).
