@@ -204,11 +204,13 @@ impl DrawingCanvas {
 
         tracing::info!("Detecting text regions in: {}", form_path);
 
-        // Create text detector with default model paths
-        let detector = TextDetector::default();
+        // Create text detector with default model path
+        let detector = TextDetector::new("models/DB_TD500_resnet50.onnx".to_string()).map_err(|e| {
+            CanvasError::new(CanvasErrorKind::TextDetection(e.to_string()), line!(), file!())
+        })?;
 
         // Detect text regions
-        let regions = detector.detect_from_file(form_path, confidence_threshold).map_err(|e| {
+        let regions = detector.detect_from_file(form_path.as_str(), confidence_threshold).map_err(|e| {
             CanvasError::new(CanvasErrorKind::TextDetection(e.to_string()), line!(), file!())
         })?;
 
@@ -217,10 +219,10 @@ impl DrawingCanvas {
 
         // Create rectangle shapes for each detected region
         for (i, region) in regions.iter().enumerate() {
-            let top_left = Pos2::new(region.x as f32, region.y as f32);
+            let top_left = Pos2::new(*region.x() as f32, *region.y() as f32);
             let bottom_right = Pos2::new(
-                (region.x + region.width) as f32,
-                (region.y + region.height) as f32,
+                (*region.x() + *region.width()) as f32,
+                (*region.y() + *region.height()) as f32,
             );
 
             // Create a rectangle shape with a distinctive color for text regions
@@ -229,7 +231,7 @@ impl DrawingCanvas {
 
             match Rectangle::from_corners(top_left, bottom_right, stroke, fill) {
                 Ok(mut rect) => {
-                    rect.name = format!("Text Region {} ({:.2}%)", i + 1, region.confidence * 100.0);
+                    rect.name = format!("Text Region {} ({:.2}%)", i + 1, *region.confidence() * 100.0);
                     self.detections.push(Shape::Rectangle(rect));
                 }
                 Err(e) => {

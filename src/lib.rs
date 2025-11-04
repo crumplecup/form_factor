@@ -112,12 +112,20 @@ pub use drawing::RecentProjects;
 // ============================================================================
 
 #[cfg(feature = "text-detection")]
-/// Text detector using OpenCV EAST model
+/// Text detector using OpenCV DB model
 pub use text_detection::TextDetector;
 
 #[cfg(feature = "text-detection")]
 /// Detected text region
 pub use text_detection::TextRegion;
+
+#[cfg(feature = "text-detection")]
+/// Text detection error
+pub use text_detection::TextDetectionError;
+
+#[cfg(feature = "text-detection")]
+/// Text detection error kind
+pub use text_detection::TextDetectionErrorKind;
 
 // ============================================================================
 // Logo Detection
