@@ -83,18 +83,19 @@ impl App for DemoApp {
         // Process plugin events and wire them to canvas operations
         #[cfg(feature = "plugins")]
         {
-            // Process all pending events
-            self.plugin_manager.process_events();
+            // First, drain events for the application to handle
+            // This must happen BEFORE process_events() which also drains
+            let events = self.plugin_manager.event_bus_mut().drain_events();
 
-            // Drain events and handle them
-            for event in self.plugin_manager.event_bus_mut().drain_events() {
+            // Handle application events
+            for event in &events {
                 use form_factor::AppEvent;
                 match event {
                     AppEvent::CanvasZoomChanged { zoom } => {
-                        self.canvas.set_zoom(zoom);
+                        self.canvas.set_zoom(*zoom);
                     }
                     AppEvent::CanvasPanChanged { x, y } => {
-                        self.canvas.set_pan_offset(x, y);
+                        self.canvas.set_pan_offset(*x, *y);
                     }
                     AppEvent::ToolSelected { tool_name } => {
                         // Parse tool name and set tool mode
@@ -123,7 +124,7 @@ impl App for DemoApp {
                             _ => None,
                         };
                         if let Some(layer_type) = layer_type
-                            && self.canvas.layer_manager().is_visible(layer_type) != visible
+                            && self.canvas.layer_manager().is_visible(layer_type) != *visible
                         {
                             self.canvas.layer_manager_mut().toggle_layer(layer_type);
                         }
@@ -277,6 +278,15 @@ impl App for DemoApp {
                     }
                 }
             }
+
+            // Now distribute those same events to plugins for their reaction
+            // Re-emit them so plugins can process them
+            for event in events {
+                self.plugin_manager.event_bus().sender().emit(event);
+            }
+
+            // Process plugin events (which now includes the re-emitted events)
+            self.plugin_manager.process_events();
         }
 
         // Plugin sidebar (if plugins feature is enabled)
