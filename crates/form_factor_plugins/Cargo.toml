@@ -1,0 +1,39 @@
+[package]
+name = "form_factor_plugins"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+# Workspace dependencies
+egui.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+derive_more.workspace = true
+strum.workspace = true
+
+# Async runtime for event bus
+tokio.workspace = true
+
+# Workspace crates
+form_factor_core.workspace = true
+form_factor_drawing = { workspace = true, optional = true }
+
+[features]
+default = []
+# Plugin features - enable specific plugins at compile time
+plugin-canvas = ["dep:form_factor_drawing"]
+plugin-layers = ["dep:form_factor_drawing"]
+plugin-file = []
+plugin-detection = ["dep:form_factor_drawing"]
+plugin-ocr = ["dep:form_factor_drawing"]
+
+# Convenience feature to enable all plugins
+all-plugins = ["plugin-canvas", "plugin-layers", "plugin-file", "plugin-detection", "plugin-ocr"]
+
+[lints.rust]
+unsafe_code = "forbid"
+missing_docs = "warn"
