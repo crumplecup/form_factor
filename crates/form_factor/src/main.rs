@@ -9,15 +9,56 @@ struct DemoApp {
     canvas: DrawingCanvas,
     #[cfg(feature = "ocr")]
     ocr_results: Vec<(usize, form_factor::OCRResult)>,
+    #[cfg(feature = "plugins")]
+    plugin_manager: form_factor::PluginManager,
 }
 
 impl DemoApp {
     fn new() -> Self {
+        #[cfg(feature = "plugins")]
+        let plugin_manager = {
+            let mut manager = form_factor::PluginManager::new();
+
+            #[cfg(feature = "plugin-canvas")]
+            {
+                manager.register(Box::new(form_factor::canvas::CanvasPlugin::new()));
+                tracing::info!("Registered canvas plugin");
+            }
+
+            #[cfg(feature = "plugin-layers")]
+            {
+                manager.register(Box::new(form_factor::layers::LayersPlugin::new()));
+                tracing::info!("Registered layers plugin");
+            }
+
+            #[cfg(feature = "plugin-file")]
+            {
+                manager.register(Box::new(form_factor::file::FilePlugin::new()));
+                tracing::info!("Registered file plugin");
+            }
+
+            #[cfg(feature = "plugin-detection")]
+            {
+                manager.register(Box::new(form_factor::detection::DetectionPlugin::new()));
+                tracing::info!("Registered detection plugin");
+            }
+
+            #[cfg(feature = "plugin-ocr")]
+            {
+                manager.register(Box::new(form_factor::ocr::OcrPlugin::new()));
+                tracing::info!("Registered OCR plugin");
+            }
+
+            manager
+        };
+
         Self {
             name: String::from("Form Factor"),
             canvas: DrawingCanvas::new(),
             #[cfg(feature = "ocr")]
             ocr_results: Vec::new(),
+            #[cfg(feature = "plugins")]
+            plugin_manager,
         }
     }
 }
@@ -39,6 +80,215 @@ impl App for DemoApp {
     }
 
     fn update(&mut self, ctx: &AppContext) {
+        // Process plugin events and wire them to canvas operations
+        #[cfg(feature = "plugins")]
+        {
+            // Process all pending events
+            self.plugin_manager.process_events();
+
+            // Drain events and handle them
+            for event in self.plugin_manager.event_bus_mut().drain_events() {
+                use form_factor::AppEvent;
+                match event {
+                    AppEvent::CanvasZoomChanged { zoom } => {
+                        self.canvas.set_zoom(zoom);
+                    }
+                    AppEvent::CanvasPanChanged { x, y } => {
+                        self.canvas.set_pan_offset(x, y);
+                    }
+                    AppEvent::ToolSelected { tool_name } => {
+                        // Parse tool name and set tool mode
+                        use form_factor::ToolMode;
+                        let tool = match tool_name.as_str() {
+                            "Select" => Some(ToolMode::Select),
+                            "Rectangle" => Some(ToolMode::Rectangle),
+                            "Circle" => Some(ToolMode::Circle),
+                            "Freehand" => Some(ToolMode::Freehand),
+                            "Edit" => Some(ToolMode::Edit),
+                            "Rotate" => Some(ToolMode::Rotate),
+                            _ => None,
+                        };
+                        if let Some(tool) = tool {
+                            self.canvas.set_tool(tool);
+                        }
+                    }
+                    AppEvent::LayerVisibilityChanged { layer_name, visible } => {
+                        // Find layer by name and toggle
+                        use form_factor::LayerType;
+                        let layer_type = match layer_name.as_str() {
+                            "Canvas" => Some(LayerType::Canvas),
+                            "Detections" => Some(LayerType::Detections),
+                            "Shapes" => Some(LayerType::Shapes),
+                            "Grid" => Some(LayerType::Grid),
+                            _ => None,
+                        };
+                        if let Some(layer_type) = layer_type
+                            && self.canvas.layer_manager().is_visible(layer_type) != visible
+                        {
+                            self.canvas.layer_manager_mut().toggle_layer(layer_type);
+                        }
+                    }
+                    AppEvent::LayerSelected { layer_name } => {
+                        use form_factor::LayerType;
+                        let layer_type = match layer_name.as_str() {
+                            "Canvas" => Some(LayerType::Canvas),
+                            "Detections" => Some(LayerType::Detections),
+                            "Shapes" => Some(LayerType::Shapes),
+                            "Grid" => Some(LayerType::Grid),
+                            _ => None,
+                        };
+                        self.canvas.set_selected_layer(layer_type);
+                    }
+                    AppEvent::OpenFileRequested => {
+                        if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("Form Factor Project", &["ffp"])
+                            .pick_file()
+                            && let Some(path_str) = path.to_str()
+                        {
+                                match self.canvas.load_from_file(path_str, ctx.egui_ctx) {
+                                    Ok(()) => {
+                                        tracing::info!("Loaded project from {}", path_str);
+                                        // Emit FileOpened event
+                                        self.plugin_manager
+                                            .event_bus()
+                                            .sender()
+                                            .emit(AppEvent::FileOpened { path });
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Failed to load project: {}", e);
+                                    }
+                                }
+                        }
+                    }
+                    AppEvent::SaveFileRequested => {
+                        // Save to current file or show save dialog
+                        if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("Form Factor Project", &["ffp"])
+                            .set_file_name(format!("{}.ffp", self.canvas.project_name()))
+                            .save_file()
+                            && let Some(path_str) = path.to_str()
+                        {
+                                match self.canvas.save_to_file(path_str) {
+                                    Ok(()) => {
+                                        tracing::info!("Saved project to {}", path_str);
+                                        self.plugin_manager
+                                            .event_bus()
+                                            .sender()
+                                            .emit(AppEvent::FileSaved { path });
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Failed to save project: {}", e);
+                                    }
+                                }
+                        }
+                    }
+                    AppEvent::SaveAsRequested => {
+                        if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("Form Factor Project", &["ffp"])
+                            .set_file_name(format!("{}.ffp", self.canvas.project_name()))
+                            .save_file()
+                            && let Some(path_str) = path.to_str()
+                        {
+                                match self.canvas.save_to_file(path_str) {
+                                    Ok(()) => {
+                                        tracing::info!("Saved project to {}", path_str);
+                                        self.plugin_manager
+                                            .event_bus()
+                                            .sender()
+                                            .emit(AppEvent::FileSaved { path });
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Failed to save project: {}", e);
+                                    }
+                                }
+                        }
+                    }
+                    #[cfg(feature = "text-detection")]
+                    AppEvent::TextDetectionRequested => {
+                        match self.canvas.detect_text_regions(0.5) {
+                            Ok(count) => {
+                                tracing::info!("Detected {} text regions", count);
+                                self.plugin_manager
+                                    .event_bus()
+                                    .sender()
+                                    .emit(AppEvent::DetectionComplete {
+                                        count,
+                                        detection_type: "text".to_string(),
+                                    });
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to detect text: {}", e);
+                            }
+                        }
+                    }
+                    #[cfg(feature = "logo-detection")]
+                    AppEvent::LogoDetectionRequested => {
+                        match self.canvas.detect_logos() {
+                            Ok(count) => {
+                                tracing::info!("Detected {} logos", count);
+                                self.plugin_manager
+                                    .event_bus()
+                                    .sender()
+                                    .emit(AppEvent::DetectionComplete {
+                                        count,
+                                        detection_type: "logo".to_string(),
+                                    });
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to detect logos: {}", e);
+                            }
+                        }
+                    }
+                    #[cfg(feature = "ocr")]
+                    AppEvent::OcrExtractionRequested => {
+                        use form_factor::{OCRConfig, OCREngine, PageSegmentationMode};
+
+                        match OCREngine::new(
+                            OCRConfig::new()
+                                .with_psm(PageSegmentationMode::Auto)
+                                .with_min_confidence(60),
+                        ) {
+                            Ok(ocr) => match self.canvas.extract_text_from_detections(&ocr) {
+                                Ok(results) => {
+                                    tracing::info!("Extracted text from {} detections", results.len());
+                                    let texts: Vec<String> = results
+                                        .iter()
+                                        .map(|(_, result)| result.text().trim().to_string())
+                                        .collect();
+
+                                    // Emit custom event with extracted text
+                                    if let Ok(event) = AppEvent::custom("ocr", "text_extracted", &texts) {
+                                        self.plugin_manager.event_bus().sender().emit(event);
+                                    }
+
+                                    self.ocr_results = results;
+                                }
+                                Err(e) => {
+                                    tracing::error!("Failed to extract text: {}", e);
+                                }
+                            },
+                            Err(e) => {
+                                tracing::error!("Failed to initialize OCR engine: {}", e);
+                            }
+                        }
+                    }
+                    _ => {
+                        // Ignore other events
+                    }
+                }
+            }
+        }
+
+        // Plugin sidebar (if plugins feature is enabled)
+        #[cfg(feature = "plugins")]
+        egui::SidePanel::right("plugin_panel")
+            .default_width(280.0)
+            .show(ctx.egui_ctx, |ui| {
+                egui::ScrollArea::vertical().show(ui, |ui| {
+                    self.plugin_manager.render_plugins(ui);
+                });
+            });
+
         // Side panel for controls and info
         egui::SidePanel::left("control_panel")
             .default_width(280.0)
@@ -375,6 +625,12 @@ impl App for DemoApp {
 
     fn on_exit(&mut self) {
         tracing::info!("Application exiting");
+
+        #[cfg(feature = "plugins")]
+        {
+            tracing::info!("Shutting down plugins");
+            self.plugin_manager.shutdown();
+        }
     }
 
     fn name(&self) -> &str {

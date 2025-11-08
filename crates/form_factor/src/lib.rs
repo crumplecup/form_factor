@@ -183,6 +183,54 @@ pub use form_factor_ocr::OCRError;
 pub use form_factor_ocr::OCRErrorKind;
 
 // ============================================================================
+// Plugin System
+// ============================================================================
+
+#[cfg(feature = "plugins")]
+/// Plugin trait for implementing modular UI components
+pub use form_factor_plugins::Plugin;
+
+#[cfg(feature = "plugins")]
+/// Plugin manager for coordinating plugins
+pub use form_factor_plugins::PluginManager;
+
+#[cfg(feature = "plugins")]
+/// Context provided to plugins during rendering and event handling
+pub use form_factor_plugins::PluginContext;
+
+#[cfg(feature = "plugins")]
+/// Event bus for plugin communication
+pub use form_factor_plugins::EventBus;
+
+#[cfg(feature = "plugins")]
+/// Event sender for publishing events
+pub use form_factor_plugins::EventSender;
+
+#[cfg(feature = "plugins")]
+/// Application event types for inter-plugin communication
+pub use form_factor_plugins::AppEvent;
+
+#[cfg(feature = "plugins")]
+/// Plugin builder trait
+pub use form_factor_plugins::PluginBuilder;
+
+// Plugin implementations (feature-gated)
+#[cfg(feature = "plugin-canvas")]
+pub use form_factor_plugins::canvas;
+
+#[cfg(feature = "plugin-layers")]
+pub use form_factor_plugins::layers;
+
+#[cfg(feature = "plugin-file")]
+pub use form_factor_plugins::file;
+
+#[cfg(feature = "plugin-detection")]
+pub use form_factor_plugins::detection;
+
+#[cfg(feature = "plugin-ocr")]
+pub use form_factor_plugins::ocr;
+
+// ============================================================================
 // Advanced: Direct module access for backend implementations
 // ============================================================================
 
