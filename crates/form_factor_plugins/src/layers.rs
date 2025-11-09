@@ -118,6 +118,19 @@ impl LayersPlugin {
                         visible: layer.visible,
                     });
                 }
+
+                // Clear layer button (skip for Grid layer)
+                if layer.layer_type != LayerType::Grid
+                    && ui
+                        .button("🗑")
+                        .on_hover_text("Clear layer")
+                        .clicked()
+                {
+                    debug!(layer = ?layer.layer_type, "Layer clear requested");
+                    ctx.events.emit(AppEvent::LayerClearRequested {
+                        layer_name: layer.name.clone(),
+                    });
+                }
             });
         });
     }

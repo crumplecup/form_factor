@@ -136,6 +136,35 @@ impl App for DemoApp {
                         };
                         self.canvas.set_selected_layer(layer_type);
                     }
+                    AppEvent::LayerClearRequested { layer_name } => {
+                        use form_factor::LayerType;
+                        let layer_type = match layer_name.as_str() {
+                            "Canvas" => Some(LayerType::Canvas),
+                            "Detections" => Some(LayerType::Detections),
+                            "Shapes" => Some(LayerType::Shapes),
+                            "Grid" => Some(LayerType::Grid),
+                            _ => None,
+                        };
+                        if let Some(layer_type) = layer_type {
+                            match layer_type {
+                                LayerType::Shapes => {
+                                    self.canvas.clear_shapes();
+                                    tracing::info!("Cleared shapes layer");
+                                }
+                                LayerType::Detections => {
+                                    self.canvas.clear_detections();
+                                    tracing::info!("Cleared detections layer");
+                                }
+                                LayerType::Canvas => {
+                                    self.canvas.clear_canvas_image();
+                                    tracing::info!("Cleared canvas image");
+                                }
+                                LayerType::Grid => {
+                                    // Grid doesn't need clearing
+                                }
+                            }
+                        }
+                    }
                     AppEvent::OpenFileRequested => {
                         if let Some(path) = rfd::FileDialog::new()
                             .add_filter("Form Factor Project", &["ffp"])

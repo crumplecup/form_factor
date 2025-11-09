@@ -46,6 +46,12 @@ pub enum AppEvent {
         visible: bool,
     },
 
+    /// Request to clear all objects from a layer
+    LayerClearRequested {
+        /// Name of the layer to clear
+        layer_name: String,
+    },
+
     /// A file was opened
     FileOpened {
         /// Path to the opened file
