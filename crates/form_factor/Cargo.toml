@@ -21,6 +21,7 @@ form_factor_drawing = { workspace = true }
 form_factor_cv = { workspace = true, optional = true }
 form_factor_ocr = { workspace = true, optional = true }
 form_factor_backends = { workspace = true, features = ["eframe"], optional = true }
+form_factor_plugins = { workspace = true, optional = true }
 
 # Direct dependencies for error types and demo app
 egui = { workspace = true }
@@ -37,7 +38,17 @@ backend-eframe = ["dep:form_factor_backends"]
 text-detection = ["dep:form_factor_cv", "form_factor_cv/text-detection", "form_factor_drawing/text-detection"]
 logo-detection = ["dep:form_factor_cv", "form_factor_cv/logo-detection", "form_factor_drawing/logo-detection"]
 ocr = ["dep:form_factor_ocr", "form_factor_drawing/ocr"]
-dev = ["text-detection", "logo-detection", "ocr"]
+
+# Plugin system features
+plugins = ["dep:form_factor_plugins"]
+plugin-canvas = ["plugins", "form_factor_plugins/plugin-canvas"]
+plugin-layers = ["plugins", "form_factor_plugins/plugin-layers"]
+plugin-file = ["plugins", "form_factor_plugins/plugin-file"]
+plugin-detection = ["plugins", "form_factor_plugins/plugin-detection", "text-detection", "logo-detection"]
+plugin-ocr = ["plugins", "form_factor_plugins/plugin-ocr", "ocr"]
+all-plugins = ["plugin-canvas", "plugin-layers", "plugin-file", "plugin-detection", "plugin-ocr"]
+
+dev = ["text-detection", "logo-detection", "ocr", "all-plugins"]
 
 [build-dependencies]
 dotenvy = { workspace = true }

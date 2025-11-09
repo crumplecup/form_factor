@@ -32,18 +32,6 @@ impl DrawingCanvas {
             }
         }
 
-        // Tool selection toolbar
-        ui.horizontal(|ui| {
-            ui.selectable_value(&mut self.current_tool, ToolMode::Select, "✋ Select");
-            ui.selectable_value(&mut self.current_tool, ToolMode::Rectangle, "▭ Rectangle");
-            ui.selectable_value(&mut self.current_tool, ToolMode::Circle, "◯ Circle");
-            ui.selectable_value(&mut self.current_tool, ToolMode::Freehand, "✏ Freehand");
-            ui.selectable_value(&mut self.current_tool, ToolMode::Edit, "✎ Edit");
-            ui.selectable_value(&mut self.current_tool, ToolMode::Rotate, "🔄 Rotate");
-        });
-
-        ui.separator();
-
         // Canvas area
         let (response, painter) = ui.allocate_painter(
             ui.available_size(),

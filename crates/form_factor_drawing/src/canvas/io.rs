@@ -372,11 +372,13 @@ impl DrawingCanvas {
 
         tracing::info!("Detecting logos in: {}", form_path);
 
-        // Create logo detector with default settings
+        // Create logo detector with template matching and multiple scales
+        // Wide scale range to handle logos from 10% to 200% of template size
+        // TODO: Make these configurable via UI or settings
         let mut detector = LogoDetector::builder()
             .template_matching()
-            .with_confidence_threshold(0.7)
-            .with_scales(vec![0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
+            .with_confidence_threshold(0.5)  // Balanced threshold for good recall
+            .with_scales(vec![0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.65, 0.75, 1.0, 1.25, 1.5, 2.0])
             .build();
 
         // Load all logo templates from the logos directory

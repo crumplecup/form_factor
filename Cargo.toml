@@ -6,6 +6,7 @@ members = [
     "crates/form_factor_cv",
     "crates/form_factor_ocr",
     "crates/form_factor_backends",
+    "crates/form_factor_plugins",
     "crates/form_factor",
 ]
 
@@ -49,12 +50,16 @@ eframe = { version = "0.33.0", features = ["accesskit", "wgpu"] }
 # File dialogs
 rfd = "0.15"
 
+# Async runtime
+tokio = { version = "1.42", features = ["sync"] }
+
 # Workspace crates
 form_factor_core = { path = "crates/form_factor_core" }
 form_factor_drawing = { path = "crates/form_factor_drawing" }
 form_factor_cv = { path = "crates/form_factor_cv" }
 form_factor_ocr = { path = "crates/form_factor_ocr" }
 form_factor_backends = { path = "crates/form_factor_backends" }
+form_factor_plugins = { path = "crates/form_factor_plugins" }
 
 [profile.dev]
 opt-level = 1  # Slightly optimize dependencies for faster builds

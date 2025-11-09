@@ -1409,6 +1409,7 @@ dependencies = [
  "form_factor_cv",
  "form_factor_drawing",
  "form_factor_ocr",
+ "form_factor_plugins",
  "rfd",
  "serde_json",
  "strum",
@@ -1443,6 +1444,7 @@ dependencies = [
  "derive_builder",
  "opencv",
  "serde",
+ "serde_json",
  "thiserror 2.0.17",
  "tracing",
 ]
@@ -1478,6 +1480,21 @@ dependencies = [
  "leptess",
  "serde",
  "thiserror 2.0.17",
+ "tracing",
+]
+
+[[package]]
+name = "form_factor_plugins"
+version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "egui",
+ "form_factor_core",
+ "form_factor_drawing",
+ "serde",
+ "serde_json",
+ "strum",
+ "tokio",
  "tracing",
 ]
 
@@ -3671,6 +3688,15 @@ checksum = "42d3e9c45c09de15d06dd8acf5f4e0e399e85927b7f00711024eb7ae10fa4869"
 dependencies = [
  "displaydoc",
  "zerovec",
+]
+
+[[package]]
+name = "tokio"
+version = "1.48.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ff360e02eab121e0bc37a2d3b4d4dc622e6eda3a8e5253d5435ecf5bd4c68408"
+dependencies = [
+ "pin-project-lite",
 ]
 
 [[package]]

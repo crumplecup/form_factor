@@ -82,9 +82,10 @@ impl std::error::Error for CanvasError {}
 ///
 /// Represents the current user interaction mode with the canvas.
 /// This state machine prevents invalid state combinations (e.g., drawing while rotating).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub(super) enum CanvasState {
     /// No active interaction
+    #[default]
     Idle,
     /// User is actively drawing a new shape
     Drawing {
@@ -107,12 +108,6 @@ pub(super) enum CanvasState {
         /// Center point of rotation
         center: Option<Pos2>,
     },
-}
-
-impl Default for CanvasState {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 /// Detection sub-type for filtering detections layer
@@ -382,5 +377,20 @@ impl DrawingCanvas {
     /// Set the selected detection sub-type
     pub fn set_selected_detection_subtype(&mut self, subtype: Option<DetectionSubtype>) {
         self.selected_detection_subtype = subtype;
+    }
+
+    /// Set the zoom level
+    pub fn set_zoom(&mut self, zoom: f32) {
+        self.zoom_level = zoom.clamp(0.1, 100.0); // Clamp between 0.1 and 100
+    }
+
+    /// Set the pan offset
+    pub fn set_pan_offset(&mut self, x: f32, y: f32) {
+        self.pan_offset = egui::Vec2::new(x, y);
+    }
+
+    /// Set the current tool mode
+    pub fn set_tool(&mut self, tool: ToolMode) {
+        self.current_tool = tool;
     }
 }
