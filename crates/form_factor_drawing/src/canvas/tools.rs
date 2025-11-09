@@ -22,9 +22,34 @@ impl DrawingCanvas {
     /// based on the current tool mode and interaction state.
     #[instrument(skip(self, response, painter, transform), fields(tool = ?self.current_tool()))]
     pub(super) fn handle_input(&mut self, response: &egui::Response, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
-        // Helper to transform screen coordinates to canvas coordinates
+        // Pre-compute transformation parameters to avoid borrow checker issues
+        let canvas_rect = response.rect;
+        let image_transform_params = if let (Some(image_size), Some(_)) = (self.form_image_size, &self.form_image) {
+            let canvas_size = canvas_rect.size();
+            let scale_x = canvas_size.x / image_size.x;
+            let scale_y = canvas_size.y / image_size.y;
+            let scale = scale_x.min(scale_y);
+            let fitted_size = image_size * scale;
+            let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
+            let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
+            let image_offset = canvas_rect.min + egui::vec2(offset_x, offset_y);
+            Some((scale, image_offset))
+        } else {
+            None
+        };
+
+        // Helper to transform screen coordinates to canvas coordinates, then to image pixel coordinates
+        // This ensures shapes are stored in the same coordinate system as detections
         let transform_pos = |screen_pos: Pos2| -> Pos2 {
-            transform.inverse().mul_pos(screen_pos)
+            let canvas_pos = transform.inverse().mul_pos(screen_pos);
+            // Convert to image pixel coordinates if image is loaded
+            if let Some((scale, image_offset)) = image_transform_params {
+                let image_x = (canvas_pos.x - image_offset.x) / scale;
+                let image_y = (canvas_pos.y - image_offset.y) / scale;
+                Pos2::new(image_x, image_y)
+            } else {
+                canvas_pos
+            }
         };
         match self.current_tool() {
             ToolMode::Select => {

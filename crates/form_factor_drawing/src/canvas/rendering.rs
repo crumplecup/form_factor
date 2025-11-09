@@ -212,16 +212,29 @@ impl DrawingCanvas {
         }
 
         // Draw existing shapes if Shapes layer is visible (with zoom transformation)
+        // Note: Like detections, shapes are stored in image pixel coordinates and need to be mapped to canvas space
         let shapes_visible = self.layer_manager.is_visible(LayerType::Shapes);
-        if shapes_visible {
+        if shapes_visible && let (Some(image_size), Some(_texture)) = (self.form_image_size, &self.form_image) {
+            // Calculate the image-to-canvas coordinate transform (same as for detections)
+            let canvas_size = response.rect.size();
+            let scale_x = canvas_size.x / image_size.x;
+            let scale_y = canvas_size.y / image_size.y;
+            let scale = scale_x.min(scale_y);
+            let fitted_size = image_size * scale;
+            let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
+            let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
+            let image_offset = response.rect.min + egui::vec2(offset_x, offset_y);
+
             for (idx, shape) in self.shapes.iter().enumerate() {
-                self.render_shape_transformed(shape, &painter, &to_screen);
+                // Convert shape from image pixel coordinates to canvas coordinates
+                let shape_in_canvas_space = self.map_detection_to_canvas(shape, scale, image_offset);
+                self.render_shape_transformed(&shape_in_canvas_space, &painter, &to_screen);
 
                 // Draw selection highlight
                 if Some(idx) == self.selected_shape {
                     let highlight_stroke = Stroke::new(4.0, Color32::from_rgb(255, 215, 0));
 
-                    match shape {
+                    match &shape_in_canvas_space {
                         Shape::Rectangle(rect) => {
                             let transformed_corners: Vec<Pos2> = rect.corners()
                                 .iter()
@@ -248,10 +261,12 @@ impl DrawingCanvas {
 
                     // Draw edit vertices if in Edit mode
                     if self.current_tool == ToolMode::Edit && Some(idx) == self.selected_shape {
-                        self.draw_edit_vertices_transformed(shape, &painter, &to_screen);
+                        self.draw_edit_vertices_transformed(&shape_in_canvas_space, &painter, &to_screen);
                     }
                 }
             }
+        } else if shapes_visible && !self.shapes.is_empty() {
+            debug!("Shapes layer visible but image not loaded: {} shapes not rendered", self.shapes.len());
         }
 
         // Draw grid on top of everything if Grid layer is visible
