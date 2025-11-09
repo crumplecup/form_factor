@@ -110,6 +110,17 @@ dev = ["text-detection", "logo-detection", "ocr", "all-plugins"]
    - Emits `OcrExtractionRequested` events
    - Receives custom `text_extracted` events
 
+#### Logo Detection Improvements (Nov 8, 2025)
+
+Switched from template matching to feature matching for more robust logo detection:
+- **Detection Method**: Feature matching (SIFT/ORB) instead of template matching
+  - More robust against scale, rotation, and lighting variations
+  - Less sensitive to compression artifacts
+- **Confidence Threshold**: Lowered from 0.7 to 0.5 for better recall
+- **Scale Range**: Expanded from [0.5-2.0] to [0.3-3.0]
+  - Handles logos from 30% to 300% of template size
+- **Location**: `crates/form_factor_drawing/src/canvas/io.rs:375-381`
+
 ### Previous Work: Workspace Architecture (Completed ✅)
 
 Successfully refactored the monolithic crate into a workspace with 7 specialized crates:
@@ -129,20 +140,22 @@ Successfully refactored the monolithic crate into a workspace with 7 specialized
   - b7f0215: Remove Podman setup documentation files
   - 138fe6f: Add plugin system with event bus architecture
   - f42dfcd: Update continuation context with plugin system completion
-  - c3ebca7: Integrate plugin system into main application ✨ LATEST
+  - c3ebca7: Integrate plugin system into main application
+  - 96a8902: Improve logo detection and fix clippy warning ✨ LATEST
 - **Main branch**: Contains workspace architecture (pre-plugins)
 
 ### Build Status
 - ✅ `cargo check --workspace --all-features`: Clean
 - ✅ `cargo check --features dev`: Clean (plugins enabled)
 - ✅ `cargo test -p form_factor_plugins --all-features`: 20 tests passing
-- ✅ `cargo clippy --features dev`: 1 pre-existing warning (unrelated to plugins)
+- ✅ `cargo test --workspace --features dev`: 129 tests passing (101 unit + 18 doc)
+- ✅ `cargo clippy --features dev`: Zero warnings
 - ✅ **System is fully functional and ready to use**
 
 ### Testing
 - **Plugin tests**: 20 unit tests + 1 doctest
 - **Previous tests**: 107 unit tests + 17 doctests (workspace)
-- **Total**: 127 unit tests + 18 doctests
+- **Total**: 129 tests (101 unit + 18 doc)
 - **All passing** ✅
 
 ## How to Run with Plugins
@@ -246,16 +259,16 @@ cargo run --features dev
 2. ✅ ~~State sync~~ - **WORKING**: Bidirectional event flow
 3. ✅ ~~Event handling~~ - **COMPLETE**: All events wired
 4. ✅ ~~Feature propagation~~ - **DONE**: All features propagate correctly
-5. One pre-existing clippy warning in `form_factor_drawing` (unrelated to plugins)
+5. ✅ ~~Clippy warnings~~ - **FIXED**: All warnings resolved
 
 ## Recent Commits
 
 ```
-c3ebca7 (HEAD -> plugins) Integrate plugin system into main application
+96a8902 (HEAD -> plugins) Improve logo detection and fix clippy warning
+c3ebca7 Integrate plugin system into main application
 f42dfcd Update continuation context with plugin system completion
 138fe6f Add plugin system with event bus architecture
 b7f0215 Remove Podman setup documentation files
-d32b0e9 Add continuation context for next session
 ```
 
 ## Success Metrics ✅
