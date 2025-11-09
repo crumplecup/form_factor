@@ -894,7 +894,7 @@ impl DrawingCanvas {
     /// Map a detection shape from image pixel coordinates to canvas coordinates
     /// Detections are stored in image pixel space (e.g., 0-3400 x 0-4400),
     /// but need to be converted to canvas space where the image is scaled and centered
-    fn map_detection_to_canvas(&self, detection: &Shape, scale: f32, image_offset: Pos2) -> Shape {
+    pub(super) fn map_detection_to_canvas(&self, detection: &Shape, scale: f32, image_offset: Pos2) -> Shape {
         use crate::{Circle, PolygonShape, Rectangle};
 
         match detection {

@@ -393,4 +393,25 @@ impl DrawingCanvas {
     pub fn set_tool(&mut self, tool: ToolMode) {
         self.current_tool = tool;
     }
+
+    // Testing helper methods
+    // These are public to allow integration tests to verify coordinate system consistency
+
+    /// Add a shape directly to the canvas (for testing coordinate transformations)
+    #[doc(hidden)]
+    pub fn test_add_shape(&mut self, shape: Shape) {
+        self.shapes.push(shape);
+    }
+
+    /// Add a detection directly to the canvas (for testing coordinate transformations)
+    #[doc(hidden)]
+    pub fn test_add_detection(&mut self, detection: Shape) {
+        self.detections.push(detection);
+    }
+
+    /// Map a detection from image pixel coordinates to canvas coordinates (for testing)
+    #[doc(hidden)]
+    pub fn test_map_detection_to_canvas(&self, detection: &Shape, scale: f32, image_offset: egui::Pos2) -> Shape {
+        self.map_detection_to_canvas(detection, scale, image_offset)
+    }
 }
