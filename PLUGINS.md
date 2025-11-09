@@ -1,14 +1,38 @@
 # Form Factor - Continuation Context
 
-**Date**: November 8, 2025
+**Date**: November 9, 2025
 **Branch**: `plugins`
-**Last Commit**: `c3ebca7` - "Integrate plugin system into main application"
+**Last Commit**: TBD - "Remove legacy mode UI to streamline main crate"
 
 ## Project Overview
 
 Form Factor is a GUI application for tagging scanned forms with OCR metadata. Built with Rust and egui, it provides an accessible interface for document annotation with computer vision capabilities.
 
 ## Recent Work Completed
+
+### Legacy Mode Removal ✅ (Completed - Nov 9, 2025)
+
+Successfully removed the legacy left sidebar UI to streamline the main crate and eliminate code duplication.
+
+**Removed Components:**
+- **Left Sidebar Control Panel** - Entire legacy UI panel removed from main.rs
+- **Duplicated Controls**:
+  - Load Form button (raw image loading)
+  - Detect Text/Logos buttons (now in detection plugin)
+  - Extract Text (OCR) button (now in OCR plugin)
+  - OCR results display (now in OCR plugin)
+  - Layers panel (now in layers plugin)
+  - Project Save/Load buttons (now in file plugin)
+  - Settings section
+  - Properties panel
+- **Legacy State**: Removed `ocr_results` field from DemoApp struct
+
+**Result**: The main application now uses only the plugin-based UI, achieving the goal of:
+1. Streamlining the main `form_factor` crate
+2. Compartmentalizing dependencies into workspace crates
+3. Eliminating duplicated code between legacy and plugin systems
+
+**Note**: Some features from the legacy panel (Load Form Image, Clear All, Undo, Settings, Properties) may need to be added as new plugins in the future if required.
 
 ### Plugin System - FULLY INTEGRATED ✅ (Completed - Nov 8, 2025)
 
@@ -71,8 +95,7 @@ dev = ["text-detection", "logo-detection", "ocr", "all-plugins"]
 
 **UI Layout:**
 - **Right Sidebar**: Plugin panels (ScrollArea for overflow)
-- **Left Sidebar**: Legacy controls panel
-- **Central Panel**: DrawingCanvas
+- **Central Panel**: DrawingCanvas (full width when no plugins enabled)
 
 #### Implemented Plugins (Feature-Gated)
 
@@ -158,7 +181,7 @@ Successfully refactored the monolithic crate into a workspace with 7 specialized
 - **Total**: 129 tests (101 unit + 18 doc)
 - **All passing** ✅
 
-## How to Run with Plugins
+## How to Run
 
 ```bash
 # Run with all plugins enabled (recommended for development)
@@ -170,7 +193,7 @@ cargo run --features plugin-canvas,plugin-layers,plugin-file
 # Run with just the plugin system (no specific plugins)
 cargo run --features plugins
 
-# Run without plugins (legacy mode)
+# Run with minimal UI (no plugins, canvas only)
 cargo run
 ```
 
@@ -212,16 +235,25 @@ crates/
 
 ## Next Steps (Future Work)
 
-The plugin system is **complete and fully functional**. Possible future enhancements:
+The plugin system is **complete and fully functional** with legacy mode removed. Possible future enhancements:
 
-1. **State Persistence**: Save/restore plugin states
-2. **Plugin Configuration**: Per-plugin settings UI
-3. **More Plugins**: Properties panel, history panel, export panel
-4. **Runtime Plugin Toggle**: Enable/disable plugins without recompiling
-5. **Plugin Ordering**: User-configurable plugin panel order
-6. **Keyboard Shortcuts**: Plugin-specific hotkeys
-7. **Plugin Documentation**: Auto-generate plugin help text
-8. **Plugin Validation**: Verify plugin compatibility at runtime
+### High Priority (Missing from Legacy Mode)
+1. **Image Loading Plugin**: Load raw form images (png, jpg, jpeg, webp) - distinct from project files
+2. **Canvas Actions Plugin**: Clear All, Undo, shape count display
+3. **Settings Plugin**: Canvas settings and configuration
+4. **Properties Plugin**: Inline properties panel for selected shapes
+
+### Medium Priority
+5. **State Persistence**: Save/restore plugin states
+6. **Plugin Configuration**: Per-plugin settings UI
+7. **More Plugins**: History panel, export panel, statistics panel
+
+### Low Priority
+8. **Runtime Plugin Toggle**: Enable/disable plugins without recompiling
+9. **Plugin Ordering**: User-configurable plugin panel order
+10. **Keyboard Shortcuts**: Plugin-specific hotkeys
+11. **Plugin Documentation**: Auto-generate plugin help text
+12. **Plugin Validation**: Verify plugin compatibility at runtime
 
 ## Important File Locations
 
@@ -260,6 +292,7 @@ cargo run --features dev
 3. ✅ ~~Event handling~~ - **COMPLETE**: All events wired
 4. ✅ ~~Feature propagation~~ - **DONE**: All features propagate correctly
 5. ✅ ~~Clippy warnings~~ - **FIXED**: All warnings resolved
+6. ✅ ~~Legacy mode duplication~~ - **REMOVED**: Legacy left sidebar removed (Nov 9, 2025)
 
 ## Recent Commits
 
@@ -273,6 +306,7 @@ b7f0215 Remove Podman setup documentation files
 
 ## Success Metrics ✅
 
+### Plugin System
 - [x] Plugin system designed and implemented
 - [x] 5 functional plugins created
 - [x] Event bus architecture working
@@ -287,6 +321,13 @@ b7f0215 Remove Podman setup documentation files
 - [x] UI layout updated
 - [x] Plugin shutdown handling
 - [x] Code committed and pushed
+
+### Legacy Mode Removal
+- [x] Left sidebar control panel removed
+- [x] Duplicated UI code eliminated
+- [x] Legacy state fields removed (ocr_results)
+- [x] Main crate streamlined
+- [x] Dependencies compartmentalized
 
 ---
 
