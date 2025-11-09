@@ -113,7 +113,7 @@ impl DrawingCanvas {
                     if response.drag_started() {
                         self.start_drawing(canvas_pos);
                     } else if response.dragged() && matches!(self.state(), super::core::CanvasState::Drawing { .. }) {
-                        self.continue_drawing(canvas_pos, painter, transform);
+                        self.continue_drawing(canvas_pos, painter, transform, image_transform_params);
                     }
                 }
 
@@ -274,12 +274,28 @@ impl DrawingCanvas {
     /// Updates the drawing state with the current mouse position and
     /// draws a preview of the shape being created. The preview updates
     /// in real-time as the user drags the mouse.
-    pub(super) fn continue_drawing(&mut self, pos: Pos2, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
+    pub(super) fn continue_drawing(&mut self, pos: Pos2, painter: &egui::Painter, transform: &egui::emath::TSTransform, image_transform_params: Option<(f32, egui::Pos2)>) {
         // Store values needed for rendering before mutably borrowing state
         let current_tool = *self.current_tool();
         let fill_color = *self.fill_color();
         let stroke = *self.stroke();
         let zoom_level = *self.zoom_level();
+
+        // Helper to transform a point from image pixel coordinates to screen coordinates
+        // This applies: image coords -> canvas coords -> zoom/pan transform
+        let transform_preview_pos = |image_pos: Pos2| -> Pos2 {
+            if let Some((scale, image_offset)) = image_transform_params {
+                // First convert from image pixel coords to canvas coords
+                let canvas_x = image_pos.x * scale + image_offset.x;
+                let canvas_y = image_pos.y * scale + image_offset.y;
+                let canvas_pos = Pos2::new(canvas_x, canvas_y);
+                // Then apply zoom/pan transformation
+                transform.mul_pos(canvas_pos)
+            } else {
+                // No image loaded - positions are already in canvas coords
+                transform.mul_pos(image_pos)
+            }
+        };
 
         // Update the drawing state with the new position
         if let super::core::CanvasState::Drawing { start, current_end, points } = self.state_mut() {
@@ -287,28 +303,32 @@ impl DrawingCanvas {
 
             match current_tool {
                 ToolMode::Rectangle => {
-                    // Transform the rectangle corners for preview
-                    let rect = egui::Rect::from_two_pos(*start, pos);
-                    let transformed_rect = egui::Rect::from_min_max(
-                        transform.mul_pos(rect.min),
-                        transform.mul_pos(rect.max),
-                    );
+                    // Transform the rectangle corners for preview (from image coords to screen)
+                    let rect_min = transform_preview_pos(start.min(pos));
+                    let rect_max = transform_preview_pos(start.max(pos));
+                    let transformed_rect = egui::Rect::from_min_max(rect_min, rect_max);
                     painter.rect_filled(transformed_rect, 0.0, fill_color);
                     painter.rect_stroke(transformed_rect, 0.0, stroke, egui::StrokeKind::Outside);
                 }
                 ToolMode::Circle => {
+                    // Radius is in image pixel coordinates, needs to be scaled
                     let radius = start.distance(pos);
-                    let transformed_center = transform.mul_pos(*start);
-                    let transformed_radius = radius * zoom_level;
-                    painter.circle(transformed_center, transformed_radius, fill_color, stroke);
+                    let transformed_center = transform_preview_pos(*start);
+                    // Scale radius based on image scale, then apply zoom
+                    let scaled_radius = if let Some((scale, _)) = image_transform_params {
+                        radius * scale * zoom_level
+                    } else {
+                        radius * zoom_level
+                    };
+                    painter.circle(transformed_center, scaled_radius, fill_color, stroke);
                 }
                 ToolMode::Freehand => {
                     points.push(pos);
                     if points.len() > 2 {
-                        // Transform points for preview
+                        // Transform points for preview (from image coords to screen)
                         let transformed_points: Vec<Pos2> = points
                             .iter()
-                            .map(|p| transform.mul_pos(*p))
+                            .map(|p| transform_preview_pos(*p))
                             .collect();
                         // Draw preview as a closed polygon
                         painter.add(egui::Shape::convex_polygon(
@@ -321,10 +341,10 @@ impl DrawingCanvas {
                             stroke,
                         ));
                     } else if points.len() > 1 {
-                        // Transform points for preview line
+                        // Transform points for preview line (from image coords to screen)
                         let transformed_points: Vec<Pos2> = points
                             .iter()
-                            .map(|p| transform.mul_pos(*p))
+                            .map(|p| transform_preview_pos(*p))
                             .collect();
                         // Draw preview line until we have enough points
                         painter.add(egui::Shape::line(

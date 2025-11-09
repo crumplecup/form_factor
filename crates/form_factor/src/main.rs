@@ -109,7 +109,10 @@ impl App for DemoApp {
                             self.canvas.set_tool(tool);
                         }
                     }
-                    AppEvent::LayerVisibilityChanged { layer_name, visible } => {
+                    AppEvent::LayerVisibilityChanged {
+                        layer_name,
+                        visible,
+                    } => {
                         // Find layer by name and toggle
                         use form_factor::LayerType;
                         let layer_type = match layer_name.as_str() {
@@ -171,19 +174,19 @@ impl App for DemoApp {
                             .pick_file()
                             && let Some(path_str) = path.to_str()
                         {
-                                match self.canvas.load_from_file(path_str, ctx.egui_ctx) {
-                                    Ok(()) => {
-                                        tracing::info!("Loaded project from {}", path_str);
-                                        // Emit FileOpened event
-                                        self.plugin_manager
-                                            .event_bus()
-                                            .sender()
-                                            .emit(AppEvent::FileOpened { path });
-                                    }
-                                    Err(e) => {
-                                        tracing::error!("Failed to load project: {}", e);
-                                    }
+                            match self.canvas.load_from_file(path_str, ctx.egui_ctx) {
+                                Ok(()) => {
+                                    tracing::info!("Loaded project from {}", path_str);
+                                    // Emit FileOpened event
+                                    self.plugin_manager
+                                        .event_bus()
+                                        .sender()
+                                        .emit(AppEvent::FileOpened { path });
                                 }
+                                Err(e) => {
+                                    tracing::error!("Failed to load project: {}", e);
+                                }
+                            }
                         }
                     }
                     AppEvent::SaveFileRequested => {
@@ -194,18 +197,18 @@ impl App for DemoApp {
                             .save_file()
                             && let Some(path_str) = path.to_str()
                         {
-                                match self.canvas.save_to_file(path_str) {
-                                    Ok(()) => {
-                                        tracing::info!("Saved project to {}", path_str);
-                                        self.plugin_manager
-                                            .event_bus()
-                                            .sender()
-                                            .emit(AppEvent::FileSaved { path });
-                                    }
-                                    Err(e) => {
-                                        tracing::error!("Failed to save project: {}", e);
-                                    }
+                            match self.canvas.save_to_file(path_str) {
+                                Ok(()) => {
+                                    tracing::info!("Saved project to {}", path_str);
+                                    self.plugin_manager
+                                        .event_bus()
+                                        .sender()
+                                        .emit(AppEvent::FileSaved { path });
                                 }
+                                Err(e) => {
+                                    tracing::error!("Failed to save project: {}", e);
+                                }
+                            }
                         }
                     }
                     AppEvent::SaveAsRequested => {
@@ -215,18 +218,18 @@ impl App for DemoApp {
                             .save_file()
                             && let Some(path_str) = path.to_str()
                         {
-                                match self.canvas.save_to_file(path_str) {
-                                    Ok(()) => {
-                                        tracing::info!("Saved project to {}", path_str);
-                                        self.plugin_manager
-                                            .event_bus()
-                                            .sender()
-                                            .emit(AppEvent::FileSaved { path });
-                                    }
-                                    Err(e) => {
-                                        tracing::error!("Failed to save project: {}", e);
-                                    }
+                            match self.canvas.save_to_file(path_str) {
+                                Ok(()) => {
+                                    tracing::info!("Saved project to {}", path_str);
+                                    self.plugin_manager
+                                        .event_bus()
+                                        .sender()
+                                        .emit(AppEvent::FileSaved { path });
                                 }
+                                Err(e) => {
+                                    tracing::error!("Failed to save project: {}", e);
+                                }
+                            }
                         }
                     }
                     #[cfg(feature = "text-detection")]
@@ -234,13 +237,12 @@ impl App for DemoApp {
                         match self.canvas.detect_text_regions(0.5) {
                             Ok(count) => {
                                 tracing::info!("Detected {} text regions", count);
-                                self.plugin_manager
-                                    .event_bus()
-                                    .sender()
-                                    .emit(AppEvent::DetectionComplete {
+                                self.plugin_manager.event_bus().sender().emit(
+                                    AppEvent::DetectionComplete {
                                         count,
                                         detection_type: "text".to_string(),
-                                    });
+                                    },
+                                );
                             }
                             Err(e) => {
                                 tracing::error!("Failed to detect text: {}", e);
@@ -248,23 +250,20 @@ impl App for DemoApp {
                         }
                     }
                     #[cfg(feature = "logo-detection")]
-                    AppEvent::LogoDetectionRequested => {
-                        match self.canvas.detect_logos() {
-                            Ok(count) => {
-                                tracing::info!("Detected {} logos", count);
-                                self.plugin_manager
-                                    .event_bus()
-                                    .sender()
-                                    .emit(AppEvent::DetectionComplete {
-                                        count,
-                                        detection_type: "logo".to_string(),
-                                    });
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to detect logos: {}", e);
-                            }
+                    AppEvent::LogoDetectionRequested => match self.canvas.detect_logos() {
+                        Ok(count) => {
+                            tracing::info!("Detected {} logos", count);
+                            self.plugin_manager.event_bus().sender().emit(
+                                AppEvent::DetectionComplete {
+                                    count,
+                                    detection_type: "logo".to_string(),
+                                },
+                            );
                         }
-                    }
+                        Err(e) => {
+                            tracing::error!("Failed to detect logos: {}", e);
+                        }
+                    },
                     #[cfg(feature = "ocr")]
                     AppEvent::OcrExtractionRequested => {
                         use form_factor::{OCRConfig, OCREngine, PageSegmentationMode};
@@ -276,14 +275,19 @@ impl App for DemoApp {
                         ) {
                             Ok(ocr) => match self.canvas.extract_text_from_detections(&ocr) {
                                 Ok(results) => {
-                                    tracing::info!("Extracted text from {} detections", results.len());
+                                    tracing::info!(
+                                        "Extracted text from {} detections",
+                                        results.len()
+                                    );
                                     let texts: Vec<String> = results
                                         .iter()
                                         .map(|(_, result)| result.text().trim().to_string())
                                         .collect();
 
                                     // Emit custom event with extracted text
-                                    if let Ok(event) = AppEvent::custom("ocr", "text_extracted", &texts) {
+                                    if let Ok(event) =
+                                        AppEvent::custom("ocr", "text_extracted", &texts)
+                                    {
                                         self.plugin_manager.event_bus().sender().emit(event);
                                     }
                                 }
@@ -321,7 +325,6 @@ impl App for DemoApp {
                     self.plugin_manager.render_plugins(ui);
                 });
             });
-
 
         // Main canvas area
         egui::CentralPanel::default().show(ctx.egui_ctx, |ui| {
