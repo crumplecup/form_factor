@@ -82,9 +82,10 @@ impl std::error::Error for CanvasError {}
 ///
 /// Represents the current user interaction mode with the canvas.
 /// This state machine prevents invalid state combinations (e.g., drawing while rotating).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub(super) enum CanvasState {
     /// No active interaction
+    #[default]
     Idle,
     /// User is actively drawing a new shape
     Drawing {
@@ -107,12 +108,6 @@ pub(super) enum CanvasState {
         /// Center point of rotation
         center: Option<Pos2>,
     },
-}
-
-impl Default for CanvasState {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 /// Detection sub-type for filtering detections layer
