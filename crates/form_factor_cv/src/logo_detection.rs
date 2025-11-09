@@ -604,4 +604,104 @@ mod tests {
 
         assert!(detector.logo_names().is_empty());
     }
+
+    #[test]
+    #[ignore = "Requires logos directory with actual logo files"]
+    fn test_logo_self_detection() {
+        use std::fs;
+
+        // Path to the logos directory (relative to workspace root)
+        let logos_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .parent()
+            .unwrap()
+            .join("logos");
+
+        // Skip test if logos directory doesn't exist
+        if !logos_dir.exists() {
+            eprintln!("Skipping test: logos directory not found at {:?}", logos_dir);
+            return;
+        }
+
+        // Read all logo files from the directory
+        let logo_files: Vec<_> = fs::read_dir(&logos_dir)
+            .expect("Failed to read logos directory")
+            .filter_map(|entry| {
+                let entry = entry.ok()?;
+                let path = entry.path();
+
+                // Only process image files (png, jpg, jpeg)
+                if path.is_file() {
+                    let ext = path.extension()?.to_str()?.to_lowercase();
+                    if ext == "png" || ext == "jpg" || ext == "jpeg" {
+                        return Some(path);
+                    }
+                }
+                None
+            })
+            .collect();
+
+        // Skip test if no logos found
+        if logo_files.is_empty() {
+            eprintln!("Skipping test: no logo files found in {:?}", logos_dir);
+            return;
+        }
+
+        eprintln!("Testing {} logo files", logo_files.len());
+
+        // Test each logo
+        for logo_path in logo_files {
+            let logo_name = logo_path.file_stem()
+                .unwrap()
+                .to_str()
+                .unwrap();
+
+            eprintln!("\nTesting logo: {}", logo_name);
+
+            // Create a new detector for this logo
+            let mut detector = LogoDetector::builder()
+                .template_matching()  // Use template matching for exact match
+                .with_confidence_threshold(0.8)  // High threshold - should be near perfect
+                .with_scales(vec![1.0])  // Only test at original scale
+                .build();
+
+            // Add the logo as a template
+            detector.add_logo(logo_name, &logo_path)
+                .expect("Failed to add logo");
+
+            // Try to detect the logo in itself
+            let results = detector.detect_logos_from_path(&logo_path)
+                .expect("Failed to detect logos");
+
+            // Verify we found at least one detection
+            assert!(
+                !results.is_empty(),
+                "Logo '{}' should be able to detect itself, but found no detections",
+                logo_name
+            );
+
+            // Verify high confidence
+            let best_result = &results[0];
+            assert!(
+                best_result.confidence >= 0.95,
+                "Logo '{}' self-detection confidence ({:.4}) should be >= 0.95 (near perfect match)",
+                logo_name,
+                best_result.confidence
+            );
+
+            // Verify the detected logo name matches
+            assert_eq!(
+                best_result.logo_name, logo_name,
+                "Detected logo name should match"
+            );
+
+            eprintln!(
+                "  ✓ Self-detection successful: confidence={:.4}, location=({}, {})",
+                best_result.confidence,
+                best_result.location.x,
+                best_result.location.y
+            );
+        }
+    }
 }
