@@ -170,12 +170,14 @@ impl RecentProjects {
             std::env::var("XDG_CONFIG_HOME")
                 .map(PathBuf::from)
                 .unwrap_or_else(|_| {
-                    let mut home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| String::from(".")));
+                    let mut home =
+                        PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| String::from(".")));
                     home.push(".config");
                     home
                 })
         } else if cfg!(target_os = "macos") {
-            let mut home = PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| String::from(".")));
+            let mut home =
+                PathBuf::from(std::env::var("HOME").unwrap_or_else(|_| String::from(".")));
             home.push("Library");
             home.push("Application Support");
             home

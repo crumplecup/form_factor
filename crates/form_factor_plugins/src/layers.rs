@@ -6,7 +6,10 @@
 //! - Layer selection
 //! - Layer z-order display
 
-use crate::{event::AppEvent, plugin::{Plugin, PluginContext}};
+use crate::{
+    event::AppEvent,
+    plugin::{Plugin, PluginContext},
+};
 use form_factor_drawing::LayerType;
 use strum::IntoEnumIterator;
 use tracing::{debug, instrument};
@@ -121,10 +124,7 @@ impl LayersPlugin {
 
                 // Clear layer button (skip for Grid layer)
                 if layer.layer_type != LayerType::Grid
-                    && ui
-                        .button("🗑")
-                        .on_hover_text("Clear layer")
-                        .clicked()
+                    && ui.button("🗑").on_hover_text("Clear layer").clicked()
                 {
                     debug!(layer = ?layer.layer_type, "Layer clear requested");
                     ctx.events.emit(AppEvent::LayerClearRequested {
@@ -159,7 +159,10 @@ impl Plugin for LayersPlugin {
     #[instrument(skip(self, _ctx), fields(plugin = "layers"))]
     fn on_event(&mut self, event: &AppEvent, _ctx: &PluginContext) -> Option<AppEvent> {
         match event {
-            AppEvent::LayerVisibilityChanged { layer_name, visible } => {
+            AppEvent::LayerVisibilityChanged {
+                layer_name,
+                visible,
+            } => {
                 debug!(layer_name, visible, "Received visibility change event");
                 // Update our layer state
                 if let Some(layer) = self.layers.iter_mut().find(|l| l.name == *layer_name) {

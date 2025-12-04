@@ -34,7 +34,7 @@
 //! ```
 
 use opencv::{
-    core::{self, Mat, Point, Size, CV_32FC1},
+    core::{self, CV_32FC1, Mat, Point, Size},
     imgcodecs::{self, IMREAD_COLOR},
     imgproc::{self, TM_CCOEFF_NORMED},
     prelude::*,
@@ -82,11 +82,8 @@ impl Logo {
         debug!("Loading logo '{}' from {:?}", name, path);
 
         // Read the logo image
-        let image = imgcodecs::imread(
-            path.to_str().ok_or("Invalid path encoding")?,
-            IMREAD_COLOR,
-        )
-        .map_err(|e| format!("Failed to read logo image: {}", e))?;
+        let image = imgcodecs::imread(path.to_str().ok_or("Invalid path encoding")?, IMREAD_COLOR)
+            .map_err(|e| format!("Failed to read logo image: {}", e))?;
 
         if image.empty() {
             return Err(format!("Logo image '{}' is empty or invalid", name));
@@ -94,8 +91,14 @@ impl Logo {
 
         // Convert to grayscale (cache for performance)
         let mut image_gray = Mat::default();
-        imgproc::cvt_color(&image, &mut image_gray, imgproc::COLOR_BGR2GRAY, 0, core::AlgorithmHint::ALGO_HINT_DEFAULT)
-            .map_err(|e| format!("Failed to convert logo to grayscale: {}", e))?;
+        imgproc::cvt_color(
+            &image,
+            &mut image_gray,
+            imgproc::COLOR_BGR2GRAY,
+            0,
+            core::AlgorithmHint::ALGO_HINT_DEFAULT,
+        )
+        .map_err(|e| format!("Failed to convert logo to grayscale: {}", e))?;
 
         info!(
             "Loaded logo '{}': {}x{} pixels",
@@ -128,8 +131,14 @@ impl Logo {
 
         // Convert to grayscale
         let mut image_gray = Mat::default();
-        imgproc::cvt_color(&image, &mut image_gray, imgproc::COLOR_BGR2GRAY, 0, core::AlgorithmHint::ALGO_HINT_DEFAULT)
-            .map_err(|e| format!("Failed to convert logo to grayscale: {}", e))?;
+        imgproc::cvt_color(
+            &image,
+            &mut image_gray,
+            imgproc::COLOR_BGR2GRAY,
+            0,
+            core::AlgorithmHint::ALGO_HINT_DEFAULT,
+        )
+        .map_err(|e| format!("Failed to convert logo to grayscale: {}", e))?;
 
         debug!("Created logo '{}' from Mat: {}x{}", name, width, height);
 
@@ -228,7 +237,11 @@ impl LogoDetector {
     ///
     /// Returns an error if the logo image cannot be loaded
     #[instrument(skip(self), fields(name, path))]
-    pub fn add_logo(&mut self, name: impl Into<String>, path: impl AsRef<Path>) -> Result<(), String> {
+    pub fn add_logo(
+        &mut self,
+        name: impl Into<String>,
+        path: impl AsRef<Path>,
+    ) -> Result<(), String> {
         let logo = Logo::from_file(name, path)?;
         info!("Added logo '{}' to detector", logo.name);
         self.logos.push(logo);
@@ -283,15 +296,15 @@ impl LogoDetector {
     ///
     /// Returns an error if the image cannot be read or detection fails
     #[instrument(skip(self), fields(path, logos = self.logos.len()))]
-    pub fn detect_logos_from_path(&self, path: impl AsRef<Path>) -> Result<Vec<LogoDetectionResult>, String> {
+    pub fn detect_logos_from_path(
+        &self,
+        path: impl AsRef<Path>,
+    ) -> Result<Vec<LogoDetectionResult>, String> {
         let path = path.as_ref();
         debug!("Loading image from {:?}", path);
 
-        let image = imgcodecs::imread(
-            path.to_str().ok_or("Invalid path encoding")?,
-            IMREAD_COLOR,
-        )
-        .map_err(|e| format!("Failed to read input image: {}", e))?;
+        let image = imgcodecs::imread(path.to_str().ok_or("Invalid path encoding")?, IMREAD_COLOR)
+            .map_err(|e| format!("Failed to read input image: {}", e))?;
 
         if image.empty() {
             return Err("Input image is empty or invalid".to_string());
@@ -326,8 +339,14 @@ impl LogoDetector {
 
         // Convert input image to grayscale once (optimization)
         let mut image_gray = Mat::default();
-        imgproc::cvt_color(image, &mut image_gray, imgproc::COLOR_BGR2GRAY, 0, core::AlgorithmHint::ALGO_HINT_DEFAULT)
-            .map_err(|e| format!("Failed to convert image to grayscale: {}", e))?;
+        imgproc::cvt_color(
+            image,
+            &mut image_gray,
+            imgproc::COLOR_BGR2GRAY,
+            0,
+            core::AlgorithmHint::ALGO_HINT_DEFAULT,
+        )
+        .map_err(|e| format!("Failed to convert image to grayscale: {}", e))?;
 
         // Detect all logos
         let mut results = Vec::new();
@@ -353,7 +372,11 @@ impl LogoDetector {
 
     /// Detect a single logo in an image (all instances)
     #[instrument(skip(self, image_gray, logo), fields(logo_name = %logo.name))]
-    fn detect_logo(&self, image_gray: &Mat, logo: &Logo) -> Result<Vec<LogoDetectionResult>, String> {
+    fn detect_logo(
+        &self,
+        image_gray: &Mat,
+        logo: &Logo,
+    ) -> Result<Vec<LogoDetectionResult>, String> {
         match self.method {
             LogoDetectionMethod::TemplateMatching => {
                 self.detect_logo_template_matching(image_gray, logo)
@@ -375,7 +398,11 @@ impl LogoDetector {
 
         // Debug output for testing
         #[cfg(test)]
-        eprintln!("\nTesting logo '{}' with {} scales:", logo.name, self.scales.len());
+        eprintln!(
+            "\nTesting logo '{}' with {} scales:",
+            logo.name,
+            self.scales.len()
+        );
 
         // Try each scale
         for &scale in &self.scales {
@@ -452,25 +479,30 @@ impl LogoDetector {
 
             trace!(
                 "Scale {:.2}: confidence = {:.4} at ({}, {})",
-                scale,
-                max_val,
-                max_loc.x,
-                max_loc.y
+                scale, max_val, max_loc.x, max_loc.y
             );
 
             // Debug output for testing
             #[cfg(test)]
             {
-                eprintln!("  Scale {:.2}: max_val={:.4} at ({}, {})", scale, max_val, max_loc.x, max_loc.y);
+                eprintln!(
+                    "  Scale {:.2}: max_val={:.4} at ({}, {})",
+                    scale, max_val, max_loc.x, max_loc.y
+                );
 
                 // Also check confidence at expected location (362, 181) if it's in bounds
                 let expected_x = 362;
                 let expected_y = 181;
                 if expected_x < result.cols() && expected_y < result.rows() {
-                    let val_at_expected: f32 = *result.at_2d(expected_y, expected_x).unwrap_or(&-1.0);
+                    let val_at_expected: f32 =
+                        *result.at_2d(expected_y, expected_x).unwrap_or(&-1.0);
                     eprintln!("    -> At expected (362, 181): {:.4}", val_at_expected);
                 } else {
-                    eprintln!("    -> Expected (362, 181) is OUT OF BOUNDS (result size: {}x{})", result.cols(), result.rows());
+                    eprintln!(
+                        "    -> Expected (362, 181) is OUT OF BOUNDS (result size: {}x{})",
+                        result.cols(),
+                        result.rows()
+                    );
                 }
             }
 
@@ -498,7 +530,10 @@ impl LogoDetector {
             );
             Ok(vec![result])
         } else {
-            debug!("No match found for '{}' above threshold {}", logo.name, self.confidence_threshold);
+            debug!(
+                "No match found for '{}' above threshold {}",
+                logo.name, self.confidence_threshold
+            );
             Ok(Vec::new())
         }
     }
@@ -640,7 +675,10 @@ mod tests {
 
         // Skip test if logos directory doesn't exist
         if !logos_dir.exists() {
-            eprintln!("Skipping test: logos directory not found at {:?}", logos_dir);
+            eprintln!(
+                "Skipping test: logos directory not found at {:?}",
+                logos_dir
+            );
             return;
         }
 
@@ -672,26 +710,25 @@ mod tests {
 
         // Test each logo
         for logo_path in logo_files {
-            let logo_name = logo_path.file_stem()
-                .unwrap()
-                .to_str()
-                .unwrap();
+            let logo_name = logo_path.file_stem().unwrap().to_str().unwrap();
 
             eprintln!("\nTesting logo: {}", logo_name);
 
             // Create a new detector for this logo
             let mut detector = LogoDetector::builder()
-                .template_matching()  // Use template matching for exact match
-                .with_confidence_threshold(0.8)  // High threshold - should be near perfect
-                .with_scales(vec![1.0])  // Only test at original scale
+                .template_matching() // Use template matching for exact match
+                .with_confidence_threshold(0.8) // High threshold - should be near perfect
+                .with_scales(vec![1.0]) // Only test at original scale
                 .build();
 
             // Add the logo as a template
-            detector.add_logo(logo_name, &logo_path)
+            detector
+                .add_logo(logo_name, &logo_path)
                 .expect("Failed to add logo");
 
             // Try to detect the logo in itself
-            let results = detector.detect_logos_from_path(&logo_path)
+            let results = detector
+                .detect_logos_from_path(&logo_path)
                 .expect("Failed to detect logos");
 
             // Verify we found at least one detection
@@ -718,9 +755,7 @@ mod tests {
 
             eprintln!(
                 "  ✓ Self-detection successful: confidence={:.4}, location=({}, {})",
-                best_result.confidence,
-                best_result.location.x,
-                best_result.location.y
+                best_result.confidence, best_result.location.x, best_result.location.y
             );
         }
     }
@@ -742,16 +777,19 @@ mod tests {
 
         // Skip if file doesn't exist
         if !logo_detection_file.exists() {
-            eprintln!("Skipping test: logo_detection.ffp not found at {:?}", logo_detection_file);
+            eprintln!(
+                "Skipping test: logo_detection.ffp not found at {:?}",
+                logo_detection_file
+            );
             return;
         }
 
         // Load and parse the .ffp file
-        let file_contents = fs::read_to_string(&logo_detection_file)
-            .expect("Failed to read logo_detection.ffp");
+        let file_contents =
+            fs::read_to_string(&logo_detection_file).expect("Failed to read logo_detection.ffp");
 
-        let data: serde_json::Value = serde_json::from_str(&file_contents)
-            .expect("Failed to parse logo_detection.ffp");
+        let data: serde_json::Value =
+            serde_json::from_str(&file_contents).expect("Failed to parse logo_detection.ffp");
 
         // Extract the form image path
         let form_image_path = data["form_image_path"]
@@ -765,9 +803,7 @@ mod tests {
         }
 
         // Extract the expected logo location from shapes[0]
-        let shapes = data["shapes"]
-            .as_array()
-            .expect("Missing shapes array");
+        let shapes = data["shapes"].as_array().expect("Missing shapes array");
 
         if shapes.is_empty() {
             eprintln!("Skipping test: no shapes found in logo_detection.ffp");
@@ -784,18 +820,24 @@ mod tests {
 
         let expected_x = rect[0]["x"].as_f64().unwrap() as i32;
         let expected_y = rect[0]["y"].as_f64().unwrap() as i32;
-        let expected_width = (rect[1]["x"].as_f64().unwrap() - rect[0]["x"].as_f64().unwrap()) as i32;
-        let expected_height = (rect[2]["y"].as_f64().unwrap() - rect[0]["y"].as_f64().unwrap()) as i32;
+        let expected_width =
+            (rect[1]["x"].as_f64().unwrap() - rect[0]["x"].as_f64().unwrap()) as i32;
+        let expected_height =
+            (rect[2]["y"].as_f64().unwrap() - rect[0]["y"].as_f64().unwrap()) as i32;
 
-        eprintln!("Expected logo location: x={}, y={}, width={}, height={}",
-                  expected_x, expected_y, expected_width, expected_height);
+        eprintln!(
+            "Expected logo location: x={}, y={}, width={}, height={}",
+            expected_x, expected_y, expected_width, expected_height
+        );
 
         // Create detector with template matching and multiple scales
         // Need very small scales to match 960x960 template to ~110x130 logo in document
         let mut detector = LogoDetector::builder()
             .template_matching()
-            .with_confidence_threshold(0.3)  // Low threshold to see all potential matches
-            .with_scales(vec![0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8])
+            .with_confidence_threshold(0.3) // Low threshold to see all potential matches
+            .with_scales(vec![
+                0.10, 0.11, 0.12, 0.13, 0.14, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.65, 0.7, 0.75, 0.8,
+            ])
             .build();
 
         // Add both logo templates
@@ -816,26 +858,30 @@ mod tests {
 
         for logo_path in &logo_files {
             let logo_name = logo_path.file_stem().unwrap().to_str().unwrap();
-            detector.add_logo(logo_name, logo_path)
+            detector
+                .add_logo(logo_name, logo_path)
                 .expect("Failed to add logo");
             eprintln!("Added logo template: {}", logo_name);
         }
 
         // Run logo detection
-        let results = detector.detect_logos_from_path(form_image_path)
+        let results = detector
+            .detect_logos_from_path(form_image_path)
             .expect("Failed to detect logos");
 
         eprintln!("\nFound {} logo detections:", results.len());
         for (i, result) in results.iter().enumerate() {
-            eprintln!("  {}. {} at ({}, {}) size={}x{} confidence={:.4} scale={:.2}",
-                      i + 1,
-                      result.logo_name,
-                      result.location.x,
-                      result.location.y,
-                      result.size.width,
-                      result.size.height,
-                      result.confidence,
-                      result.scale);
+            eprintln!(
+                "  {}. {} at ({}, {}) size={}x{} confidence={:.4} scale={:.2}",
+                i + 1,
+                result.logo_name,
+                result.location.x,
+                result.location.y,
+                result.size.width,
+                result.size.height,
+                result.confidence,
+                result.scale
+            );
         }
 
         // Verify we found at least one detection
@@ -879,8 +925,10 @@ mod tests {
                 0.0
             };
 
-            eprintln!("\n  Detection '{}' IoU with expected rectangle: {:.4}",
-                      result.logo_name, iou);
+            eprintln!(
+                "\n  Detection '{}' IoU with expected rectangle: {:.4}",
+                result.logo_name, iou
+            );
 
             // Accept if IoU >= 0.3 (30% overlap is reasonable for logo detection)
             if iou >= 0.3 {
@@ -891,14 +939,21 @@ mod tests {
         }
 
         if !found_match {
-            eprintln!("\n⚠ WARNING: No logo detection overlapped with marked rectangle (IoU >= 0.3)");
+            eprintln!(
+                "\n⚠ WARNING: No logo detection overlapped with marked rectangle (IoU >= 0.3)"
+            );
             eprintln!("This could mean:");
             eprintln!("  1. The rectangle was marked at the wrong location");
             eprintln!("  2. The logo in the image doesn't match the templates well enough");
             eprintln!("  3. There's a coordinate transformation issue");
-            eprintln!("\nHowever, logo detection IS working - we found {} detections.", results.len());
-            eprintln!("The best match has confidence {:.4}",
-                     results.iter().map(|r| r.confidence).fold(0.0f64, f64::max));
+            eprintln!(
+                "\nHowever, logo detection IS working - we found {} detections.",
+                results.len()
+            );
+            eprintln!(
+                "The best match has confidence {:.4}",
+                results.iter().map(|r| r.confidence).fold(0.0f64, f64::max)
+            );
         } else {
             eprintln!("\n✓ Successfully detected logo at marked location!");
         }

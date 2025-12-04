@@ -16,4 +16,6 @@ mod logo_detection;
 pub use text_detection::{TextDetectionError, TextDetectionErrorKind, TextDetector, TextRegion};
 
 #[cfg(feature = "logo-detection")]
-pub use logo_detection::{Logo, LogoDetectionMethod, LogoDetectionResult, LogoDetector, LogoLocation, LogoSize};
+pub use logo_detection::{
+    Logo, LogoDetectionMethod, LogoDetectionResult, LogoDetector, LogoLocation, LogoSize,
+};

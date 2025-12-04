@@ -40,7 +40,10 @@ impl fmt::Display for ShapeErrorKind {
                 write!(f, "Circle radius must be positive, got {}", r)
             }
             ShapeErrorKind::DegenerateShape => {
-                write!(f, "Degenerate shape: all points are collinear or coincident")
+                write!(
+                    f,
+                    "Degenerate shape: all points are collinear or coincident"
+                )
             }
         }
     }

@@ -5,7 +5,10 @@
 //! - Logo detection
 //! - Detection results display
 
-use crate::{event::AppEvent, plugin::{Plugin, PluginContext}};
+use crate::{
+    event::AppEvent,
+    plugin::{Plugin, PluginContext},
+};
 use tracing::{debug, instrument};
 
 /// Plugin for computer vision detection features.

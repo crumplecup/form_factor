@@ -21,22 +21,28 @@ impl DrawingCanvas {
     pub fn ui(&mut self, ui: &mut egui::Ui) {
         // Log state at frame start (only when we have detections to avoid spam)
         if !self.detections.is_empty() {
-            trace!("Frame start: detections={}, shapes={}", self.detections.len(), self.shapes.len());
+            trace!(
+                "Frame start: detections={}, shapes={}",
+                self.detections.len(),
+                self.shapes.len()
+            );
         }
 
         // Process any pending image loads (deferred from startup)
         if let Some(pending_path) = self.pending_image_load.take() {
             tracing::debug!("Processing deferred image load: {}", pending_path);
             if let Err(e) = self.load_form_image(&pending_path, ui.ctx()) {
-                tracing::warn!("Could not load deferred form image from {}: {}", pending_path, e);
+                tracing::warn!(
+                    "Could not load deferred form image from {}: {}",
+                    pending_path,
+                    e
+                );
             }
         }
 
         // Canvas area
-        let (response, painter) = ui.allocate_painter(
-            ui.available_size(),
-            egui::Sense::click_and_drag(),
-        );
+        let (response, painter) =
+            ui.allocate_painter(ui.available_size(), egui::Sense::click_and_drag());
 
         // Handle zoom input
         let mut zoom_delta = 0.0;
@@ -78,18 +84,15 @@ impl DrawingCanvas {
 
         // Paint background if Canvas layer is visible
         if self.layer_manager.is_visible(LayerType::Canvas) {
-            painter.rect_filled(
-                response.rect,
-                0.0,
-                Color32::from_rgb(245, 245, 245),
-            );
+            painter.rect_filled(response.rect, 0.0, Color32::from_rgb(245, 245, 245));
         }
 
         // Apply zoom transformation to a child painter
         let canvas_center = response.rect.center();
-        let to_screen = egui::emath::TSTransform::from_translation(canvas_center.to_vec2() + self.pan_offset)
-            * egui::emath::TSTransform::from_scaling(self.zoom_level)
-            * egui::emath::TSTransform::from_translation(-canvas_center.to_vec2());
+        let to_screen =
+            egui::emath::TSTransform::from_translation(canvas_center.to_vec2() + self.pan_offset)
+                * egui::emath::TSTransform::from_scaling(self.zoom_level)
+                * egui::emath::TSTransform::from_translation(-canvas_center.to_vec2());
 
         // Draw form image on Canvas layer if loaded
         if self.layer_manager.is_visible(LayerType::Canvas)
@@ -127,7 +130,8 @@ impl DrawingCanvas {
                 let transformed_corners: Vec<Pos2> = corners
                     .iter()
                     .map(|&corner| {
-                        let rotated = Self::rotate_point(corner, image_center, self.form_image_rotation);
+                        let rotated =
+                            Self::rotate_point(corner, image_center, self.form_image_rotation);
                         to_screen.mul_pos(rotated)
                     })
                     .collect();
@@ -182,10 +186,17 @@ impl DrawingCanvas {
         // Note: Detections are stored in image pixel coordinates and need to be mapped to canvas space
         let detections_visible = self.layer_manager.is_visible(LayerType::Detections);
         if !self.detections.is_empty() {
-            debug!("Rendering frame: detections={}, layer_visible={}, image_size={:?}, canvas_size={:?}",
-                   self.detections.len(), detections_visible, self.form_image_size, response.rect.size());
+            debug!(
+                "Rendering frame: detections={}, layer_visible={}, image_size={:?}, canvas_size={:?}",
+                self.detections.len(),
+                detections_visible,
+                self.form_image_size,
+                response.rect.size()
+            );
         }
-        if detections_visible && let (Some(image_size), Some(_texture)) = (self.form_image_size, &self.form_image) {
+        if detections_visible
+            && let (Some(image_size), Some(_texture)) = (self.form_image_size, &self.form_image)
+        {
             // Calculate the image-to-canvas coordinate transform
             let canvas_size = response.rect.size();
             let scale_x = canvas_size.x / image_size.x;
@@ -196,25 +207,42 @@ impl DrawingCanvas {
             let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
             let image_offset = response.rect.min + egui::vec2(offset_x, offset_y);
 
-            debug!("Image transform: scale={:.3}, offset=({:.1}, {:.1})", scale, offset_x, offset_y);
+            debug!(
+                "Image transform: scale={:.3}, offset=({:.1}, {:.1})",
+                scale, offset_x, offset_y
+            );
 
             for (idx, detection) in self.detections.iter().enumerate() {
-                trace!("Rendering detection {}/{}: {:?}", idx + 1, self.detections.len(), detection);
+                trace!(
+                    "Rendering detection {}/{}: {:?}",
+                    idx + 1,
+                    self.detections.len(),
+                    detection
+                );
 
                 // Convert detection from image pixel coordinates to canvas coordinates
-                let detection_in_canvas_space = self.map_detection_to_canvas(detection, scale, image_offset);
+                let detection_in_canvas_space =
+                    self.map_detection_to_canvas(detection, scale, image_offset);
                 self.render_shape_transformed(&detection_in_canvas_space, &painter, &to_screen);
             }
         } else if detections_visible && !self.detections.is_empty() {
-            debug!("Detections layer visible but image not loaded: {} detections not rendered", self.detections.len());
+            debug!(
+                "Detections layer visible but image not loaded: {} detections not rendered",
+                self.detections.len()
+            );
         } else if !self.detections.is_empty() {
-            debug!("Detections layer hidden: {} detections not rendered", self.detections.len());
+            debug!(
+                "Detections layer hidden: {} detections not rendered",
+                self.detections.len()
+            );
         }
 
         // Draw existing shapes if Shapes layer is visible (with zoom transformation)
         // Note: Like detections, shapes are stored in image pixel coordinates and need to be mapped to canvas space
         let shapes_visible = self.layer_manager.is_visible(LayerType::Shapes);
-        if shapes_visible && let (Some(image_size), Some(_texture)) = (self.form_image_size, &self.form_image) {
+        if shapes_visible
+            && let (Some(image_size), Some(_texture)) = (self.form_image_size, &self.form_image)
+        {
             // Calculate the image-to-canvas coordinate transform (same as for detections)
             let canvas_size = response.rect.size();
             let scale_x = canvas_size.x / image_size.x;
@@ -227,7 +255,8 @@ impl DrawingCanvas {
 
             for (idx, shape) in self.shapes.iter().enumerate() {
                 // Convert shape from image pixel coordinates to canvas coordinates
-                let shape_in_canvas_space = self.map_detection_to_canvas(shape, scale, image_offset);
+                let shape_in_canvas_space =
+                    self.map_detection_to_canvas(shape, scale, image_offset);
                 self.render_shape_transformed(&shape_in_canvas_space, &painter, &to_screen);
 
                 // Draw selection highlight
@@ -236,7 +265,8 @@ impl DrawingCanvas {
 
                     match &shape_in_canvas_space {
                         Shape::Rectangle(rect) => {
-                            let transformed_corners: Vec<Pos2> = rect.corners()
+                            let transformed_corners: Vec<Pos2> = rect
+                                .corners()
                                 .iter()
                                 .map(|p| to_screen.mul_pos(*p))
                                 .collect();
@@ -248,10 +278,15 @@ impl DrawingCanvas {
                         Shape::Circle(circle) => {
                             let transformed_center = to_screen.mul_pos(circle.center);
                             let transformed_radius = circle.radius * self.zoom_level;
-                            painter.circle_stroke(transformed_center, transformed_radius, highlight_stroke);
+                            painter.circle_stroke(
+                                transformed_center,
+                                transformed_radius,
+                                highlight_stroke,
+                            );
                         }
                         Shape::Polygon(poly) => {
-                            let points: Vec<Pos2> = poly.to_egui_points()
+                            let points: Vec<Pos2> = poly
+                                .to_egui_points()
                                 .iter()
                                 .map(|p| to_screen.mul_pos(*p))
                                 .collect();
@@ -261,12 +296,19 @@ impl DrawingCanvas {
 
                     // Draw edit vertices if in Edit mode
                     if self.current_tool == ToolMode::Edit && Some(idx) == self.selected_shape {
-                        self.draw_edit_vertices_transformed(&shape_in_canvas_space, &painter, &to_screen);
+                        self.draw_edit_vertices_transformed(
+                            &shape_in_canvas_space,
+                            &painter,
+                            &to_screen,
+                        );
                     }
                 }
             }
         } else if shapes_visible && !self.shapes.is_empty() {
-            debug!("Shapes layer visible but image not loaded: {} shapes not rendered", self.shapes.len());
+            debug!(
+                "Shapes layer visible but image not loaded: {} shapes not rendered",
+                self.shapes.len()
+            );
         }
 
         // Draw grid on top of everything if Grid layer is visible
@@ -325,8 +367,8 @@ impl DrawingCanvas {
                     ui.label("Name:");
 
                     // Create text edit with explicit ID for focusing
-                    let text_edit = egui::TextEdit::singleline(&mut rect.name)
-                        .id_salt("rectangle_name");
+                    let text_edit =
+                        egui::TextEdit::singleline(&mut rect.name).id_salt("rectangle_name");
                     let response = ui.add(text_edit);
 
                     debug!(
@@ -351,11 +393,28 @@ impl DrawingCanvas {
                 ui.separator();
 
                 // Calculate bounding box from all 4 corners
-                let min_x = rect.corners().iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
-                let max_x = rect.corners().iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
-                let min_y = rect.corners().iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
-                let max_y = rect.corners().iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
-                let rect_geom = egui::Rect::from_min_max(Pos2::new(min_x, min_y), Pos2::new(max_x, max_y));
+                let min_x = rect
+                    .corners()
+                    .iter()
+                    .map(|p| p.x)
+                    .fold(f32::INFINITY, f32::min);
+                let max_x = rect
+                    .corners()
+                    .iter()
+                    .map(|p| p.x)
+                    .fold(f32::NEG_INFINITY, f32::max);
+                let min_y = rect
+                    .corners()
+                    .iter()
+                    .map(|p| p.y)
+                    .fold(f32::INFINITY, f32::min);
+                let max_y = rect
+                    .corners()
+                    .iter()
+                    .map(|p| p.y)
+                    .fold(f32::NEG_INFINITY, f32::max);
+                let rect_geom =
+                    egui::Rect::from_min_max(Pos2::new(min_x, min_y), Pos2::new(max_x, max_y));
                 ui.label(format!("Width: {:.1}", rect_geom.width()));
                 ui.label(format!("Height: {:.1}", rect_geom.height()));
             }
@@ -369,8 +428,8 @@ impl DrawingCanvas {
                     ui.label("Name:");
 
                     // Create text edit with explicit ID for focusing
-                    let text_edit = egui::TextEdit::singleline(&mut circle.name)
-                        .id_salt("circle_name");
+                    let text_edit =
+                        egui::TextEdit::singleline(&mut circle.name).id_salt("circle_name");
                     let response = ui.add(text_edit);
 
                     debug!(
@@ -395,7 +454,10 @@ impl DrawingCanvas {
                 ui.separator();
 
                 ui.label(format!("Radius: {:.1}", circle.radius));
-                ui.label(format!("Center: ({:.1}, {:.1})", circle.center.x, circle.center.y));
+                ui.label(format!(
+                    "Center: ({:.1}, {:.1})",
+                    circle.center.x, circle.center.y
+                ));
             }
             Shape::Polygon(poly) => {
                 ui.label("Type: Polygon");
@@ -407,8 +469,8 @@ impl DrawingCanvas {
                     ui.label("Name:");
 
                     // Create text edit with explicit ID for focusing
-                    let text_edit = egui::TextEdit::singleline(&mut poly.name)
-                        .id_salt("polygon_name");
+                    let text_edit =
+                        egui::TextEdit::singleline(&mut poly.name).id_salt("polygon_name");
                     let response = ui.add(text_edit);
 
                     debug!(
@@ -432,7 +494,10 @@ impl DrawingCanvas {
 
                 ui.separator();
 
-                ui.label(format!("Points: {}", poly.polygon().exterior().coords_count()));
+                ui.label(format!(
+                    "Points: {}",
+                    poly.polygon().exterior().coords_count()
+                ));
             }
         }
 
@@ -481,11 +546,28 @@ impl DrawingCanvas {
                     ui.separator();
 
                     // Calculate bounding box from all 4 corners
-                    let min_x = rect.corners().iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
-                    let max_x = rect.corners().iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
-                    let min_y = rect.corners().iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
-                    let max_y = rect.corners().iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
-                    let rect_geom = egui::Rect::from_min_max(Pos2::new(min_x, min_y), Pos2::new(max_x, max_y));
+                    let min_x = rect
+                        .corners()
+                        .iter()
+                        .map(|p| p.x)
+                        .fold(f32::INFINITY, f32::min);
+                    let max_x = rect
+                        .corners()
+                        .iter()
+                        .map(|p| p.x)
+                        .fold(f32::NEG_INFINITY, f32::max);
+                    let min_y = rect
+                        .corners()
+                        .iter()
+                        .map(|p| p.y)
+                        .fold(f32::INFINITY, f32::min);
+                    let max_y = rect
+                        .corners()
+                        .iter()
+                        .map(|p| p.y)
+                        .fold(f32::NEG_INFINITY, f32::max);
+                    let rect_geom =
+                        egui::Rect::from_min_max(Pos2::new(min_x, min_y), Pos2::new(max_x, max_y));
                     ui.label(format!("Width: {:.1}", rect_geom.width()));
                     ui.label(format!("Height: {:.1}", rect_geom.height()));
 
@@ -533,7 +615,10 @@ impl DrawingCanvas {
 
                     ui.separator();
 
-                    ui.label(format!("Points: {}", poly.polygon().exterior().coords_count()));
+                    ui.label(format!(
+                        "Points: {}",
+                        poly.polygon().exterior().coords_count()
+                    ));
 
                     ui.separator();
 
@@ -559,7 +644,7 @@ impl DrawingCanvas {
         ui.add(
             egui::Slider::new(&mut self.zoom_sensitivity, 0.1..=10.0)
                 .text("Sensitivity")
-                .logarithmic(true)
+                .logarithmic(true),
         );
         ui.label("Higher values make zoom more responsive");
 
@@ -569,14 +654,14 @@ impl DrawingCanvas {
         ui.add(
             egui::Slider::new(&mut self.grid_spacing_horizontal, 0.1..=100.0)
                 .text("Horizontal")
-                .logarithmic(true)
+                .logarithmic(true),
         );
 
         ui.label("Grid Spacing (Vertical):");
         ui.add(
             egui::Slider::new(&mut self.grid_spacing_vertical, 0.1..=100.0)
                 .text("Vertical")
-                .logarithmic(true)
+                .logarithmic(true),
         );
         ui.label("Distance between grid lines");
     }
@@ -602,7 +687,7 @@ impl DrawingCanvas {
                 ui.add(
                     egui::Slider::new(&mut self.zoom_sensitivity, 0.1..=10.0)
                         .text("Sensitivity")
-                        .logarithmic(true)
+                        .logarithmic(true),
                 );
                 ui.label("Higher values make zoom more responsive");
 
@@ -622,12 +707,18 @@ impl DrawingCanvas {
     }
 
     /// Draw grid overlay on the canvas
-    fn draw_grid(&self, painter: &egui::Painter, canvas_rect: &egui::Rect, transform: &egui::emath::TSTransform) {
+    fn draw_grid(
+        &self,
+        painter: &egui::Painter,
+        canvas_rect: &egui::Rect,
+        transform: &egui::emath::TSTransform,
+    ) {
         let _span = tracing::debug_span!(
             "draw_grid",
             spacing_h = self.grid_spacing_horizontal,
             spacing_v = self.grid_spacing_vertical
-        ).entered();
+        )
+        .entered();
 
         debug!(
             canvas_rect = ?canvas_rect,
@@ -736,14 +827,20 @@ impl DrawingCanvas {
     }
 
     /// Render a shape with zoom transformation applied
-    fn render_shape_transformed(&self, shape: &Shape, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
+    fn render_shape_transformed(
+        &self,
+        shape: &Shape,
+        painter: &egui::Painter,
+        transform: &egui::emath::TSTransform,
+    ) {
         match shape {
             Shape::Rectangle(rect) => {
                 // Note: rotation removed from shapes
                 // let center = self.get_shape_center(shape);
 
                 // Apply rotation then zoom/pan transform
-                let transformed_corners: Vec<Pos2> = rect.corners()
+                let transformed_corners: Vec<Pos2> = rect
+                    .corners()
                     .iter()
                     .map(|p| {
                         // Note: rotation_angle removed - shapes no longer have implicit rotation
@@ -759,22 +856,25 @@ impl DrawingCanvas {
                     egui::Stroke::NONE,
                 ));
                 // Draw outline
-                painter.add(egui::Shape::closed_line(
-                    transformed_corners,
-                    rect.stroke,
-                ));
+                painter.add(egui::Shape::closed_line(transformed_corners, rect.stroke));
             }
             Shape::Circle(circle) => {
                 // Note: rotation_angle removed - circles are symmetric anyway
                 let transformed_center = transform.mul_pos(circle.center);
                 let transformed_radius = circle.radius * self.zoom_level;
-                painter.circle(transformed_center, transformed_radius, circle.fill, circle.stroke);
+                painter.circle(
+                    transformed_center,
+                    transformed_radius,
+                    circle.fill,
+                    circle.stroke,
+                );
             }
             Shape::Polygon(poly) => {
                 // Note: rotation removed from shapes
                 // let center = self.get_shape_center(shape);
 
-                let points: Vec<Pos2> = poly.to_egui_points()
+                let points: Vec<Pos2> = poly
+                    .to_egui_points()
                     .iter()
                     .map(|p| {
                         // Note: rotation_angle removed - apply zoom/pan transform only
@@ -797,7 +897,12 @@ impl DrawingCanvas {
     }
 
     /// Draw edit vertices with zoom transformation applied
-    fn draw_edit_vertices_transformed(&self, shape: &Shape, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
+    fn draw_edit_vertices_transformed(
+        &self,
+        shape: &Shape,
+        painter: &egui::Painter,
+        transform: &egui::emath::TSTransform,
+    ) {
         const VERTEX_SIZE: f32 = 6.0;
         let vertex_stroke = Stroke::new(2.0, Color32::from_rgb(0, 120, 215));
         let vertex_fill = Color32::from_rgb(255, 255, 255);
@@ -808,12 +913,18 @@ impl DrawingCanvas {
                 for corner in rect.corners() {
                     let transformed_corner = transform.mul_pos(*corner);
                     painter.rect_filled(
-                        egui::Rect::from_center_size(transformed_corner, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        egui::Rect::from_center_size(
+                            transformed_corner,
+                            egui::vec2(VERTEX_SIZE, VERTEX_SIZE),
+                        ),
                         0.0,
                         vertex_fill,
                     );
                     painter.rect_stroke(
-                        egui::Rect::from_center_size(transformed_corner, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        egui::Rect::from_center_size(
+                            transformed_corner,
+                            egui::vec2(VERTEX_SIZE, VERTEX_SIZE),
+                        ),
                         0.0,
                         vertex_stroke,
                         egui::StrokeKind::Outside,
@@ -825,12 +936,18 @@ impl DrawingCanvas {
 
                 // Draw control point at center
                 painter.rect_filled(
-                    egui::Rect::from_center_size(transformed_center, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    egui::Rect::from_center_size(
+                        transformed_center,
+                        egui::vec2(VERTEX_SIZE, VERTEX_SIZE),
+                    ),
                     0.0,
                     vertex_fill,
                 );
                 painter.rect_stroke(
-                    egui::Rect::from_center_size(transformed_center, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    egui::Rect::from_center_size(
+                        transformed_center,
+                        egui::vec2(VERTEX_SIZE, VERTEX_SIZE),
+                    ),
                     0.0,
                     vertex_stroke,
                     egui::StrokeKind::Outside,
@@ -840,12 +957,18 @@ impl DrawingCanvas {
                 let edge_point = egui::pos2(circle.center.x + circle.radius, circle.center.y);
                 let transformed_edge = transform.mul_pos(edge_point);
                 painter.rect_filled(
-                    egui::Rect::from_center_size(transformed_edge, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    egui::Rect::from_center_size(
+                        transformed_edge,
+                        egui::vec2(VERTEX_SIZE, VERTEX_SIZE),
+                    ),
                     0.0,
                     vertex_fill,
                 );
                 painter.rect_stroke(
-                    egui::Rect::from_center_size(transformed_edge, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                    egui::Rect::from_center_size(
+                        transformed_edge,
+                        egui::vec2(VERTEX_SIZE, VERTEX_SIZE),
+                    ),
                     0.0,
                     vertex_stroke,
                     egui::StrokeKind::Outside,
@@ -855,12 +978,18 @@ impl DrawingCanvas {
                 for vertex_pos in poly.to_egui_points() {
                     let transformed_vertex = transform.mul_pos(vertex_pos);
                     painter.rect_filled(
-                        egui::Rect::from_center_size(transformed_vertex, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        egui::Rect::from_center_size(
+                            transformed_vertex,
+                            egui::vec2(VERTEX_SIZE, VERTEX_SIZE),
+                        ),
                         0.0,
                         vertex_fill,
                     );
                     painter.rect_stroke(
-                        egui::Rect::from_center_size(transformed_vertex, egui::vec2(VERTEX_SIZE, VERTEX_SIZE)),
+                        egui::Rect::from_center_size(
+                            transformed_vertex,
+                            egui::vec2(VERTEX_SIZE, VERTEX_SIZE),
+                        ),
                         0.0,
                         vertex_stroke,
                         egui::StrokeKind::Outside,
@@ -894,25 +1023,33 @@ impl DrawingCanvas {
     /// Map a detection shape from image pixel coordinates to canvas coordinates
     /// Detections are stored in image pixel space (e.g., 0-3400 x 0-4400),
     /// but need to be converted to canvas space where the image is scaled and centered
-    pub(super) fn map_detection_to_canvas(&self, detection: &Shape, scale: f32, image_offset: Pos2) -> Shape {
+    pub(super) fn map_detection_to_canvas(
+        &self,
+        detection: &Shape,
+        scale: f32,
+        image_offset: Pos2,
+    ) -> Shape {
         use crate::{Circle, PolygonShape, Rectangle};
 
         match detection {
             Shape::Rectangle(rect) => {
-                let mapped_corners: Vec<Pos2> = rect.corners()
+                let mapped_corners: Vec<Pos2> = rect
+                    .corners()
                     .iter()
                     .map(|p| {
                         // Scale from image pixels to fitted canvas size, then offset
-                        Pos2::new(
-                            p.x * scale + image_offset.x,
-                            p.y * scale + image_offset.y,
-                        )
+                        Pos2::new(p.x * scale + image_offset.x, p.y * scale + image_offset.y)
                     })
                     .collect();
 
                 // Rectangle now uses from_four_corners constructor
                 Rectangle::from_four_corners(
-                    [mapped_corners[0], mapped_corners[1], mapped_corners[2], mapped_corners[3]],
+                    [
+                        mapped_corners[0],
+                        mapped_corners[1],
+                        mapped_corners[2],
+                        mapped_corners[3],
+                    ],
                     rect.stroke,
                     rect.fill,
                 )
@@ -951,18 +1088,16 @@ impl DrawingCanvas {
                 let image_points = poly.to_egui_points();
                 let mapped_points: Vec<Pos2> = image_points
                     .iter()
-                    .map(|p| {
-                        Pos2::new(
-                            p.x * scale + image_offset.x,
-                            p.y * scale + image_offset.y,
-                        )
-                    })
+                    .map(|p| Pos2::new(p.x * scale + image_offset.x, p.y * scale + image_offset.y))
                     .collect();
 
                 // Convert back to geo coordinates for storage (geo uses f64)
                 let _geo_points: Vec<geo::Coord<f64>> = mapped_points
                     .iter()
-                    .map(|p| geo::Coord { x: p.x as f64, y: p.y as f64 })
+                    .map(|p| geo::Coord {
+                        x: p.x as f64,
+                        y: p.y as f64,
+                    })
                     .collect();
 
                 // Use from_points constructor

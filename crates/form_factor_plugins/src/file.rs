@@ -7,7 +7,10 @@
 //! - Recent files list
 //! - Current file path display
 
-use crate::{event::AppEvent, plugin::{Plugin, PluginContext}};
+use crate::{
+    event::AppEvent,
+    plugin::{Plugin, PluginContext},
+};
 use std::path::PathBuf;
 use tracing::{debug, instrument};
 
@@ -90,9 +93,7 @@ impl FilePlugin {
             for path in &self.recent_files {
                 if ui.button(path.display().to_string()).clicked() {
                     debug!(?path, "Recent file clicked");
-                    ctx.events.emit(AppEvent::FileOpened {
-                        path: path.clone(),
-                    });
+                    ctx.events.emit(AppEvent::FileOpened { path: path.clone() });
                 }
             }
         }
@@ -218,8 +219,18 @@ mod tests {
         let test_path = PathBuf::from("/test/file.txt");
 
         // Open the same file twice
-        plugin.on_event(&AppEvent::FileOpened { path: test_path.clone() }, &ctx);
-        plugin.on_event(&AppEvent::FileOpened { path: test_path.clone() }, &ctx);
+        plugin.on_event(
+            &AppEvent::FileOpened {
+                path: test_path.clone(),
+            },
+            &ctx,
+        );
+        plugin.on_event(
+            &AppEvent::FileOpened {
+                path: test_path.clone(),
+            },
+            &ctx,
+        );
 
         // Should only appear once
         assert_eq!(plugin.recent_files.len(), 1);

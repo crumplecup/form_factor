@@ -42,7 +42,9 @@ impl std::fmt::Display for CanvasErrorKind {
             CanvasErrorKind::FileRead(msg) => write!(f, "Failed to read file: {}", msg),
             CanvasErrorKind::FileWrite(msg) => write!(f, "Failed to write file: {}", msg),
             CanvasErrorKind::Serialization(msg) => write!(f, "Failed to serialize data: {}", msg),
-            CanvasErrorKind::Deserialization(msg) => write!(f, "Failed to deserialize data: {}", msg),
+            CanvasErrorKind::Deserialization(msg) => {
+                write!(f, "Failed to deserialize data: {}", msg)
+            }
             CanvasErrorKind::NoFormImageLoaded => write!(f, "No form image loaded"),
             CanvasErrorKind::TextDetection(msg) => write!(f, "Text detection failed: {}", msg),
             CanvasErrorKind::LogoDetection(msg) => write!(f, "Logo detection failed: {}", msg),
@@ -72,7 +74,11 @@ impl CanvasError {
 
 impl std::fmt::Display for CanvasError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Canvas error: {} at line {} in {}", self.kind, self.line, self.file)
+        write!(
+            f,
+            "Canvas error: {} at line {} in {}",
+            self.kind, self.line, self.file
+        )
     }
 }
 
@@ -342,11 +348,9 @@ impl DrawingCanvas {
     pub fn text_detection_count(&self) -> usize {
         self.detections
             .iter()
-            .filter(|shape| {
-                match shape {
-                    Shape::Rectangle(rect) => rect.name.starts_with("Text Region"),
-                    _ => false,
-                }
+            .filter(|shape| match shape {
+                Shape::Rectangle(rect) => rect.name.starts_with("Text Region"),
+                _ => false,
             })
             .count()
     }
@@ -355,11 +359,9 @@ impl DrawingCanvas {
     pub fn logo_detection_count(&self) -> usize {
         self.detections
             .iter()
-            .filter(|shape| {
-                match shape {
-                    Shape::Rectangle(rect) => rect.name.starts_with("Logo:"),
-                    _ => false,
-                }
+            .filter(|shape| match shape {
+                Shape::Rectangle(rect) => rect.name.starts_with("Logo:"),
+                _ => false,
             })
             .count()
     }
@@ -411,7 +413,12 @@ impl DrawingCanvas {
 
     /// Map a detection from image pixel coordinates to canvas coordinates (for testing)
     #[doc(hidden)]
-    pub fn test_map_detection_to_canvas(&self, detection: &Shape, scale: f32, image_offset: egui::Pos2) -> Shape {
+    pub fn test_map_detection_to_canvas(
+        &self,
+        detection: &Shape,
+        scale: f32,
+        image_offset: egui::Pos2,
+    ) -> Shape {
         self.map_detection_to_canvas(detection, scale, image_offset)
     }
 }

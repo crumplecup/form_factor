@@ -10,26 +10,34 @@
 //! - OCR text extraction (with feature flag)
 
 use super::core::{CanvasError, CanvasErrorKind, DrawingCanvas};
-use crate::{LayerType, RecentProjects};
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
 use crate::Rectangle;
-#[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
+#[cfg(any(
+    feature = "text-detection",
+    feature = "logo-detection",
+    feature = "ocr"
+))]
 use crate::Shape;
-#[cfg(feature = "text-detection")]
-use form_factor_cv::TextDetector;
-#[cfg(feature = "logo-detection")]
-use form_factor_cv::LogoDetector;
+use crate::{LayerType, RecentProjects};
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
 use egui::{Color32, Pos2, Stroke};
+#[cfg(feature = "logo-detection")]
+use form_factor_cv::LogoDetector;
+#[cfg(feature = "text-detection")]
+use form_factor_cv::TextDetector;
 use std::path::PathBuf;
-use tracing::{debug, instrument, warn};
 #[cfg(feature = "ocr")]
 use tracing::trace;
+use tracing::{debug, instrument, warn};
 
 impl DrawingCanvas {
     /// Clear all shapes and detections from the canvas
     pub fn clear(&mut self) {
-        debug!("Clearing canvas: shapes={}, detections={}", self.shapes.len(), self.detections.len());
+        debug!(
+            "Clearing canvas: shapes={}, detections={}",
+            self.shapes.len(),
+            self.detections.len()
+        );
         self.shapes.clear();
         self.detections.clear();
     }
@@ -79,11 +87,7 @@ impl DrawingCanvas {
         let color_image = egui::ColorImage::from_rgba_unmultiplied(size, pixels.as_slice());
 
         // Create texture
-        let texture = ctx.load_texture(
-            "form_image",
-            color_image,
-            egui::TextureOptions::default(),
-        );
+        let texture = ctx.load_texture("form_image", color_image, egui::TextureOptions::default());
 
         // Store the texture and metadata
         self.form_image_size = Some(egui::Vec2::new(img.width() as f32, img.height() as f32));
@@ -94,17 +98,30 @@ impl DrawingCanvas {
         self.zoom_level = 1.0;
         self.pan_offset = egui::Vec2::ZERO;
 
-        tracing::info!("Loaded form image: {} ({}x{})", path, img.width(), img.height());
+        tracing::info!(
+            "Loaded form image: {} ({}x{})",
+            path,
+            img.width(),
+            img.height()
+        );
         Ok(())
     }
 
     /// Save the project state to a file
     #[instrument(skip(self), fields(path, shapes = self.shapes.len(), detections = self.detections.len()))]
     pub fn save_to_file(&self, path: &str) -> Result<(), CanvasError> {
-        debug!("Saving project: shapes={}, detections={}", self.shapes.len(), self.detections.len());
+        debug!(
+            "Saving project: shapes={}, detections={}",
+            self.shapes.len(),
+            self.detections.len()
+        );
 
         let json = serde_json::to_string_pretty(self).map_err(|e| {
-            CanvasError::new(CanvasErrorKind::Serialization(e.to_string()), line!(), file!())
+            CanvasError::new(
+                CanvasErrorKind::Serialization(e.to_string()),
+                line!(),
+                file!(),
+            )
         })?;
 
         std::fs::write(path, json).map_err(|e| {
@@ -130,17 +147,29 @@ impl DrawingCanvas {
     /// Load the project state from a file (internal implementation)
     /// If defer_image_load is true, the image will be loaded on the next update() call
     #[instrument(skip(self, ctx), fields(path, defer_image_load))]
-    fn load_from_file_impl(&mut self, path: &str, ctx: &egui::Context, defer_image_load: bool) -> Result<(), CanvasError> {
+    fn load_from_file_impl(
+        &mut self,
+        path: &str,
+        ctx: &egui::Context,
+        defer_image_load: bool,
+    ) -> Result<(), CanvasError> {
         let json = std::fs::read_to_string(path).map_err(|e| {
             CanvasError::new(CanvasErrorKind::FileRead(e.to_string()), line!(), file!())
         })?;
 
         let loaded: DrawingCanvas = serde_json::from_str(&json).map_err(|e| {
-            CanvasError::new(CanvasErrorKind::Deserialization(e.to_string()), line!(), file!())
+            CanvasError::new(
+                CanvasErrorKind::Deserialization(e.to_string()),
+                line!(),
+                file!(),
+            )
         })?;
 
-        debug!("Deserialized project state: shapes={}, detections={}",
-               loaded.shapes.len(), loaded.detections.len());
+        debug!(
+            "Deserialized project state: shapes={}, detections={}",
+            loaded.shapes.len(),
+            loaded.detections.len()
+        );
 
         // Copy all the serialized state
         self.project_name = loaded.project_name;
@@ -155,10 +184,12 @@ impl DrawingCanvas {
         self.grid_rotation_angle = loaded.grid_rotation_angle;
         self.form_image_rotation = loaded.form_image_rotation;
 
-        debug!("Loaded project state: shapes={}, detections={}, detections_layer_visible={}",
-               self.shapes.len(),
-               self.detections.len(),
-               self.layer_manager.is_visible(LayerType::Detections));
+        debug!(
+            "Loaded project state: shapes={}, detections={}, detections_layer_visible={}",
+            self.shapes.len(),
+            self.detections.len(),
+            self.layer_manager.is_visible(LayerType::Detections)
+        );
 
         // If there was a form image saved, try to reload it
         if let Some(form_path) = &loaded.form_image_path {
@@ -200,7 +231,11 @@ impl DrawingCanvas {
         {
             return self.load_from_file_impl(path_str, ctx, true);
         }
-        Err(CanvasError::new(CanvasErrorKind::NoRecentProjects, line!(), file!()))
+        Err(CanvasError::new(
+            CanvasErrorKind::NoRecentProjects,
+            line!(),
+            file!(),
+        ))
     }
 
     /// Detect text regions in the loaded form image
@@ -208,20 +243,32 @@ impl DrawingCanvas {
     #[instrument(skip(self), fields(confidence_threshold, existing_detections = self.detections.len()))]
     pub fn detect_text_regions(&mut self, confidence_threshold: f32) -> Result<usize, CanvasError> {
         // Check if we have a form image loaded
-        let form_path = self.form_image_path.as_ref()
-            .ok_or_else(|| CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!()))?;
+        let form_path = self.form_image_path.as_ref().ok_or_else(|| {
+            CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!())
+        })?;
 
         tracing::info!("Detecting text regions in: {}", form_path);
 
         // Create text detector with default model path
-        let detector = TextDetector::new("models/DB_TD500_resnet50.onnx".to_string()).map_err(|e| {
-            CanvasError::new(CanvasErrorKind::TextDetection(e.to_string()), line!(), file!())
-        })?;
+        let detector =
+            TextDetector::new("models/DB_TD500_resnet50.onnx".to_string()).map_err(|e| {
+                CanvasError::new(
+                    CanvasErrorKind::TextDetection(e.to_string()),
+                    line!(),
+                    file!(),
+                )
+            })?;
 
         // Detect text regions
-        let regions = detector.detect_from_file(form_path.as_str(), confidence_threshold).map_err(|e| {
-            CanvasError::new(CanvasErrorKind::TextDetection(e.to_string()), line!(), file!())
-        })?;
+        let regions = detector
+            .detect_from_file(form_path.as_str(), confidence_threshold)
+            .map_err(|e| {
+                CanvasError::new(
+                    CanvasErrorKind::TextDetection(e.to_string()),
+                    line!(),
+                    file!(),
+                )
+            })?;
 
         let count = regions.len();
         tracing::info!("Detected {} text regions", count);
@@ -240,16 +287,27 @@ impl DrawingCanvas {
 
             match Rectangle::from_corners(top_left, bottom_right, stroke, fill) {
                 Ok(mut rect) => {
-                    rect.name = format!("Text Region {} ({:.2}%)", i + 1, *region.confidence() * 100.0);
+                    rect.name = format!(
+                        "Text Region {} ({:.2}%)",
+                        i + 1,
+                        *region.confidence() * 100.0
+                    );
                     self.detections.push(Shape::Rectangle(rect));
                 }
                 Err(e) => {
-                    warn!("Failed to create detection rectangle for region {}: {}", i, e);
+                    warn!(
+                        "Failed to create detection rectangle for region {}: {}",
+                        i, e
+                    );
                 }
             }
         }
 
-        debug!("Added {} detections, total now: {}", count, self.detections.len());
+        debug!(
+            "Added {} detections, total now: {}",
+            count,
+            self.detections.len()
+        );
 
         Ok(count)
     }
@@ -263,8 +321,9 @@ impl DrawingCanvas {
         &self,
         ocr: &form_factor_ocr::OCREngine,
     ) -> Result<Vec<(usize, form_factor_ocr::OCRResult)>, CanvasError> {
-        let form_path = self.form_image_path.as_ref()
-            .ok_or_else(|| CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!()))?;
+        let form_path = self.form_image_path.as_ref().ok_or_else(|| {
+            CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!())
+        })?;
 
         tracing::info!("Extracting text from {} detections", self.detections.len());
 
@@ -287,7 +346,11 @@ impl DrawingCanvas {
             }
         }
 
-        tracing::info!("Extracted text from {}/{} detections", results.len(), self.detections.len());
+        tracing::info!(
+            "Extracted text from {}/{} detections",
+            results.len(),
+            self.detections.len()
+        );
         Ok(results)
     }
 
@@ -343,9 +406,10 @@ impl DrawingCanvas {
         trace!("Shape bbox in image coords: {:?}", bbox);
 
         // Extract text from this region
-        ocr.extract_text_from_region_file(image_path, bbox).map_err(|e| {
-            CanvasError::new(CanvasErrorKind::OCRFailed(e.to_string()), line!(), file!())
-        })
+        ocr.extract_text_from_region_file(image_path, bbox)
+            .map_err(|e| {
+                CanvasError::new(CanvasErrorKind::OCRFailed(e.to_string()), line!(), file!())
+            })
     }
 
     /// Detect logos in the loaded form image
@@ -367,8 +431,9 @@ impl DrawingCanvas {
     #[instrument(skip(self), fields(existing_detections = self.detections.len()))]
     pub fn detect_logos(&mut self) -> Result<usize, CanvasError> {
         // Check if we have a form image loaded
-        let form_path = self.form_image_path.as_ref()
-            .ok_or_else(|| CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!()))?;
+        let form_path = self.form_image_path.as_ref().ok_or_else(|| {
+            CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!())
+        })?;
 
         tracing::info!("Detecting logos in: {}", form_path);
 
@@ -377,8 +442,10 @@ impl DrawingCanvas {
         // TODO: Make these configurable via UI or settings
         let mut detector = LogoDetector::builder()
             .template_matching()
-            .with_confidence_threshold(0.5)  // Balanced threshold for good recall
-            .with_scales(vec![0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.65, 0.75, 1.0, 1.25, 1.5, 2.0])
+            .with_confidence_threshold(0.5) // Balanced threshold for good recall
+            .with_scales(vec![
+                0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.65, 0.75, 1.0, 1.25, 1.5, 2.0,
+            ])
             .build();
 
         // Load all logo templates from the logos directory
@@ -401,7 +468,10 @@ impl DrawingCanvas {
         })? {
             let entry = entry.map_err(|e| {
                 CanvasError::new(
-                    CanvasErrorKind::LogoDetection(format!("Failed to read directory entry: {}", e)),
+                    CanvasErrorKind::LogoDetection(format!(
+                        "Failed to read directory entry: {}",
+                        e
+                    )),
                     line!(),
                     file!(),
                 )
@@ -412,9 +482,14 @@ impl DrawingCanvas {
                 // Check if it's an image file
                 if let Some(ext) = path.extension() {
                     let ext_str = ext.to_string_lossy().to_lowercase();
-                    if ext_str == "png" || ext_str == "jpg" || ext_str == "jpeg" || ext_str == "webp" {
+                    if ext_str == "png"
+                        || ext_str == "jpg"
+                        || ext_str == "jpeg"
+                        || ext_str == "webp"
+                    {
                         // Get the logo name from the filename (without extension)
-                        let logo_name = path.file_stem()
+                        let logo_name = path
+                            .file_stem()
                             .and_then(|s| s.to_str())
                             .unwrap_or("unknown");
 
@@ -431,7 +506,9 @@ impl DrawingCanvas {
 
         if logo_count == 0 {
             return Err(CanvasError::new(
-                CanvasErrorKind::LogoDetection("No logo templates found in logos directory".to_string()),
+                CanvasErrorKind::LogoDetection(
+                    "No logo templates found in logos directory".to_string(),
+                ),
                 line!(),
                 file!(),
             ));
@@ -440,9 +517,9 @@ impl DrawingCanvas {
         tracing::info!("Loaded {} logo templates", logo_count);
 
         // Detect logos in the form image
-        let results = detector.detect_logos_from_path(form_path.as_str()).map_err(|e| {
-            CanvasError::new(CanvasErrorKind::LogoDetection(e), line!(), file!())
-        })?;
+        let results = detector
+            .detect_logos_from_path(form_path.as_str())
+            .map_err(|e| CanvasError::new(CanvasErrorKind::LogoDetection(e), line!(), file!()))?;
 
         let detection_count = results.len();
         tracing::info!("Detected {} logo instances", detection_count);
@@ -475,7 +552,11 @@ impl DrawingCanvas {
             }
         }
 
-        debug!("Added {} logo detections, total detections now: {}", detection_count, self.detections.len());
+        debug!(
+            "Added {} logo detections, total detections now: {}",
+            detection_count,
+            self.detections.len()
+        );
 
         Ok(detection_count)
     }

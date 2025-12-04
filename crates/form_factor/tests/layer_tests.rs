@@ -17,19 +17,25 @@ fn serialization_roundtrip_preserves_all_data() {
     manager.set_visible(LayerType::Grid, true);
     manager.set_locked(LayerType::Canvas, true);
     manager.set_visible(LayerType::Shapes, false);
-    manager.get_layer_mut(LayerType::Detections).set_name("Custom Detections");
+    manager
+        .get_layer_mut(LayerType::Detections)
+        .set_name("Custom Detections");
 
     // Serialize
     let json = serde_json::to_string(&manager).expect("Serialization should succeed");
 
     // Deserialize
-    let restored: LayerManager = serde_json::from_str(&json).expect("Deserialization should succeed");
+    let restored: LayerManager =
+        serde_json::from_str(&json).expect("Deserialization should succeed");
 
     // Verify all state preserved
     assert!(restored.is_visible(LayerType::Grid));
     assert!(restored.is_locked(LayerType::Canvas));
     assert!(!restored.is_visible(LayerType::Shapes));
-    assert_eq!(restored.get_layer(LayerType::Detections).name(), "Custom Detections");
+    assert_eq!(
+        restored.get_layer(LayerType::Detections).name(),
+        "Custom Detections"
+    );
 
     // Verify layers that weren't modified
     assert!(restored.is_visible(LayerType::Canvas));
@@ -54,7 +60,8 @@ fn serialization_format_is_stable() {
 fn deserialization_validates_layer_integrity() {
     let manager = LayerManager::new();
     let json = serde_json::to_string(&manager).expect("Serialization should succeed");
-    let restored: LayerManager = serde_json::from_str(&json).expect("Deserialization should succeed");
+    let restored: LayerManager =
+        serde_json::from_str(&json).expect("Deserialization should succeed");
 
     // Validation should pass for properly deserialized data
     assert!(restored.validate().is_ok());
@@ -103,18 +110,36 @@ fn serialization_preserves_custom_layer_names() {
     let mut manager = LayerManager::new();
 
     // Customize all layer names
-    manager.get_layer_mut(LayerType::Canvas).set_name("Background Image");
-    manager.get_layer_mut(LayerType::Detections).set_name("Auto-detected Regions");
-    manager.get_layer_mut(LayerType::Shapes).set_name("Manual Annotations");
-    manager.get_layer_mut(LayerType::Grid).set_name("Alignment Grid");
+    manager
+        .get_layer_mut(LayerType::Canvas)
+        .set_name("Background Image");
+    manager
+        .get_layer_mut(LayerType::Detections)
+        .set_name("Auto-detected Regions");
+    manager
+        .get_layer_mut(LayerType::Shapes)
+        .set_name("Manual Annotations");
+    manager
+        .get_layer_mut(LayerType::Grid)
+        .set_name("Alignment Grid");
 
     // Round-trip
     let json = serde_json::to_string(&manager).expect("Serialization should succeed");
-    let restored: LayerManager = serde_json::from_str(&json).expect("Deserialization should succeed");
+    let restored: LayerManager =
+        serde_json::from_str(&json).expect("Deserialization should succeed");
 
-    assert_eq!(restored.get_layer(LayerType::Canvas).name(), "Background Image");
-    assert_eq!(restored.get_layer(LayerType::Detections).name(), "Auto-detected Regions");
-    assert_eq!(restored.get_layer(LayerType::Shapes).name(), "Manual Annotations");
+    assert_eq!(
+        restored.get_layer(LayerType::Canvas).name(),
+        "Background Image"
+    );
+    assert_eq!(
+        restored.get_layer(LayerType::Detections).name(),
+        "Auto-detected Regions"
+    );
+    assert_eq!(
+        restored.get_layer(LayerType::Shapes).name(),
+        "Manual Annotations"
+    );
     assert_eq!(restored.get_layer(LayerType::Grid).name(), "Alignment Grid");
 }
 
@@ -162,15 +187,29 @@ fn get_layer_mut_for_all_layer_types() {
     let mut manager = LayerManager::new();
 
     // Modify each layer type
-    for layer_type in [LayerType::Canvas, LayerType::Detections, LayerType::Shapes, LayerType::Grid] {
+    for layer_type in [
+        LayerType::Canvas,
+        LayerType::Detections,
+        LayerType::Shapes,
+        LayerType::Grid,
+    ] {
         let layer = manager.get_layer_mut(layer_type);
         layer.set_name(format!("Modified {}", layer_type));
     }
 
     // Verify all modifications
-    assert_eq!(manager.get_layer(LayerType::Canvas).name(), "Modified Canvas");
-    assert_eq!(manager.get_layer(LayerType::Detections).name(), "Modified Detections");
-    assert_eq!(manager.get_layer(LayerType::Shapes).name(), "Modified Shapes");
+    assert_eq!(
+        manager.get_layer(LayerType::Canvas).name(),
+        "Modified Canvas"
+    );
+    assert_eq!(
+        manager.get_layer(LayerType::Detections).name(),
+        "Modified Detections"
+    );
+    assert_eq!(
+        manager.get_layer(LayerType::Shapes).name(),
+        "Modified Shapes"
+    );
     assert_eq!(manager.get_layer(LayerType::Grid).name(), "Modified Grid");
 }
 
@@ -213,7 +252,12 @@ fn layer_mutations_through_different_apis_are_consistent() {
 fn get_layer_returns_correct_layer() {
     let manager = LayerManager::new();
 
-    for layer_type in [LayerType::Canvas, LayerType::Detections, LayerType::Shapes, LayerType::Grid] {
+    for layer_type in [
+        LayerType::Canvas,
+        LayerType::Detections,
+        LayerType::Shapes,
+        LayerType::Grid,
+    ] {
         let layer = manager.get_layer(layer_type);
         assert_eq!(layer.layer_type(), &layer_type);
     }
@@ -236,7 +280,12 @@ fn default_trait_matches_new() {
     let manager2 = LayerManager::default();
 
     // Compare all layer states
-    for layer_type in [LayerType::Canvas, LayerType::Detections, LayerType::Shapes, LayerType::Grid] {
+    for layer_type in [
+        LayerType::Canvas,
+        LayerType::Detections,
+        LayerType::Shapes,
+        LayerType::Grid,
+    ] {
         assert_eq!(
             manager1.is_visible(layer_type),
             manager2.is_visible(layer_type)
@@ -274,16 +323,17 @@ fn layers_in_order_iteration_count() {
 #[test]
 fn layers_in_order_preserves_render_sequence() {
     let manager = LayerManager::new();
-    let order: Vec<_> = manager.layers_in_order()
-        .map(|l| *l.layer_type())
-        .collect();
+    let order: Vec<_> = manager.layers_in_order().map(|l| *l.layer_type()).collect();
 
-    assert_eq!(order, vec![
-        LayerType::Canvas,
-        LayerType::Detections,
-        LayerType::Shapes,
-        LayerType::Grid,
-    ]);
+    assert_eq!(
+        order,
+        vec![
+            LayerType::Canvas,
+            LayerType::Detections,
+            LayerType::Shapes,
+            LayerType::Grid,
+        ]
+    );
 }
 
 // ============================================================================
@@ -320,7 +370,9 @@ fn validation_succeeds_after_modifications() {
 
     manager.set_visible(LayerType::Grid, true);
     manager.set_locked(LayerType::Canvas, true);
-    manager.get_layer_mut(LayerType::Shapes).set_name("Modified");
+    manager
+        .get_layer_mut(LayerType::Shapes)
+        .set_name("Modified");
 
     assert!(manager.validate().is_ok());
 }
@@ -440,14 +492,22 @@ fn layer_type_ordering() {
     assert!(LayerType::Shapes < LayerType::Grid);
 
     // Verify render order is ascending
-    let mut types = vec![LayerType::Grid, LayerType::Canvas, LayerType::Shapes, LayerType::Detections];
-    types.sort();
-    assert_eq!(types, vec![
-        LayerType::Canvas,
-        LayerType::Detections,
-        LayerType::Shapes,
+    let mut types = vec![
         LayerType::Grid,
-    ]);
+        LayerType::Canvas,
+        LayerType::Shapes,
+        LayerType::Detections,
+    ];
+    types.sort();
+    assert_eq!(
+        types,
+        vec![
+            LayerType::Canvas,
+            LayerType::Detections,
+            LayerType::Shapes,
+            LayerType::Grid,
+        ]
+    );
 }
 
 #[test]
@@ -488,8 +548,13 @@ fn layer_name_can_be_empty_string() {
 #[test]
 fn layer_name_can_contain_special_characters() {
     let mut manager = LayerManager::new();
-    manager.get_layer_mut(LayerType::Shapes).set_name("Layer 🎨 with émojis & spëcial chars!");
-    assert_eq!(manager.get_layer(LayerType::Shapes).name(), "Layer 🎨 with émojis & spëcial chars!");
+    manager
+        .get_layer_mut(LayerType::Shapes)
+        .set_name("Layer 🎨 with émojis & spëcial chars!");
+    assert_eq!(
+        manager.get_layer(LayerType::Shapes).name(),
+        "Layer 🎨 with émojis & spëcial chars!"
+    );
 }
 
 #[test]
@@ -505,7 +570,12 @@ fn all_layers_visible_simultaneously() {
     let mut manager = LayerManager::new();
 
     // Make all layers visible
-    for layer_type in [LayerType::Canvas, LayerType::Detections, LayerType::Shapes, LayerType::Grid] {
+    for layer_type in [
+        LayerType::Canvas,
+        LayerType::Detections,
+        LayerType::Shapes,
+        LayerType::Grid,
+    ] {
         manager.set_visible(layer_type, true);
     }
 
@@ -521,7 +591,12 @@ fn all_layers_hidden_simultaneously() {
     let mut manager = LayerManager::new();
 
     // Hide all layers
-    for layer_type in [LayerType::Canvas, LayerType::Detections, LayerType::Shapes, LayerType::Grid] {
+    for layer_type in [
+        LayerType::Canvas,
+        LayerType::Detections,
+        LayerType::Shapes,
+        LayerType::Grid,
+    ] {
         manager.set_visible(layer_type, false);
     }
 
@@ -537,7 +612,12 @@ fn all_layers_locked_simultaneously() {
     let mut manager = LayerManager::new();
 
     // Lock all layers
-    for layer_type in [LayerType::Canvas, LayerType::Detections, LayerType::Shapes, LayerType::Grid] {
+    for layer_type in [
+        LayerType::Canvas,
+        LayerType::Detections,
+        LayerType::Shapes,
+        LayerType::Grid,
+    ] {
         manager.set_locked(layer_type, true);
     }
 

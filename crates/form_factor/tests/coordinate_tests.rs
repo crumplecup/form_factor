@@ -16,7 +16,8 @@ fn test_shapes_stored_in_image_coordinates() {
         egui::pos2(100.0, 100.0),
         egui::Stroke::new(2.0, egui::Color32::RED),
         egui::Color32::TRANSPARENT,
-    ).unwrap();
+    )
+    .unwrap();
 
     let shape = Shape::Rectangle(rect);
 
@@ -52,7 +53,8 @@ fn test_map_detection_preserves_aspect_ratio() {
         egui::pos2(1000.0, 1000.0),
         egui::Stroke::new(2.0, egui::Color32::BLUE),
         egui::Color32::TRANSPARENT,
-    ).unwrap();
+    )
+    .unwrap();
 
     let detection_shape = Shape::Rectangle(detection);
 
@@ -70,12 +72,26 @@ fn test_map_detection_preserves_aspect_ratio() {
         let height = (corners[2].y - corners[0].y).abs();
 
         // Should be a 300x300 square (1000 * 0.3)
-        assert!((width - 300.0).abs() < 0.01, "Width should be 300.0, got {}", width);
-        assert!((height - 300.0).abs() < 0.01, "Height should be 300.0, got {}", height);
+        assert!(
+            (width - 300.0).abs() < 0.01,
+            "Width should be 300.0, got {}",
+            width
+        );
+        assert!(
+            (height - 300.0).abs() < 0.01,
+            "Height should be 300.0, got {}",
+            height
+        );
 
         // Should be offset correctly
-        assert!((corners[0].x - 100.0).abs() < 0.01, "Should be offset by 100.0 horizontally");
-        assert!((corners[0].y - 0.0).abs() < 0.01, "Should be at 0.0 vertically");
+        assert!(
+            (corners[0].x - 100.0).abs() < 0.01,
+            "Should be offset by 100.0 horizontally"
+        );
+        assert!(
+            (corners[0].y - 0.0).abs() < 0.01,
+            "Should be at 0.0 vertically"
+        );
     } else {
         panic!("Expected Rectangle after mapping");
     }
@@ -91,7 +107,8 @@ fn test_map_detection_scales_position_and_size() {
         100.0,
         egui::Stroke::new(2.0, egui::Color32::GREEN),
         egui::Color32::TRANSPARENT,
-    ).unwrap();
+    )
+    .unwrap();
 
     let detection_shape = Shape::Circle(detection);
 
@@ -103,11 +120,23 @@ fn test_map_detection_scales_position_and_size() {
 
     if let Shape::Circle(c) = mapped {
         // Center should be at (500 * 0.5 + 50, 500 * 0.5 + 50) = (300, 300)
-        assert!((c.center.x - 300.0).abs() < 0.01, "Center X should be 300.0, got {}", c.center.x);
-        assert!((c.center.y - 300.0).abs() < 0.01, "Center Y should be 300.0, got {}", c.center.y);
+        assert!(
+            (c.center.x - 300.0).abs() < 0.01,
+            "Center X should be 300.0, got {}",
+            c.center.x
+        );
+        assert!(
+            (c.center.y - 300.0).abs() < 0.01,
+            "Center Y should be 300.0, got {}",
+            c.center.y
+        );
 
         // Radius should be 100 * 0.5 = 50
-        assert!((c.radius - 50.0).abs() < 0.01, "Radius should be 50.0, got {}", c.radius);
+        assert!(
+            (c.radius - 50.0).abs() < 0.01,
+            "Radius should be 50.0, got {}",
+            c.radius
+        );
     } else {
         panic!("Expected Circle after mapping");
     }
@@ -125,14 +154,16 @@ fn test_shapes_and_detections_use_same_coordinate_system() {
         rect_coords.1,
         egui::Stroke::new(2.0, egui::Color32::RED),
         egui::Color32::TRANSPARENT,
-    ).unwrap();
+    )
+    .unwrap();
 
     let detection_rect = Rectangle::from_corners(
         rect_coords.0,
         rect_coords.1,
         egui::Stroke::new(2.0, egui::Color32::BLUE),
         egui::Color32::TRANSPARENT,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Both should be stored in the same coordinate system (image pixels)
     canvas.test_add_shape(Shape::Rectangle(shape_rect.clone()));
@@ -155,8 +186,10 @@ fn test_shapes_and_detections_use_same_coordinate_system() {
     };
 
     // Both should be stored with identical coordinates
-    assert_eq!(shape_corners, detection_corners,
-        "Shapes and detections should be stored in the same coordinate system");
+    assert_eq!(
+        shape_corners, detection_corners,
+        "Shapes and detections should be stored in the same coordinate system"
+    );
 }
 
 #[test]
@@ -180,10 +213,14 @@ fn test_coordinate_transformation_is_reversible() {
     let recovered_pos = egui::pos2(recovered_x, recovered_y);
 
     // Should recover the original position
-    assert!((recovered_pos.x - original_pos.x).abs() < 0.01,
-        "X coordinate should be recoverable");
-    assert!((recovered_pos.y - original_pos.y).abs() < 0.01,
-        "Y coordinate should be recoverable");
+    assert!(
+        (recovered_pos.x - original_pos.x).abs() < 0.01,
+        "X coordinate should be recoverable"
+    );
+    assert!(
+        (recovered_pos.y - original_pos.y).abs() < 0.01,
+        "Y coordinate should be recoverable"
+    );
 }
 
 #[test]
@@ -196,14 +233,16 @@ fn test_different_canvas_sizes_maintain_relative_positions() {
         50.0,
         egui::Stroke::new(2.0, egui::Color32::RED),
         egui::Color32::TRANSPARENT,
-    ).unwrap();
+    )
+    .unwrap();
 
     let shape2 = Circle::new(
         egui::pos2(1500.0, 1500.0),
         50.0,
         egui::Stroke::new(2.0, egui::Color32::BLUE),
         egui::Color32::TRANSPARENT,
-    ).unwrap();
+    )
+    .unwrap();
 
     // Calculate positions for small canvas (400x400)
     let small_scale = 0.2; // For 2000x2000 image on 400x400 canvas
@@ -212,12 +251,12 @@ fn test_different_canvas_sizes_maintain_relative_positions() {
     let shape1_small = canvas.test_map_detection_to_canvas(
         &Shape::Circle(shape1.clone()),
         small_scale,
-        small_offset
+        small_offset,
     );
     let shape2_small = canvas.test_map_detection_to_canvas(
         &Shape::Circle(shape2.clone()),
         small_scale,
-        small_offset
+        small_offset,
     );
 
     // Calculate positions for large canvas (800x800)
@@ -227,19 +266,22 @@ fn test_different_canvas_sizes_maintain_relative_positions() {
     let shape1_large = canvas.test_map_detection_to_canvas(
         &Shape::Circle(shape1.clone()),
         large_scale,
-        large_offset
+        large_offset,
     );
     let shape2_large = canvas.test_map_detection_to_canvas(
         &Shape::Circle(shape2.clone()),
         large_scale,
-        large_offset
+        large_offset,
     );
 
     // Calculate the distance ratio between shapes in both canvas sizes
-    if let (Shape::Circle(c1_small), Shape::Circle(c2_small),
-            Shape::Circle(c1_large), Shape::Circle(c2_large)) =
-        (&shape1_small, &shape2_small, &shape1_large, &shape2_large) {
-
+    if let (
+        Shape::Circle(c1_small),
+        Shape::Circle(c2_small),
+        Shape::Circle(c1_large),
+        Shape::Circle(c2_large),
+    ) = (&shape1_small, &shape2_small, &shape1_large, &shape2_large)
+    {
         let small_dx = c2_small.center.x - c1_small.center.x;
         let small_dy = c2_small.center.y - c1_small.center.y;
         let small_distance = (small_dx * small_dx + small_dy * small_dy).sqrt();
@@ -252,8 +294,10 @@ fn test_different_canvas_sizes_maintain_relative_positions() {
         let distance_ratio = large_distance / small_distance;
         let scale_ratio = large_scale / small_scale;
 
-        assert!((distance_ratio - scale_ratio).abs() < 0.01,
-            "Relative positions should scale proportionally with canvas size");
+        assert!(
+            (distance_ratio - scale_ratio).abs() < 0.01,
+            "Relative positions should scale proportionally with canvas size"
+        );
     } else {
         panic!("Expected circles after mapping");
     }
@@ -269,7 +313,8 @@ fn test_zero_offset_centering() {
         egui::pos2(100.0, 100.0),
         egui::Stroke::new(2.0, egui::Color32::WHITE),
         egui::Color32::TRANSPARENT,
-    ).unwrap();
+    )
+    .unwrap();
 
     // With zero offset, shape should start at canvas origin
     let scale = 1.0;

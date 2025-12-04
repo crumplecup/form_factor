@@ -21,22 +21,28 @@ impl DrawingCanvas {
     /// This is the main input dispatcher that delegates to specific handlers
     /// based on the current tool mode and interaction state.
     #[instrument(skip(self, response, painter, transform), fields(tool = ?self.current_tool()))]
-    pub(super) fn handle_input(&mut self, response: &egui::Response, painter: &egui::Painter, transform: &egui::emath::TSTransform) {
+    pub(super) fn handle_input(
+        &mut self,
+        response: &egui::Response,
+        painter: &egui::Painter,
+        transform: &egui::emath::TSTransform,
+    ) {
         // Pre-compute transformation parameters to avoid borrow checker issues
         let canvas_rect = response.rect;
-        let image_transform_params = if let (Some(image_size), Some(_)) = (self.form_image_size, &self.form_image) {
-            let canvas_size = canvas_rect.size();
-            let scale_x = canvas_size.x / image_size.x;
-            let scale_y = canvas_size.y / image_size.y;
-            let scale = scale_x.min(scale_y);
-            let fitted_size = image_size * scale;
-            let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
-            let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
-            let image_offset = canvas_rect.min + egui::vec2(offset_x, offset_y);
-            Some((scale, image_offset))
-        } else {
-            None
-        };
+        let image_transform_params =
+            if let (Some(image_size), Some(_)) = (self.form_image_size, &self.form_image) {
+                let canvas_size = canvas_rect.size();
+                let scale_x = canvas_size.x / image_size.x;
+                let scale_y = canvas_size.y / image_size.y;
+                let scale = scale_x.min(scale_y);
+                let fitted_size = image_size * scale;
+                let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
+                let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
+                let image_offset = canvas_rect.min + egui::vec2(offset_x, offset_y);
+                Some((scale, image_offset))
+            } else {
+                None
+            };
 
         // Helper to transform screen coordinates to canvas coordinates, then to image pixel coordinates
         // This ensures shapes are stored in the same coordinate system as detections
@@ -85,13 +91,23 @@ impl DrawingCanvas {
                     let canvas_pos = transform_pos(pos);
                     if response.drag_started() {
                         self.start_vertex_drag(canvas_pos);
-                    } else if response.dragged() && matches!(self.state(), super::core::CanvasState::DraggingVertex { .. }) {
+                    } else if response.dragged()
+                        && matches!(
+                            self.state(),
+                            super::core::CanvasState::DraggingVertex { .. }
+                        )
+                    {
                         self.continue_vertex_drag(canvas_pos);
                     }
                 }
 
                 // Check if drag ended
-                if response.drag_stopped() && matches!(self.state(), super::core::CanvasState::DraggingVertex { .. }) {
+                if response.drag_stopped()
+                    && matches!(
+                        self.state(),
+                        super::core::CanvasState::DraggingVertex { .. }
+                    )
+                {
                     self.finish_vertex_drag();
                 }
 
@@ -112,13 +128,22 @@ impl DrawingCanvas {
                     let canvas_pos = transform_pos(pos);
                     if response.drag_started() {
                         self.start_drawing(canvas_pos);
-                    } else if response.dragged() && matches!(self.state(), super::core::CanvasState::Drawing { .. }) {
-                        self.continue_drawing(canvas_pos, painter, transform, image_transform_params);
+                    } else if response.dragged()
+                        && matches!(self.state(), super::core::CanvasState::Drawing { .. })
+                    {
+                        self.continue_drawing(
+                            canvas_pos,
+                            painter,
+                            transform,
+                            image_transform_params,
+                        );
                     }
                 }
 
                 // Check if mouse was released (drag ended) for drawing tools
-                if response.drag_stopped() && matches!(self.state(), super::core::CanvasState::Drawing { .. }) {
+                if response.drag_stopped()
+                    && matches!(self.state(), super::core::CanvasState::Drawing { .. })
+                {
                     self.finalize_shape();
                 }
             }
@@ -129,7 +154,8 @@ impl DrawingCanvas {
                     selected_layer = ?self.selected_layer(),
                     selected_shape = ?self.selected_shape(),
                     is_rotating
-                ).entered();
+                )
+                .entered();
 
                 debug!(
                     clicked = response.clicked(),
@@ -149,10 +175,14 @@ impl DrawingCanvas {
                     if response.drag_started() {
                         debug!(?canvas_pos, "Drag started - calling start_rotation");
                         self.start_rotation(canvas_pos);
-                    } else if response.dragged() && matches!(self.state(), super::core::CanvasState::Rotating { .. }) {
+                    } else if response.dragged()
+                        && matches!(self.state(), super::core::CanvasState::Rotating { .. })
+                    {
                         debug!(?canvas_pos, "Dragging - calling continue_rotation");
                         self.continue_rotation(canvas_pos);
-                    } else if response.dragged() && !matches!(self.state(), super::core::CanvasState::Rotating { .. }) {
+                    } else if response.dragged()
+                        && !matches!(self.state(), super::core::CanvasState::Rotating { .. })
+                    {
                         debug!("Dragging but is_rotating is false");
                     }
                 }
@@ -172,7 +202,10 @@ impl DrawingCanvas {
                     debug!("Click detected - handling selection");
                     if let Some(pos) = response.interact_pointer_pos() {
                         let canvas_pos = transform_pos(pos);
-                        debug!(?canvas_pos, "Calling handle_selection_click with interact_pointer_pos");
+                        debug!(
+                            ?canvas_pos,
+                            "Calling handle_selection_click with interact_pointer_pos"
+                        );
                         self.handle_selection_click(canvas_pos);
                     } else if let Some(pos) = response.hover_pos() {
                         let canvas_pos = transform_pos(pos);
@@ -274,7 +307,13 @@ impl DrawingCanvas {
     /// Updates the drawing state with the current mouse position and
     /// draws a preview of the shape being created. The preview updates
     /// in real-time as the user drags the mouse.
-    pub(super) fn continue_drawing(&mut self, pos: Pos2, painter: &egui::Painter, transform: &egui::emath::TSTransform, image_transform_params: Option<(f32, egui::Pos2)>) {
+    pub(super) fn continue_drawing(
+        &mut self,
+        pos: Pos2,
+        painter: &egui::Painter,
+        transform: &egui::emath::TSTransform,
+        image_transform_params: Option<(f32, egui::Pos2)>,
+    ) {
         // Store values needed for rendering before mutably borrowing state
         let current_tool = *self.current_tool();
         let fill_color = *self.fill_color();
@@ -298,7 +337,12 @@ impl DrawingCanvas {
         };
 
         // Update the drawing state with the new position
-        if let super::core::CanvasState::Drawing { start, current_end, points } = self.state_mut() {
+        if let super::core::CanvasState::Drawing {
+            start,
+            current_end,
+            points,
+        } = self.state_mut()
+        {
             *current_end = Some(pos);
 
             match current_tool {
@@ -326,31 +370,21 @@ impl DrawingCanvas {
                     points.push(pos);
                     if points.len() > 2 {
                         // Transform points for preview (from image coords to screen)
-                        let transformed_points: Vec<Pos2> = points
-                            .iter()
-                            .map(|p| transform_preview_pos(*p))
-                            .collect();
+                        let transformed_points: Vec<Pos2> =
+                            points.iter().map(|p| transform_preview_pos(*p)).collect();
                         // Draw preview as a closed polygon
                         painter.add(egui::Shape::convex_polygon(
                             transformed_points.clone(),
                             fill_color,
                             egui::Stroke::NONE,
                         ));
-                        painter.add(egui::Shape::closed_line(
-                            transformed_points,
-                            stroke,
-                        ));
+                        painter.add(egui::Shape::closed_line(transformed_points, stroke));
                     } else if points.len() > 1 {
                         // Transform points for preview line (from image coords to screen)
-                        let transformed_points: Vec<Pos2> = points
-                            .iter()
-                            .map(|p| transform_preview_pos(*p))
-                            .collect();
+                        let transformed_points: Vec<Pos2> =
+                            points.iter().map(|p| transform_preview_pos(*p)).collect();
                         // Draw preview line until we have enough points
-                        painter.add(egui::Shape::line(
-                            transformed_points,
-                            stroke,
-                        ));
+                        painter.add(egui::Shape::line(transformed_points, stroke));
                     }
                 }
                 ToolMode::Select => {
@@ -372,7 +406,12 @@ impl DrawingCanvas {
     /// the canvas. Automatically selects the newly created shape and
     /// focuses the name field for easy naming.
     pub(super) fn finalize_shape(&mut self) {
-        let shape = if let super::core::CanvasState::Drawing { start, current_end, points } = self.state() {
+        let shape = if let super::core::CanvasState::Drawing {
+            start,
+            current_end,
+            points,
+        } = self.state()
+        {
             match self.current_tool() {
                 ToolMode::Rectangle => {
                     if let Some(end) = current_end {
@@ -404,13 +443,17 @@ impl DrawingCanvas {
                 ToolMode::Freehand => {
                     if points.len() >= 3 {
                         // Create a closed polygon from the points
-                        PolygonShape::from_points(points.clone(), *self.stroke(), *self.fill_color())
-                            .map(Shape::Polygon)
-                            .map_err(|e| {
-                                warn!("Failed to create polygon: {}", e);
-                                e
-                            })
-                            .ok()
+                        PolygonShape::from_points(
+                            points.clone(),
+                            *self.stroke(),
+                            *self.fill_color(),
+                        )
+                        .map(Shape::Polygon)
+                        .map_err(|e| {
+                            warn!("Failed to create polygon: {}", e);
+                            e
+                        })
+                        .ok()
                     } else {
                         None
                     }
@@ -474,7 +517,8 @@ impl DrawingCanvas {
                 if pos.distance(*circle.center()) < VERTEX_CLICK_RADIUS {
                     Some(0)
                 } else {
-                    let edge_point = egui::pos2(circle.center().x + circle.radius(), circle.center().y);
+                    let edge_point =
+                        egui::pos2(circle.center().x + circle.radius(), circle.center().y);
                     if pos.distance(edge_point) < VERTEX_CLICK_RADIUS {
                         Some(1)
                     } else {
@@ -482,18 +526,19 @@ impl DrawingCanvas {
                     }
                 }
             }
-            Shape::Polygon(poly) => {
-                poly.to_egui_points()
-                    .iter()
-                    .enumerate()
-                    .find(|(_, vertex_pos)| pos.distance(**vertex_pos) < VERTEX_CLICK_RADIUS)
-                    .map(|(i, _)| i)
-            }
+            Shape::Polygon(poly) => poly
+                .to_egui_points()
+                .iter()
+                .enumerate()
+                .find(|(_, vertex_pos)| pos.distance(**vertex_pos) < VERTEX_CLICK_RADIUS)
+                .map(|(i, _)| i),
         };
 
         if let Some(vertex_idx) = clicked_vertex {
             debug!(vertex_idx, "Starting vertex drag");
-            self.set_state(super::core::CanvasState::DraggingVertex { vertex_index: vertex_idx });
+            self.set_state(super::core::CanvasState::DraggingVertex {
+                vertex_index: vertex_idx,
+            });
         }
     }
 
@@ -504,7 +549,10 @@ impl DrawingCanvas {
     /// rectangles update corners, circles update center or radius, and
     /// polygons update individual vertex positions.
     pub(super) fn continue_vertex_drag(&mut self, pos: Pos2) {
-        let super::core::CanvasState::DraggingVertex { vertex_index: vertex_idx } = *self.state() else {
+        let super::core::CanvasState::DraggingVertex {
+            vertex_index: vertex_idx,
+        } = *self.state()
+        else {
             return;
         };
 
@@ -618,7 +666,10 @@ impl DrawingCanvas {
                 debug!(rotation_center = ?Pos2::ZERO, start_angle, "Started rotating grid");
             }
             Some(LayerType::Canvas) => {
-                debug!(has_form_image = self.form_image().is_some(), "Canvas layer selected");
+                debug!(
+                    has_form_image = self.form_image().is_some(),
+                    "Canvas layer selected"
+                );
                 // Rotate the form image if one is loaded
                 if self.form_image().is_some() {
                     let start_angle = Self::calculate_angle(Pos2::ZERO, pos);
@@ -639,7 +690,10 @@ impl DrawingCanvas {
             }
         }
 
-        debug!(is_rotating = matches!(self.state(), super::core::CanvasState::Rotating { .. }), "Rotation state after start_rotation");
+        debug!(
+            is_rotating = matches!(self.state(), super::core::CanvasState::Rotating { .. }),
+            "Rotation state after start_rotation"
+        );
     }
 
     /// Continue rotation interaction
@@ -655,7 +709,11 @@ impl DrawingCanvas {
         let grid_rotation_angle = *self.grid_rotation_angle();
         let form_image_rotation = *self.form_image_rotation();
 
-        let super::core::CanvasState::Rotating { start_angle, center } = self.state_mut() else {
+        let super::core::CanvasState::Rotating {
+            start_angle,
+            center,
+        } = self.state_mut()
+        else {
             return;
         };
 
@@ -669,7 +727,13 @@ impl DrawingCanvas {
         // Update start angle for next frame
         *start_angle = current_angle;
 
-        debug!(?pos, ?center_pos, current_angle, angle_delta, "Continuing rotation");
+        debug!(
+            ?pos,
+            ?center_pos,
+            current_angle,
+            angle_delta,
+            "Continuing rotation"
+        );
 
         // Apply rotation based on selected layer (negated for inverted axis)
         match selected_layer {

@@ -1,6 +1,9 @@
 //! Plugin manager for coordinating multiple plugins.
 
-use crate::{bus::EventBus, plugin::{Plugin, PluginContext}};
+use crate::{
+    bus::EventBus,
+    plugin::{Plugin, PluginContext},
+};
 use tracing::{debug, info, instrument, warn};
 
 /// Manages the lifecycle and coordination of all plugins.

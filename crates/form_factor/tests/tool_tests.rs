@@ -186,7 +186,8 @@ fn copy_semantic_allows_reuse() {
 fn serialization_roundtrip() {
     for tool in ToolMode::iter() {
         let json = serde_json::to_string(&tool).expect("Serialization should succeed");
-        let restored: ToolMode = serde_json::from_str(&json).expect("Deserialization should succeed");
+        let restored: ToolMode =
+            serde_json::from_str(&json).expect("Deserialization should succeed");
         assert_eq!(tool, restored);
     }
 }
@@ -199,10 +200,12 @@ fn serialization_format() {
 
 #[test]
 fn deserialization_from_string() {
-    let tool: ToolMode = serde_json::from_str(r#""Select""#).expect("Deserialization should succeed");
+    let tool: ToolMode =
+        serde_json::from_str(r#""Select""#).expect("Deserialization should succeed");
     assert_eq!(tool, ToolMode::Select);
 
-    let tool: ToolMode = serde_json::from_str(r#""Freehand""#).expect("Deserialization should succeed");
+    let tool: ToolMode =
+        serde_json::from_str(r#""Freehand""#).expect("Deserialization should succeed");
     assert_eq!(tool, ToolMode::Freehand);
 }
 

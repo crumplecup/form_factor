@@ -5,7 +5,10 @@
 //! - Canvas pan and zoom controls
 //! - Drawing state display
 
-use crate::{event::AppEvent, plugin::{Plugin, PluginContext}};
+use crate::{
+    event::AppEvent,
+    plugin::{Plugin, PluginContext},
+};
 use form_factor_drawing::ToolMode;
 use strum::IntoEnumIterator;
 use tracing::{debug, instrument};
@@ -65,19 +68,22 @@ impl CanvasPlugin {
 
             if ui.button("-").clicked() {
                 self.zoom *= 0.8;
-                ctx.events.emit(AppEvent::CanvasZoomChanged { zoom: self.zoom });
+                ctx.events
+                    .emit(AppEvent::CanvasZoomChanged { zoom: self.zoom });
             }
 
             ui.label(format!("{:.0}%", self.zoom * 100.0));
 
             if ui.button("+").clicked() {
                 self.zoom *= 1.25;
-                ctx.events.emit(AppEvent::CanvasZoomChanged { zoom: self.zoom });
+                ctx.events
+                    .emit(AppEvent::CanvasZoomChanged { zoom: self.zoom });
             }
 
             if ui.button("Reset").clicked() {
                 self.zoom = 1.0;
-                ctx.events.emit(AppEvent::CanvasZoomChanged { zoom: self.zoom });
+                ctx.events
+                    .emit(AppEvent::CanvasZoomChanged { zoom: self.zoom });
             }
         });
     }

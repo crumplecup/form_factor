@@ -5,7 +5,10 @@
 //! - Extracted text display
 //! - Language selection
 
-use crate::{event::AppEvent, plugin::{Plugin, PluginContext}};
+use crate::{
+    event::AppEvent,
+    plugin::{Plugin, PluginContext},
+};
 use tracing::{debug, instrument};
 
 /// Plugin for OCR text extraction.

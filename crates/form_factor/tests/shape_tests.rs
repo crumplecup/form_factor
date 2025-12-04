@@ -33,11 +33,8 @@ fn polygon_rejects_too_few_points() {
     }
 
     // Test with 2 points
-    let result = PolygonShape::from_points(
-        vec![Pos2::new(0.0, 0.0), Pos2::new(1.0, 1.0)],
-        stroke,
-        fill,
-    );
+    let result =
+        PolygonShape::from_points(vec![Pos2::new(0.0, 0.0), Pos2::new(1.0, 1.0)], stroke, fill);
     assert!(result.is_err());
     if let Err(e) = result {
         assert!(matches!(e.kind, ShapeErrorKind::TooFewPoints(2)));
@@ -101,7 +98,12 @@ fn shape_rejects_nan_coordinates() {
     let fill = Color32::TRANSPARENT;
 
     // Rectangle with NaN
-    let result = Rectangle::from_corners(Pos2::new(f32::NAN, 0.0), Pos2::new(10.0, 10.0), stroke, fill);
+    let result = Rectangle::from_corners(
+        Pos2::new(f32::NAN, 0.0),
+        Pos2::new(10.0, 10.0),
+        stroke,
+        fill,
+    );
     assert!(result.is_err());
     if let Err(e) = result {
         assert!(matches!(e.kind, ShapeErrorKind::InvalidCoordinate));
@@ -299,8 +301,8 @@ fn polygon_creates_with_many_points() {
         points.push(Pos2::new(angle.cos() * 10.0, angle.sin() * 10.0));
     }
 
-    let poly =
-        PolygonShape::from_points(points.clone(), stroke, fill).expect("Valid octagon should be created");
+    let poly = PolygonShape::from_points(points.clone(), stroke, fill)
+        .expect("Valid octagon should be created");
 
     // geo crate closes polygons by adding first point at end
     assert_eq!(poly.to_egui_points().len(), 9);
@@ -330,7 +332,8 @@ fn rectangle_translates_correctly() {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let mut rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
+    let mut rect =
+        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
 
     rect.translate(egui::Vec2::new(5.0, 5.0))
         .expect("Translation should succeed");
@@ -386,7 +389,8 @@ fn rectangle_rotates_90_degrees() {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let mut rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(2.0, 1.0), stroke, fill).unwrap();
+    let mut rect =
+        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(2.0, 1.0), stroke, fill).unwrap();
 
     // Rotate 90 degrees around origin
     rect.rotate(PI / 2.0, Pos2::new(0.0, 0.0))
@@ -448,7 +452,8 @@ fn rectangle_set_corner_updates_shape() {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let mut rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
+    let mut rect =
+        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
 
     rect.set_corner(0, Pos2::new(1.0, 1.0))
         .expect("Setting corner should succeed");
@@ -516,7 +521,9 @@ fn circle_set_radius_updates_radius() {
 
     let mut circle = Circle::new(Pos2::new(10.0, 10.0), 5.0, stroke, fill).unwrap();
 
-    circle.set_radius(10.0).expect("Setting radius should succeed");
+    circle
+        .set_radius(10.0)
+        .expect("Setting radius should succeed");
     assert_eq!(*circle.radius(), 10.0);
 
     // Invalid radius should fail
@@ -566,7 +573,8 @@ fn rectangle_contains_interior_point() {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
+    let rect =
+        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
 
     // Point clearly inside
     assert!(rect.contains_point(Pos2::new(5.0, 5.0)));
@@ -608,7 +616,8 @@ fn shape_enum_contains_point() {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
+    let rect =
+        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
     let shape = Shape::Rectangle(rect);
 
     assert!(shape.contains_point(Pos2::new(5.0, 5.0)));
@@ -644,7 +653,8 @@ fn rectangle_center_calculates_centroid() {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 20.0), stroke, fill).unwrap();
+    let rect =
+        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 20.0), stroke, fill).unwrap();
 
     let center = rect.center();
     // Centroid should be at (5, 10)
@@ -745,7 +755,8 @@ fn rectangle_with_negative_coordinates() {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let rect = Rectangle::from_corners(Pos2::new(-10.0, -10.0), Pos2::new(10.0, 10.0), stroke, fill);
+    let rect =
+        Rectangle::from_corners(Pos2::new(-10.0, -10.0), Pos2::new(10.0, 10.0), stroke, fill);
     assert!(rect.is_ok());
 
     if let Ok(r) = rect {

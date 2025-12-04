@@ -363,7 +363,6 @@ impl fmt::Display for BackendError {
     }
 }
 
-
 impl fmt::Display for ConfigError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{} at {}:{}", self.desc, self.file, self.line)?;

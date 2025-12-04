@@ -29,7 +29,8 @@ impl EframeApp {
 impl eframe::App for EframeApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         let now = std::time::Instant::now();
-        let delta_time = self.last_frame_time
+        let delta_time = self
+            .last_frame_time
             .map(|last| now.duration_since(last).as_secs_f32())
             .unwrap_or(0.016); // Default to ~60fps for first frame
 

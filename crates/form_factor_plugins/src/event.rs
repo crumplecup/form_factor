@@ -135,8 +135,7 @@ impl AppEvent {
     /// Returns an error if this is not a custom event or if deserialization fails.
     pub fn decode_custom<T: serde::de::DeserializeOwned>(&self) -> Result<T, DecodeError> {
         match self {
-            Self::Custom { data, .. } => serde_json::from_str(data)
-                .map_err(DecodeError::Json),
+            Self::Custom { data, .. } => serde_json::from_str(data).map_err(DecodeError::Json),
             _ => Err(DecodeError::NotCustomEvent),
         }
     }
