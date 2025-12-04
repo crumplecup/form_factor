@@ -9,3 +9,4 @@ description = "Core traits and types for the form_factor framework"
 
 [dependencies]
 egui = { workspace = true }
+serde = { workspace = true }

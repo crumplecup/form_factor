@@ -2,18 +2,36 @@
 //!
 //! This crate provides the DrawingCanvas, shapes, layers, and tool management.
 //! It depends on form_factor_core for the core traits.
+//!
+//! # Form Templates and Instances
+//!
+//! - The `template` module provides concrete implementations of the FormTemplate
+//!   trait, template storage/registry, and builder patterns for creating templates.
+//! - The `instance` module provides concrete implementations of the FormInstance
+//!   trait, multi-page support, and instance management.
 
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
 
 mod canvas;
+mod error;
+pub mod instance;
 mod layer;
 mod recent_projects;
 mod shape;
+pub mod template;
 mod tool;
 
 pub use canvas::{CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas};
+pub use error::{FormError, FormErrorKind};
+pub use instance::{DrawingInstance, FormPage, InstanceError, InstanceErrorKind};
 pub use layer::{Layer, LayerError, LayerManager, LayerType};
 pub use recent_projects::RecentProjects;
-pub use shape::{Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeError, ShapeErrorKind};
+pub use shape::{
+    Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeError, ShapeErrorKind,
+};
+pub use template::{
+    DrawingTemplate, DrawingTemplateBuilder, TemplateError, TemplateErrorKind, TemplatePage,
+    TemplatePageBuilder, TemplateRegistry,
+};
 pub use tool::ToolMode;

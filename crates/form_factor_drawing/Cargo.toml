@@ -23,6 +23,8 @@ geo = { workspace = true }
 geo-types = { workspace = true }
 image = { workspace = true }
 tracing = { workspace = true }
+regex = "1.11"
+dirs = "5.0"
 
 [features]
 text-detection = ["dep:form_factor_cv", "form_factor_cv/text-detection"]
