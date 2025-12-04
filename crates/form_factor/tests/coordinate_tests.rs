@@ -161,7 +161,7 @@ fn test_shapes_and_detections_use_same_coordinate_system() {
 
 #[test]
 fn test_coordinate_transformation_is_reversible() {
-    let canvas = DrawingCanvas::new();
+    let _canvas = DrawingCanvas::new();
 
     // Original position in image coordinates
     let original_pos = egui::pos2(1000.0, 1500.0);

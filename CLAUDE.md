@@ -1,181 +1,985 @@
 # Claude Project Instructions
 
+## Quick Reference
+
+| Category      | Key Rule                                                   | Section                                           |
+| ------------- | ---------------------------------------------------------- | ------------------------------------------------- |
+| **Testing**   | No `#[cfg(test)]` in source files → use `tests/` directory | [Testing](#testing)                               |
+| **Errors**    | Use `derive_more::Display` + `derive_more::Error`          | [Error Handling](#error-handling)                 |
+| **Tracing**   | All public functions have `#[instrument]`                  | [Logging](#logging-and-tracing)                   |
+| **Builders**  | Always use builders, never struct literals                 | [Type Construction](#type-construction)           |
+| **Imports**   | `use crate::{Type}` not `use crate::module::Type`          | [Module Organization](#module-organization)       |
+| **lib.rs**    | Only `mod` and `pub use` statements                        | [Module Organization](#module-organization)       |
+| **Workspace** | No re-exports between workspace crates                     | [Workspace Organization](#workspace-organization) |
+| **Commits**   | Fix all errors/warnings before committing                  | [Workflow](#workflow)                             |
+| **Linting**   | Never use `#[allow]` - fix root cause instead              | [Linting](#linting)                               |
+
+---
+
 ## Workflow
 
-- After generating new code and correcting any cargo check errors and warnings:
-  1. Run cargo test and clear all errors.
-  2. Run cargo clippy and clear all warnings.
-  3. Commit the changes to git using best practices for code auditing.
-  4. Push the changes to their respective github branch.
-- Avoid running cargo clean often, to take advantage of incremental compilation during development.
+### Development Cycle
 
-## Linting
+1. **Plan** → Use planning document (.md) with implementation steps
 
-- When running any linter (e.g. clippy or markdownlint), rather than deny all warnings, let them complete so you can fix them all in a single pass.
-- After editing a markdown file, run markdownlint and either fix the error or add an exception, as appropriate in the context.
-- Do not run cargo clippy or cargo test after changes to markdown files, as they don't affect the Rust code.
+- Add the planning document to PLANNING_INDEX.md for tracking.
 
-## API structure
+2. **For each step:**
+   - Generate code
+   - Fix cargo check errors/warnings
+   - Run all checks (see below)
+   - Commit with audit-friendly message
+   - Push to branch
+3. **Update** planning document to serve as user guide
 
-- In lib.rs, export the visibility of all types at the root level with pub use statements.
-  - Keep the mod statements private so there is only one way for users to import the type.
-  - In modules, import types from the crate level with use crate::{type1, type2} statements.
+### Pre-Commit Verification
+
+Fix all issues before committing, even if "unrelated":
+
+```bash
+# only run these after code changes:
+# prefer running on package when possible
+just check [package]                    # Basic compilation
+# check-all recipe takes too long on full workspace
+# prefer testing the package in isolation
+just test-package [package]
+just check-all [package]                 # clippy, fmt & test
+
+# only run this if markdown files changed:
+markdownlint-cli2 "**/*.md"   # Markdown (if changed)
+```
+
+Use `just` recipes (not raw `cargo` commands) to ensure justfile stays current.
+
+Pre-merge commits, in addition:
+
+- run `just check-all`
+- run `just audit`
+- run `just check-features`
+
+Zero tolerance: all tests passing, zero clippy warnings, zero errors.
+
+### Why "Unrelated" Issues Matter
+
+````rust
+// You export Input at crate level
+pub use input::Input;
+
+// Existing doctest breaks (was using module path):
+/// ```
+/// use crate::module::Input;  // ❌ Now ambiguous!
+/// ```
+
+// Fix immediately:
+/// ```
+/// use crate::Input;  // ✅ Crate-level import
+/// ```
+````
+
+Common pitfalls:
+
+- Export changes → doctest import paths break
+- New exports → name conflicts with existing types
+- Feature additions → missing `#[cfg(feature)]` gates
+- Struct field additions → doctests missing new required fields
+
+### API Testing (Rate-Limited)
+
+Only run when:
+
+- Explicitly requested
+- Before merge to main
+- Targeted integration testing
+
+```bash
+just test-api
+```
+
+---
+
+## Type Construction
+
+### Builder Pattern
+
+Always use builders for struct construction. Never use struct literals.
+
+```rust
+// ❌ BAD: Struct literal (breaks on field additions, order-dependent)
+let config = Config {
+    host: "localhost".to_string(),
+    port: 8080,
+    timeout: Duration::from_secs(30),
+};
+
+// ✅ GOOD: Builder pattern (self-documenting, future-proof)
+let config = Config::builder()
+    .host("localhost")
+    .port(8080)
+    .timeout(Duration::from_secs(30))
+    .build();
+```
+
+Benefits: Self-documenting, optional fields, validation, IDE support
+
+### Builder Types in This Codebase
+
+**1. derive_builder** (`#[derive(derive_builder::Builder)]`):
+
+```rust
+use crate::MessageBuilder;  // Import Builder struct
+
+let msg = MessageBuilder::default()
+    .role(Role::User)
+    .content(vec![Input::Text("test".to_string())])
+    .build()
+    .expect("Valid message");
+```
+
+**2. Manual builders** (`impl Type { pub fn builder() }`):
+
+```rust
+// Do not import Builder struct
+
+let request = GenerateRequest::builder()  // Type provides builder()
+    .messages(vec![msg])
+    .build()
+    .expect("Valid request");
+```
+
+**Test pattern:** Extract `.build()` calls that return `Result`:
+
+```rust
+// ✅ GOOD: Separate statements
+let message = MessageBuilder::default()
+    .role(Role::User)
+    .build()
+    .expect("Valid");
+
+let request = GenerateRequest::builder()
+    .messages(vec![message])
+    .build()
+    .expect("Valid");
+
+// ❌ BAD: Nested builds (Result handling fails)
+let request = GenerateRequest::builder()
+    .messages(vec![MessageBuilder::default()...build()])
+    .build();
+```
+
+---
 
 ## Derive Policies
 
-- Data structures should derive Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, and Hash if possible.
-- Use derive_more to derive Display, FromStr, From, Deref, DerefMut, AsRef, and AsMut when appropriate.
-- For enums with no fields, use strum to derive EnumIter.
+### Standard Derives
 
-## Serialization
+Data structures:
 
-- Derive `Serialize` and `Deserialize` for types that need to be persisted or transmitted (project state, configuration, etc.).
-- Use `#[serde(skip)]` for fields that should not be serialized (runtime state, caches, UI state, texture handles).
-- Use `#[serde(default)]` for fields that should use their `Default` value when missing during deserialization.
-- Use `#[serde(default = "function_name")]` to specify a custom default function for a field.
-- Use `#[serde(rename = "name")]` when the serialized field name should differ from the Rust field name.
-- Group related `#[serde(skip)]` attributes with comments explaining why they're not serialized (e.g., "// Runtime state (not serialized)").
-- For complex serialization needs, implement custom `Serialize`/`Deserialize` instead of using derives.
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+pub struct MyType { /* ... */ }
+```
 
-## Feature Flags
+Use derive_more for:
 
-- Use `#[cfg(feature = "feature-name")]` to conditionally compile code based on features.
-- Document feature-gated public APIs with a note in the documentation: `/// Available with the `feature-name` feature.`
-- Available features:
-  - `backend-eframe` - eframe/wgpu rendering backend (enabled by default)
-  - `text-detection` - OpenCV-based text detection
-  - `logo-detection` - OpenCV-based logo detection
-  - `ocr` - Tesseract-based OCR text extraction
-  - `dev` - Enables all optional features for development
-- When adding new feature-gated code, ensure the crate still compiles with only default features.
-- Use `cargo check --no-default-features` to verify the crate works without optional features.
-- Use `cargo check --all-features` to verify all features compile together.
+- `Display`, `FromStr`, `From`, `Deref`, `DerefMut`, `AsRef`, `AsMut`
 
-## Documentation
+Enums (no fields):
 
-- Use `///` for item documentation (functions, structs, enums, fields, methods).
-- Use `//!` for module-level documentation at the top of files.
-- All public types, functions, and methods must have documentation (enforced by `#![warn(missing_docs)]`).
-- Document:
-  - **What** the item does (concise first line)
-  - **Why** it exists or when to use it (for non-obvious cases)
-  - **Parameters and returns** for functions (when not obvious from types)
-  - **Examples** for complex APIs or non-obvious usage
-  - **Errors** that can be returned (for Result-returning functions)
-- Keep documentation concise but informative - avoid stating the obvious from the signature.
+```rust
+#[derive(Debug, Clone, strum::EnumIter)]
+pub enum Status { Active, Inactive }
+```
 
-## Logging and Tracing
+### Field Access
 
-- Use the `tracing` crate for all logging (never `println!` in library code).
-- Choose appropriate log levels:
-  - `trace!()` - Very detailed, fine-grained information (loop iterations, individual calculations)
-  - `debug!()` - General debugging information (function entry/exit, state changes)
-  - `info!()` - Important runtime information (initialization, major events)
-  - `warn!()` - Warnings about unusual but recoverable conditions
-  - `error!()` - Errors that should be investigated
-- Use structured logging with fields: `debug!(count = items.len(), "Processing items")`
-- Use `#[instrument]` macro on functions for automatic entry/exit logging with arguments
-- Use `?` prefix for Debug formatting in field values: `debug!(value = ?self.field())`
-- Binary applications can use `println!` for user-facing output, but use `tracing` for diagnostics
+Private fields + derive-based access:
 
-## Testing
+```rust
+use derive_getters::Getters;
+use derive_setters::Setters;
+use typed_builder::TypedBuilder;
 
-- Do not place mod tests in the module next to the code. Place unit tests in the tests directory.
+#[derive(Debug, Clone, Getters, Setters, TypedBuilder)]
+#[setters(prefix = "with_")]  // Avoid getter/setter name conflicts
+pub struct SecurityContext {
+    #[builder(default)]
+    /// User ID (propagated to getter docs)
+    #[setters(doc = "Sets user ID")]  // Separate setter docs
+    user_id: Option<UserId>,
+
+    #[setters(skip)]  // Read-only field
+    created_at: DateTime<Utc>,
+}
+
+// Usage:
+let ctx = SecurityContext::builder()
+    .user_id(Some(id))
+    .created_at(Utc::now())
+    .build();
+
+ctx.user_id();           // Getter
+ctx.with_user_id(new_id); // Setter
+```
+
+When to use:
+
+- **derive_getters**: Always for private fields
+- **derive_setters**: Mutable config/state objects
+- **typed_builder**: Prefer over manual constructors
+- **Manual constructors**: Only for complex initialization (connections, validation, resources)
+
+### Exception: Error Types
+
+ErrorKind (specific conditions):
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+pub enum StorageErrorKind {
+    #[display("Media not found: {}", _0)]
+    NotFound(String),
+}
+```
+
+Wrapper (error + location):
+
+```rust
+#[derive(Debug, Clone, derive_more::Display, derive_more::Error)]
+#[display("Storage: {} at {}:{}", kind, file, line)]
+pub struct StorageError {
+    pub kind: StorageErrorKind,
+    pub line: u32,
+    pub file: &'static str,  // ✅ &'static str, not String
+}
+```
+
+Do not derive `PartialEq`, `Eq`, `Hash`, `PartialOrd`, `Ord` on wrapper errors (location tracking makes comparison confusing).
+
+---
 
 ## Error Handling
 
-- Use unique error types for different sources to create encapsulation around error conditions for easier isolation.
-  - For specific errors types capturing initial error condition, wrap enums in a struct that include the line and file where the error occurred using the line! and file! macros.
-  - The idiom is to call the enumeration something like MyErrorKind, and the wrapper struct MyError.
-  - The idiom for MyError is to have fields kind, line and file.
-  - Error struct `file` fields should use `&'static str` (not `String`) to match the return type of the `file!()` macro, reducing allocations.
-  - Omit the enum type and kind field when a static message conveys sufficient information, but still include the line and file.
-  - Implement a specific error message in the display impl for each variant of the enum, then wrap this msg in the display impl for the wrapper. E.g. If the display for MyErrorKind is e, then MyError displays "My Error: {e} at line {line} in {file}" so the user can see the whole context.
-  - Use the derive_more crate to implement Display and Error when convenient.
-  - Expand and improve error structs and enums as necessary to capture sufficient information about the error conditions to gain insight into the nature of the problem.
-- After creating a new unique error type, add a variant to the crate level error enum using the new error name as a variant type, including the new error type as a field (e.g. `FormErrorKind::Canvas(CanvasError)`)
-  - Use `#[derive(Debug, derive_more::From)]` on the crate-level error enum to automatically generate From implementations for all error variants.
-  - The display impl for the crate-level enum should forward the impl from the original error (e.g. If the display value of NewError is e, then the display for CrateErrorKind is "{e}").
-  - The display impl for the wrapper struct around the crate-level enum should include the display value of its kind field (e.g. If the display value of CrateErrorKind is e, then CrateError displays "Form Error: {e}").
-- If a function or method returns a single unique error type, use that type. If the body contains more than one error type in its result types, convert the unique error types to the crate level type, and use the crate level error in the return type of the function or method signature.
+### Use derive_more
 
-### Error Handling Example
+Do not write manual `impl Display` or `impl Error` for error types.
+
+Use `derive_more::Display` + `derive_more::Error` on all errors.
+
+Audit checklist:
+
+- ✅ All error structs use `derive_more::Display` with `#[display(...)]`
+- ✅ All error structs use `derive_more::Error`
+- ✅ All ErrorKind variants have `#[display(...)]`
+- ✅ No manual `impl std::fmt::Display`
+- ✅ No manual `impl std::error::Error`
+- ✅ All constructors use `#[track_caller]`
+- ✅ Error `file` fields use `&'static str`
+
+### Pattern 1: Simple Error (message + location)
 
 ```rust
-// Module-level error
-#[derive(Debug, Clone, PartialEq)]
-pub enum CanvasErrorKind {
-    ImageLoad(String),
-    NoFormImageLoaded,
-}
-
-impl std::fmt::Display for CanvasErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CanvasErrorKind::ImageLoad(msg) => write!(f, "Failed to load image: {}", msg),
-            CanvasErrorKind::NoFormImageLoaded => write!(f, "No form image loaded"),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct CanvasError {
-    pub kind: CanvasErrorKind,
+#[derive(Debug, Clone, derive_more::Display, derive_more::Error)]
+#[display("HTTP Error: {} at {}:{}", message, file, line)]
+pub struct HttpError {
+    pub message: String,
     pub line: u32,
     pub file: &'static str,
 }
 
-impl std::fmt::Display for CanvasError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Canvas Error: {} at line {} in {}", self.kind, self.line, self.file)
-    }
-}
-
-impl std::error::Error for CanvasError {}
-
-// Crate-level error
-#[derive(Debug, derive_more::From)]
-pub enum FormErrorKind {
-    Canvas(CanvasError),
-    // ... other variants
-}
-
-impl std::fmt::Display for FormErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            FormErrorKind::Canvas(e) => write!(f, "{}", e),
+impl HttpError {
+    #[track_caller]
+    pub fn new(message: impl Into<String>) -> Self {
+        let loc = std::panic::Location::caller();
+        Self {
+            message: message.into(),
+            line: loc.line(),
+            file: loc.file(),
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct FormError(Box<FormErrorKind>);
-
-impl std::fmt::Display for FormError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Form Error: {}", self.0)
-    }
-}
-
-impl From<CanvasError> for FormError {
-    fn from(err: CanvasError) -> Self {
-        FormError(Box::new(FormErrorKind::from(err)))
     }
 }
 ```
 
+### Pattern 2: ErrorKind Enum
+
+```rust
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+pub enum StorageErrorKind {
+    #[display("Media not found: {}", _0)]
+    NotFound(String),  // Tuple: use _0, _1
+
+    #[display("Hash mismatch: expected {expected}, got {actual}")]
+    HashMismatch { expected: String, actual: String },  // Struct: use names
+}
+```
+
+### Pattern 3: Wrapper (ErrorKind + location)
+
+```rust
+#[derive(Debug, Clone, derive_more::Display, derive_more::Error)]
+#[display("Storage: {} at {}:{}", kind, file, line)]
+pub struct StorageError {
+    pub kind: StorageErrorKind,
+    pub line: u32,
+    pub file: &'static str,
+}
+
+impl StorageError {
+    #[track_caller]
+    pub fn new(kind: StorageErrorKind) -> Self {
+        let loc = std::panic::Location::caller();
+        Self { kind, line: loc.line(), file: loc.file() }
+    }
+}
+```
+
+### Pattern 4: Crate-Level Aggregation
+
+```rust
+#[derive(Debug, derive_more::From, derive_more::Display, derive_more::Error)]
+pub enum CrateErrorKind {
+    #[from(HttpError)]
+    Http(HttpError),
+
+    #[from(StorageError)]
+    Storage(StorageError),
+}
+
+#[derive(Debug, derive_more::Display, derive_more::Error)]
+#[display("Crate Error: {}", _0)]
+pub struct CrateError(Box<CrateErrorKind>);
+
+// Generic blanket From
+impl<T> From<T> for CrateError
+where T: Into<CrateErrorKind>
+{
+    fn from(err: T) -> Self {
+        Self(Box::new(err.into()))
+    }
+}
+```
+
+Reference: See `crates/botticelli_error` for complete implementation.
+
+---
+
+## Logging and Tracing
+
+### Instrumentation
+
+All public functions have `#[instrument]`.
+
+Observability is critical for debugging, performance monitoring, and error tracking. Missing instrumentation is a defect.
+
+```rust
+#[instrument(skip(conn), fields(table_name, limit))]
+pub fn list_content(
+    conn: &mut PgConnection,
+    table_name: &str,
+    limit: i64,
+) -> DatabaseResult<Vec<ContentRow>> {
+    debug!("Querying content table");
+    debug!(sql = %query, "Executing query");
+
+    match result {
+        Ok(rows) => {
+            debug!(count = rows.len(), "Retrieved rows");
+            Ok(rows)
+        }
+        Err(e) => {
+            error!(error = ?e, "Query failed");
+            Err(e.into())
+        }
+    }
+}
+```
+
+### Instrumentation Requirements
+
+All public functions:
+
+1. Use `#[instrument]` for automatic span creation
+2. Skip large params: `skip(connection, data)`
+3. Include context: `fields(table_name, limit)`
+4. Emit events at key points (debug/info/warn/error)
+5. Log SQL at debug level
+6. Track errors before returning
+
+### Log Levels
+
+- `trace!()` - Loop iterations, fine-grained detail
+- `debug!()` - Function entry/exit, state changes, SQL
+- `info!()` - Major events, initialization
+- `warn!()` - Recoverable unusual conditions
+- `error!()` - Errors requiring investigation
+
+### Structured Logging
+
+```rust
+debug!(count = items.len(), "Processing");        // Field
+debug!(value = ?self.field(), "State");          // Debug format
+info!(table = %table_name, "Creating");          // Display format
+#[instrument(skip(connection, large_json))]     // Skip large data
+```
+
+### Audit Checklist
+
+- ✅ Every public function has `#[instrument]`
+- ✅ Span fields include context (IDs, counts)
+- ✅ Large structures skipped
+- ✅ Key operations emit events
+- ✅ Errors logged before return
+- ✅ SQL at debug level
+- ✅ Span names follow `module.function`
+
+### Why Tracing Matters for AI Development
+
+Without tracing:
+
+```
+Human: "Bot command failed"
+AI: "Run with RUST_LOG=debug"
+Human: <500 lines>
+AI: "Check guild_id?"
+Human: "Oh, forgot that"
+```
+
+Result: 3+ messages, 10+ minutes
+
+With tracing:
+
+```
+Human: "Bot command failed"
+Human: <5 lines>
+ERROR discord.execute: Missing arg command="server.get_stats" missing_arg="guild_id"
+AI: "Add guild_id = '123456' to TOML [bot.args]"
+```
+
+Result: 1 message, instant fix
+
+Benefits:
+
+- Location tracking → AI jumps to code
+- Structured fields → AI sees exact problem
+- Spans → AI understands which layer failed
+- Error context → AI knows what was attempted
+- Performance data → AI diagnoses slowness
+- Cache observability → AI debugs stale data
+
+Design principle: Write traces for an AI reader. Ask: "Would this single trace give enough info to diagnose?"
+
+---
+
+## Testing
+
+### No Inline Test Modules
+
+`#[cfg(test)] mod tests` in source files is not allowed.
+
+All tests go in `tests/` directory.
+
+Rationale: Centralized tests, easier to maintain, no source file clutter
+
+Audit: Flag any `#[cfg(test)]` or `mod tests` in source as violations
+
+### Test Organization
+
+Naming: `{module}_{component}_test.rs`
+
+- Examples: `storage_filesystem_test.rs`, `narrative_executor_test.rs`
+
+Imports: Use crate-level exports
+
+```rust
+use botticelli::{Type, OtherType};  // ✅ Crate-level
+// NOT: use botticelli::module::Type;
+```
+
+Independence: Self-contained, no inter-test dependencies
+
+Helpers: Create within test files to reduce duplication
+
+### API Rate Limit Conservation
+
+Design tests to minimize:
+
+- Tokens: Minimal prompts, low `max_tokens` (e.g., 10)
+- Requests: Fewest calls possible (1-3, not 20+)
+- Time: Short duration
+
+Feature gating:
+
+```rust
+#[test]
+#[cfg_attr(not(feature = "api"), ignore)]
+fn test_gemini_api() {
+    // Uses API tokens
+}
+```
+
+Run with: `just test-api`
+
+Do not use `#[ignore]` - reserved for:
+
+- Unimplemented features
+- Broken tests needing fixes
+- Temporarily disabled during refactoring
+
+Consider:
+
+- Mocking API responses
+- Separate "expensive" test suite with warnings
+- Local test doubles
+
+---
+
 ## Module Organization
 
-- When a module file exceeds ~500-1000 lines, consider splitting it into a module directory with focused submodules organized by responsibility (e.g., core, io, tools, rendering).
-- Create a mod.rs file to re-export the public API and keep internal organization private.
-- Export types from lib.rs at the crate level, then import them using `use crate::{Type}` in any modules that need them. This provides a single, consistent import path throughout the codebase.
-- Add helper methods (setters, mut accessors) to core structs for clean cross-module communication instead of directly accessing fields.
+### Rules
 
-## Common Refactoring Patterns
+lib.rs: Only `mod` and `pub use` statements. No type definitions, traits, or impl blocks.
 
-- **State Machine Extraction**: When multiple boolean flags represent mutually exclusive states, extract them into an enum state machine to prevent invalid state combinations.
-- **Borrow Checker**: When encountering borrow checker errors with simultaneous immutable and mutable borrows, extract needed values before taking mutable references (e.g., `let value = *self.field(); /* then mutably borrow */`).
+Module declarations: Private (not `pub mod`)
+
+Crate-level exports: Re-export all public types at crate root
+
+Imports: Always `use crate::{Type}`, never `use crate::module::Type` or `super::Type`
+
+### Structure Example
+
+```rust
+// src/lib.rs (✅ ONLY mod + pub use)
+mod error;
+mod models;
+
+pub use error::{MyError, MyResult};
+pub use models::{Model, NewModel};
+
+// src/models.rs
+use crate::{MyError, MyResult};  // ✅ Crate-level imports
+
+pub struct Model { /* ... */ }
+```
+
+### When to Split Modules
+
+Guideline: When file exceeds ~500-1000 lines
+
+Structure:
+
+```
+src/mymodule/
+├── mod.rs           # ONLY mod + pub use
+├── core.rs
+├── io.rs
+└── helpers.rs       # Internal, not exported
+```
+
+mod.rs pattern:
+
+```rust
+mod core;
+mod io;
+mod helpers;  // Internal
+
+pub use core::{Type1, Type2};
+pub use io::{Reader, Writer};
+// helpers not exported
+```
+
+### Import Patterns
+
+Crate-level types:
+
+```rust
+use crate::{Type1, Type2};  // ✅ Always
+```
+
+Internal helpers:
+
+```rust
+use crate::module::helper::function;     // ✅ OK for internal
+use crate::database::schema::users;       // ✅ OK for schema
+```
+
+Forbidden:
+
+```rust
+use crate::module::Type;  // ❌ Module path
+use super::Type;          // ❌ Super path
+use module::*;            // ❌ Wildcard
+```
+
+### Benefits
+
+1. Single import path per type
+2. No ambiguity
+3. Hidden internal structure
+4. Easy refactoring
+5. Better IDE support
+
+---
+
+## Workspace Organization
+
+### lib.rs in Workspace Crates
+
+lib.rs only contains `mod` declarations and `pub use` exports.
+
+Even small crates (100-200 lines) should separate into modules:
+
+```
+crates/my_crate/src/
+├── lib.rs       # mod + pub use only
+├── role.rs
+├── input.rs
+└── output.rs
+```
+
+### No Re-Exports Between Workspace Crates
+
+Forbidden:
+
+```rust
+// crates/botticelli_database/src/lib.rs
+pub use botticelli_error::DatabaseError;  // ❌ Creates ambiguity
+
+// Now users have two import paths:
+use botticelli_error::DatabaseError;      // Source
+use botticelli_database::DatabaseError;   // Re-exported ❌
+```
+
+Required:
+
+```rust
+// crates/botticelli_database/src/lib.rs
+// NO re-exports of dependency types
+
+// Users import from source:
+use botticelli_database::Repository;   // Database's own types
+use botticelli_error::DatabaseError;  // Error from error crate
+```
+
+Rationale:
+
+- Creates ambiguity (two paths to same type)
+- Breaks "single import path" principle
+- Makes refactoring difficult
+- IDE confusion
+- Unclear ownership
+
+Type aliases OK:
+
+```rust
+use botticelli_error::DatabaseError;
+
+/// Convenience alias for database results.
+pub type DatabaseResult<T> = Result<T, DatabaseError>;  // ✅ Alias OK
+```
+
+Exception: Only top-level binary/library crate may re-export for user convenience:
+
+```rust
+// crates/botticelli/src/lib.rs (top-level only)
+pub use botticelli_core::{Role, Input};
+pub use botticelli_error::BotticelliError;
+// Internal crates NEVER re-export from each other
+```
+
+### Module Responsibilities
+
+One clear responsibility per module:
+
+- Single type (simple case)
+- Related types (common case - e.g., enum + helper struct)
+- Shared dependencies (used by multiple modules)
+
+### Import Patterns in Workspace
+
+Same rules as single crates:
+
+```rust
+use crate::{Type};           // ✅ Crate-level
+// NOT: use crate::module::Type;
+```
+
+Cross-crate imports:
+
+```rust
+use other_crate::{Type};     // ✅ Direct from source crate
+```
+
+---
+
+## Serialization
+
+Derive: `Serialize`, `Deserialize` for persisted/transmitted types
+
+Attributes:
+
+- `#[serde(skip)]` - Runtime state, caches, UI state, handles
+- `#[serde(default)]` - Use `Default` when missing
+- `#[serde(default = "fn_name")]` - Custom default
+- `#[serde(rename = "name")]` - Different serialized name
+
+Group skipped fields:
+
+```rust
+// Runtime state (not serialized)
+#[serde(skip)]
+cache: HashMap<K, V>,
+#[serde(skip)]
+texture: TextureHandle,
+```
+
+Complex needs: Implement custom `Serialize`/`Deserialize`
+
+---
+
+## Feature Flags
+
+Usage: `#[cfg(feature = "feature-name")]`
+
+Documentation: `/// Available with the`feature-name`feature.`
+
+Available features:
+
+- `backend-eframe` - eframe/wgpu (default)
+- `text-detection` - OpenCV text detection
+- `logo-detection` - OpenCV logo detection
+- `ocr` - Tesseract OCR
+- `dev` - All optional features
+- `api` - Empty marker for API tests
+
+Verification:
+
+```bash
+cargo check --no-default-features    # Without optionals
+cargo check --all-features           # All together
+just check-features                  # All combinations
+```
+
+---
+
+## Linting
+
+### Never Use `#[allow]`
+
+Never use `#[allow(dead_code)]` or any `#[allow(...)]` directive. Fix the root cause instead.
+
+Why this matters:
+
+- `dead_code` warnings expose missing `#[cfg(feature)]` gates
+- Unused code = design problem or missing functionality
+- Each `allow` postpones a real problem
+
+Fix it properly:
+
+```rust
+// ❌ Never do this
+#[allow(dead_code)]
+field: String,
+
+// ✅ Add feature gate
+#[cfg(feature = "database")]
+field: String,
+
+// ✅ Or add getter to use it
+pub fn field(&self) -> &str { &self.field }
+```
+
+Solutions (in order):
+
+1. **Feature gate the code**: `#[cfg(feature = "...")]` if truly conditional
+2. **Make it public with getters**: Expose via proper encapsulation
+3. **Use `pub(crate)`**: Limit visibility appropriately
+4. **Delete it**: If genuinely unused, remove it
+
+#### No Exceptions
+
+**Never use `#[allow]` directives.** If you think you need one, you're solving the wrong problem. Fix the root cause instead.
+
+#### Why This Keeps Happening
+
+AI systems operate on probabilistic pattern matching, not deterministic rules. `#[allow(dead_code)]` appears frequently in Rust training data, creating strong learned associations. This documentation shifts probability distributions but cannot guarantee compliance - the AI will still reach for anti-patterns when trained heuristics dominate.
+
+**Human review is critical:**
+
+- Search for `#[allow` in diffs - reject any occurrence
+- Run `just check-features` to catch hidden feature gate issues
+- Verify `#[cfg]` usage over suppression
+- The AI's decisions blend: training data (strongest), project docs, immediate context, statistical patterns
+
+No amount of documentation creates "hard rules" in probabilistic systems.
+
+### Workflow
+
+- Let linter complete (don't deny all warnings immediately)
+- Fix all issues in single pass - address root causes, never add `#[allow]`
+- After markdown edits: `markdownlint-cli2` (not `markdownlint`)
+- Don't run cargo clippy/test after markdown-only changes
+
+---
+
+## Documentation
+
+Style: `///` for items, `//!` for modules
+
+Required: All public items (enforced by `#![warn(missing_docs)]`)
+
+Content:
+
+- **What** (concise first line)
+- **Why** (when non-obvious)
+- **Parameters/returns** (when not obvious from types)
+- **Examples** (complex APIs)
+- **Errors** (Result-returning functions)
+
+Keep concise - avoid stating the obvious from signature
+
+---
+
+## Dependency Versions
+
+In Cargo.toml:
+
+- `>=1.0` → `"x"` (major only)
+- `>=0.1.0` → `"x.y"` (major.minor)
+- `<0.1.0` → `"x.y.z"` (full version)
+
+Before testing: `cargo update` (update Cargo.lock)
+
+---
+
+## Justfile Maintenance
+
+First-class document: Maintain alongside code changes
+
+Forcing function principle: Always reference `just` recipes in instructions, never raw `cargo` commands. If the justfile is required for basic workflow, it must stay current.
+
+When to update:
+
+- New workflows/tools → add recipes
+- Changed dependencies/flags → update recipes
+- New linters → add check recipes
+- Build optimizations → update recipes
+- CI/CD changes → sync justfile
+
+Test recipes after changes
+
+---
+
+## Common Patterns
+
+State machine extraction: Multiple booleans representing mutually exclusive states → extract to enum
+
+Borrow checker: Simultaneous immutable/mutable borrows → extract needed values before mutable borrow:
+
+```rust
+let value = *self.field();  // Extract first
+self.mutate();              // Then mutably borrow
+```
+
+---
 
 ## Unsafe
 
-- Use the forbid unsafe lint at the top level of lib.rs to prevent unsafe code.
+Forbidden: Use `#![forbid(unsafe_code)]` in `lib.rs`
+
+---
+
+## Commit Best Practices
+
+When to commit:
+
+- Only when user explicitly requests
+- After all checks pass
+- All tests passing, zero warnings
+
+Commit message format:
+
+```bash
+git commit -m "$(cat <<'EOF'
+type(scope): Brief description
+
+Detailed explanation of what and why.
+
+Key changes:
+- Bullet point 1
+- Bullet point 2
+
+Testing:
+- Test coverage details
+
+Files modified:
+- path/to/file.rs - what changed
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+EOF
+)"
+```
+
+Git safety:
+
+- Never update git config
+- Never destructive commands (force push, hard reset) unless explicit
+- Never skip hooks (--no-verify) unless explicit
+- Never force push to main/master
+- Check authorship before amend: `git log -1 --format='%an %ae'`
+
+---
+
+## Release Management
+
+### cargo-dist
+
+Files:
+
+- `dist-workspace.toml` - config
+- `.github/workflows/release.yml` - auto-generated
+
+Commands:
+
+```bash
+just dist-build     # Build artifacts
+just dist-check     # Verify without upload
+just dist-plan      # Preview release
+just dist-generate  # Update CI workflow
+```
+
+Process:
+
+1. Update version in `Cargo.toml`
+2. `just dist-plan`
+3. `just pre-release`
+4. Create/push tag (e.g., `v0.1.0`)
+5. GitHub Actions publishes
+
+### Supply Chain Security
+
+```bash
+just audit       # Check vulnerabilities
+just omnibor     # Generate artifact tree
+just security    # All checks
+```
+
+Before release:
+
+- `just security`
+- Update deps: `just update-deps`
+- Re-run full test suite
+
+---
+
+## Summary
+
+Top priorities:
+
+1. ✅ Fix all issues before commit
+2. ✅ All public functions instrumented
+3. ✅ Use derive_more for all errors
+4. ✅ Always use builders, never literals
+5. ✅ Tests in `tests/`, never inline
+6. ✅ lib.rs only has mod + pub use
+7. ✅ Import as `use crate::{Type}`
+8. ✅ No re-exports between workspace crates

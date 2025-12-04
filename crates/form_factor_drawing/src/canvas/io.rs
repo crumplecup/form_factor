@@ -12,7 +12,9 @@
 use super::core::{CanvasError, CanvasErrorKind, DrawingCanvas};
 use crate::{LayerType, RecentProjects};
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
-use crate::{Rectangle, Shape};
+use crate::Rectangle;
+#[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
+use crate::Shape;
 #[cfg(feature = "text-detection")]
 use form_factor_cv::TextDetector;
 #[cfg(feature = "logo-detection")]
@@ -21,7 +23,7 @@ use form_factor_cv::LogoDetector;
 use egui::{Color32, Pos2, Stroke};
 use std::path::PathBuf;
 use tracing::{debug, instrument, warn};
-#[cfg(any(feature = "text-detection", feature = "logo-detection"))]
+#[cfg(feature = "ocr")]
 use tracing::trace;
 
 impl DrawingCanvas {
@@ -297,8 +299,6 @@ impl DrawingCanvas {
         image_path: &str,
         shape: &Shape,
     ) -> Result<form_factor_ocr::OCRResult, CanvasError> {
-        use crate::Shape;
-
         // Get bounding box of the shape in image pixel coordinates
         let bbox = match shape {
             Shape::Rectangle(rect) => {

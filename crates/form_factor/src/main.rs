@@ -1,17 +1,20 @@
-//! Example application demonstrating the backend-agnostic architecture
+//! Form Factor - GUI application for tagging scanned forms with OCR metadata
 
-use form_factor::{App, AppContext, Backend, BackendConfig, DrawingCanvas, EframeBackend};
+use form_factor::{App, AppContext, DrawingCanvas};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
+#[cfg(feature = "backend-eframe")]
+use form_factor::{Backend, BackendConfig, EframeBackend};
+
 /// Main application struct
-struct DemoApp {
+struct FormFactorApp {
     name: String,
     canvas: DrawingCanvas,
     #[cfg(feature = "plugins")]
     plugin_manager: form_factor::PluginManager,
 }
 
-impl DemoApp {
+impl FormFactorApp {
     fn new() -> Self {
         #[cfg(feature = "plugins")]
         let plugin_manager = {
@@ -59,7 +62,7 @@ impl DemoApp {
     }
 }
 
-impl App for DemoApp {
+impl App for FormFactorApp {
     fn setup(&mut self, ctx: &egui::Context) {
         // Try to load the most recent project (defers image loading)
         match self.canvas.load_recent_on_startup(ctx) {
@@ -367,12 +370,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     tracing::info!("Starting Form Factor application");
 
-    let app = Box::new(DemoApp::new());
-    let config = BackendConfig::default();
-
     // Run with the backend specified by feature flags
     #[cfg(feature = "backend-eframe")]
     {
+        let app = Box::new(FormFactorApp::new());
+        let config = BackendConfig::default();
         tracing::info!("Using eframe backend");
         EframeBackend::run(app, config)?;
     }
@@ -380,10 +382,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Miniquad backend support - ready for when egui-miniquad updates to egui 0.33+
     // #[cfg(all(feature = "backend-miniquad", not(feature = "backend-eframe")))]
     // {
-    //     use form_factor::backends::miniquad_backend::MiniquadBackend;
-    //     println!("Starting application with miniquad backend...");
+    //     let app = Box::new(FormFactorApp::new());
+    //     let config = BackendConfig::default();
+    //     tracing::info!("Using miniquad backend");
     //     MiniquadBackend::run(app, config)?;
     // }
+
+    #[cfg(not(any(feature = "backend-eframe")))]
+    {
+        compile_error!("At least one backend feature must be enabled (backend-eframe)");
+    }
 
     Ok(())
 }
