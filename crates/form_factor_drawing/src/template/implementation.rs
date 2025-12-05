@@ -268,7 +268,7 @@ pub struct DrawingTemplateBuilder {
     name: Option<String>,
     version: Option<String>,
     description: Option<String>,
-    pages: Vec<TemplatePage>,
+    pub(crate) pages: Vec<TemplatePage>,
     metadata: HashMap<String, String>,
 }
 

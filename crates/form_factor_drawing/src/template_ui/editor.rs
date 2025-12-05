@@ -9,7 +9,37 @@ use tracing::{debug, info, instrument};
 /// Template editor panel.
 #[derive(Debug)]
 pub struct TemplateEditorPanel {
-    state: TemplateEditorState,
+    pub(super) state: TemplateEditorState,
+    /// Drawing state for creating new fields
+    pub(super) drawing_state: Option<DrawingState>,
+    /// Drag state for moving/resizing fields
+    pub(super) drag_state: Option<DragOperation>,
+}
+
+/// State while drawing a new field.
+#[derive(Debug, Clone)]
+pub(super) struct DrawingState {
+    pub(super) start_pos: Pos2,
+    pub(super) current_pos: Pos2,
+}
+
+/// Active drag operation.
+#[derive(Debug, Clone)]
+pub(super) struct DragOperation {
+    pub(super) field_index: usize,
+    pub(super) operation_type: DragOperationType,
+    pub(super) start_pos: Pos2,
+    pub(super) original_bounds: form_factor_core::FieldBounds,
+}
+
+/// Type of drag operation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(super) enum DragOperationType {
+    Move,
+    ResizeTopLeft,
+    ResizeTopRight,
+    ResizeBottomLeft,
+    ResizeBottomRight,
 }
 
 impl Default for TemplateEditorPanel {
@@ -23,6 +53,8 @@ impl TemplateEditorPanel {
     pub fn new() -> Self {
         Self {
             state: TemplateEditorState::new(),
+            drawing_state: None,
+            drag_state: None,
         }
     }
 
@@ -167,24 +199,44 @@ impl TemplateEditorPanel {
             // Draw background
             painter.rect_filled(canvas_rect, 0.0, Color32::from_gray(240));
 
+            // Handle keyboard input
+            ui.input(|i| {
+                if i.key_pressed(egui::Key::Delete) {
+                    if let Some(selected_idx) = self.state.selected_field() {
+                        self.delete_field(selected_idx, current_page);
+                        debug!(field_index = selected_idx, "Field deleted");
+                    }
+                }
+            });
+
+            // Handle mouse interactions based on mode
+            match self.state.mode() {
+                EditorMode::Draw => {
+                    self.handle_draw_mode(&response, &painter, canvas_rect, current_page);
+                }
+                EditorMode::Select => {
+                    self.handle_select_mode(&response, &fields, canvas_rect, current_page);
+                }
+                EditorMode::Edit => {
+                    // Edit mode just selects for now (properties panel in Priority 4)
+                    self.handle_select_mode(&response, &fields, canvas_rect, current_page);
+                }
+            }
+
             // Render field overlays
             for (index, field) in fields.iter().enumerate() {
                 let is_selected = self.state.selected_field() == Some(index);
                 self.render_field(field, &painter, canvas_rect, is_selected);
+
+                // Show resize handles for selected field in Select mode
+                if is_selected && self.state.mode() == EditorMode::Select {
+                    self.render_resize_handles(field, &painter, canvas_rect);
+                }
             }
 
-            // Handle selection clicks
-            if response.clicked() {
-                if let Some(click_pos) = response.interact_pointer_pos() {
-                    let selected = self.find_field_at_position(click_pos, &fields, canvas_rect);
-                    self.state.set_selected_field(selected);
-
-                    if let Some(idx) = selected {
-                        debug!(field_index = idx, "Field selected");
-                    } else {
-                        debug!("Deselected all fields");
-                    }
-                }
+            // Render drawing preview
+            if let Some(drawing) = &self.drawing_state {
+                self.render_drawing_preview(drawing, &painter);
             }
 
             // Show field count
@@ -246,7 +298,7 @@ impl TemplateEditorPanel {
     }
 
     /// Finds the field at the given position.
-    fn find_field_at_position(
+    pub(super) fn find_field_at_position(
         &self,
         pos: Pos2,
         fields: &[FieldDefinition],

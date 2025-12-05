@@ -2,6 +2,7 @@
 
 mod editor;
 mod manager;
+mod manipulation;
 mod state;
 
 pub use editor::{EditorAction, TemplateEditorPanel};
