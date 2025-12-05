@@ -3,6 +3,7 @@
 use crate::{LayerManager, LayerType, Shape, ToolMode};
 use derive_getters::Getters;
 use egui::{Color32, Pos2, Stroke};
+use form_factor_core::FieldDefinition;
 use serde::{Deserialize, Serialize};
 
 /// Default zoom level for new canvases
@@ -128,6 +129,9 @@ pub enum DetectionSubtype {
 /// Drawing canvas state
 #[derive(Clone, Serialize, Deserialize, Getters)]
 pub struct DrawingCanvas {
+    /// File format version (for migration compatibility)
+    #[serde(default)]
+    pub(super) version: u32,
     /// Project name
     pub(super) project_name: String,
     /// All completed shapes
@@ -140,6 +144,8 @@ pub struct DrawingCanvas {
     pub(super) layer_manager: LayerManager,
     /// Path to the loaded form image (for serialization)
     pub(super) form_image_path: Option<String>,
+    /// Template ID for this canvas (if associated with a template)
+    pub(super) template_id: Option<String>,
 
     // Interaction state (not serialized)
     /// Current user interaction state (drawing, rotating, etc.)
@@ -211,12 +217,14 @@ pub struct DrawingCanvas {
 impl Default for DrawingCanvas {
     fn default() -> Self {
         Self {
+            version: 1, // Version 1 = legacy single-page format
             project_name: String::from("Untitled"),
             shapes: Vec::new(),
             detections: Vec::new(),
             current_tool: ToolMode::default(),
             layer_manager: LayerManager::new(),
             form_image_path: None,
+            template_id: None,
             state: CanvasState::default(),
             selected_shape: None,
             selected_layer: None,
@@ -280,6 +288,11 @@ impl DrawingCanvas {
     /// Set the project name
     pub fn set_project_name(&mut self, name: impl Into<String>) {
         self.project_name = name.into();
+    }
+
+    /// Set the template ID for this canvas
+    pub fn set_template_id(&mut self, template_id: Option<String>) {
+        self.template_id = template_id;
     }
 
     /// Get a mutable reference to the layer manager
@@ -394,6 +407,60 @@ impl DrawingCanvas {
     /// Set the current tool mode
     pub fn set_tool(&mut self, tool: ToolMode) {
         self.current_tool = tool;
+    }
+
+    /// Snap a position to the nearest field edge if within threshold
+    ///
+    /// Checks if the given position is within the snap threshold distance from any
+    /// field edge. If so, returns the snapped position. Otherwise returns the original position.
+    ///
+    /// # Arguments
+    ///
+    /// * `pos` - Position to snap (in image pixel coordinates)
+    /// * `fields` - Field definitions to snap to
+    /// * `threshold` - Snap threshold distance in pixels (default: 10.0)
+    ///
+    /// # Returns
+    ///
+    /// The snapped position if within threshold, otherwise the original position
+    pub fn snap_to_field(&self, pos: Pos2, fields: &[FieldDefinition], threshold: f32) -> Pos2 {
+        let mut snapped_x = pos.x;
+        let mut snapped_y = pos.y;
+        let mut min_x_dist = threshold;
+        let mut min_y_dist = threshold;
+
+        // Check each field for snapping opportunities
+        for field in fields {
+            let bounds = &field.bounds;
+
+            // Check horizontal edges (top and bottom)
+            let y_top_dist = (pos.y - bounds.y).abs();
+            let y_bottom_dist = (pos.y - (bounds.y + bounds.height)).abs();
+
+            if y_top_dist < min_y_dist {
+                min_y_dist = y_top_dist;
+                snapped_y = bounds.y;
+            }
+            if y_bottom_dist < min_y_dist {
+                min_y_dist = y_bottom_dist;
+                snapped_y = bounds.y + bounds.height;
+            }
+
+            // Check vertical edges (left and right)
+            let x_left_dist = (pos.x - bounds.x).abs();
+            let x_right_dist = (pos.x - (bounds.x + bounds.width)).abs();
+
+            if x_left_dist < min_x_dist {
+                min_x_dist = x_left_dist;
+                snapped_x = bounds.x;
+            }
+            if x_right_dist < min_x_dist {
+                min_x_dist = x_right_dist;
+                snapped_x = bounds.x + bounds.width;
+            }
+        }
+
+        Pos2::new(snapped_x, snapped_y)
     }
 
     // Testing helper methods

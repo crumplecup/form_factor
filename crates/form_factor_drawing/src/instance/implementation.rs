@@ -12,6 +12,10 @@ use std::collections::HashMap;
 /// Each page wraps a DrawingCanvas containing shapes, detections, and image data.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DrawingInstance {
+    /// File format version (for migration compatibility)
+    #[serde(default = "default_instance_version")]
+    version: u32,
+
     /// Template ID this instance is based on
     template_id: String,
 
@@ -32,6 +36,11 @@ pub struct DrawingInstance {
     metadata: HashMap<String, String>,
 }
 
+/// Default version for DrawingInstance format
+fn default_instance_version() -> u32 {
+    2 // Version 2 = multi-page instance format
+}
+
 impl DrawingInstance {
     /// Create a new instance from a template ID
     ///
@@ -41,9 +50,25 @@ impl DrawingInstance {
         let pages = (0..page_count).map(FormPage::new).collect();
 
         Self {
+            version: default_instance_version(),
             template_id: template_id.into(),
             instance_name: None,
             pages,
+            field_values: HashMap::new(),
+            validation_results: None,
+            metadata: HashMap::new(),
+        }
+    }
+
+    /// Create an instance from a single page (for legacy migration)
+    ///
+    /// This is primarily used for migrating legacy single-page projects.
+    pub fn from_single_page(template_id: impl Into<String>, page: FormPage) -> Self {
+        Self {
+            version: default_instance_version(),
+            template_id: template_id.into(),
+            instance_name: None,
+            pages: vec![page],
             field_values: HashMap::new(),
             validation_results: None,
             metadata: HashMap::new(),
@@ -215,11 +240,7 @@ impl FormPage {
     /// Load an image for this page
     ///
     /// Loads the image into the canvas and stores the path.
-    pub fn load_image(
-        &mut self,
-        path: &str,
-        ctx: &egui::Context,
-    ) -> Result<(), CanvasError> {
+    pub fn load_image(&mut self, path: &str, ctx: &egui::Context) -> Result<(), CanvasError> {
         self.canvas.load_form_image(path, ctx)?;
         self.image_path = Some(path.to_string());
         Ok(())

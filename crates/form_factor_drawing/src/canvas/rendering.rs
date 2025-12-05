@@ -9,10 +9,12 @@
 //! - Property panels and settings UI
 //! - Vertex editing handles
 //! - Coordinate transformation utilities
+//! - Template field overlay rendering
 
 use super::core::DrawingCanvas;
 use crate::{LayerType, Shape, ToolMode};
 use egui::{Color32, Pos2, Stroke};
+use form_factor_core::FieldDefinition;
 use geo::CoordsIter;
 use tracing::{debug, trace, warn};
 
@@ -1111,6 +1113,81 @@ impl DrawingCanvas {
                         Shape::Polygon(poly.clone())
                     })
             }
+        }
+    }
+
+    /// Render template field overlays
+    ///
+    /// Renders field bounds as semi-transparent rectangles with labels.
+    /// Fields are rendered in image coordinates and transformed to canvas space.
+    ///
+    /// # Arguments
+    ///
+    /// * `fields` - Field definitions to render
+    /// * `painter` - egui painter for rendering
+    /// * `canvas_rect` - Canvas rectangle for coordinate transformation
+    /// * `transform` - Zoom/pan transformation
+    pub fn render_field_overlays(
+        &self,
+        fields: &[FieldDefinition],
+        painter: &egui::Painter,
+        canvas_rect: egui::Rect,
+        transform: &egui::emath::TSTransform,
+    ) {
+        // Only render if we have an image loaded (fields are in image coordinates)
+        let Some(image_size) = self.form_image_size else {
+            return;
+        };
+
+        // Calculate the image-to-canvas coordinate transform (same as detections/shapes)
+        let canvas_size = canvas_rect.size();
+        let scale_x = canvas_size.x / image_size.x;
+        let scale_y = canvas_size.y / image_size.y;
+        let scale = scale_x.min(scale_y);
+        let fitted_size = image_size * scale;
+        let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
+        let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
+        let image_offset = canvas_rect.min + egui::vec2(offset_x, offset_y);
+
+        // Render each field
+        for field in fields {
+            let bounds = &field.bounds;
+
+            // Convert field bounds from image coordinates to canvas coordinates
+            let min = Pos2::new(
+                bounds.x * scale + image_offset.x,
+                bounds.y * scale + image_offset.y,
+            );
+            let max = Pos2::new(
+                (bounds.x + bounds.width) * scale + image_offset.x,
+                (bounds.y + bounds.height) * scale + image_offset.y,
+            );
+
+            // Apply zoom/pan transformation
+            let transformed_min = transform.mul_pos(min);
+            let transformed_max = transform.mul_pos(max);
+            let field_rect = egui::Rect::from_min_max(transformed_min, transformed_max);
+
+            // Draw field bounds as semi-transparent rectangle
+            let field_color = Color32::from_rgba_premultiplied(100, 200, 100, 50);
+            let field_stroke = Stroke::new(2.0, Color32::from_rgb(50, 150, 50));
+            painter.rect(
+                field_rect,
+                0.0,
+                field_color,
+                field_stroke,
+                egui::StrokeKind::Outside,
+            );
+
+            // Draw field label
+            let label_pos = transformed_min + egui::vec2(4.0, 2.0);
+            painter.text(
+                label_pos,
+                egui::Align2::LEFT_TOP,
+                &field.label,
+                egui::FontId::proportional(12.0),
+                Color32::from_rgb(20, 80, 20),
+            );
         }
     }
 }

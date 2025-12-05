@@ -33,6 +33,10 @@ pub enum InstanceErrorKind {
 
     /// Invalid instance structure
     InvalidInstance(String),
+
+    /// OCR extraction failed
+    #[cfg(feature = "ocr")]
+    OCRFailed(String),
 }
 
 impl std::fmt::Display for InstanceErrorKind {
@@ -52,6 +56,8 @@ impl std::fmt::Display for InstanceErrorKind {
             InstanceErrorKind::ValidationFailed(msg) => write!(f, "Validation failed: {}", msg),
             InstanceErrorKind::IoError(msg) => write!(f, "I/O error: {}", msg),
             InstanceErrorKind::InvalidInstance(msg) => write!(f, "Invalid instance: {}", msg),
+            #[cfg(feature = "ocr")]
+            InstanceErrorKind::OCRFailed(msg) => write!(f, "OCR extraction failed: {}", msg),
         }
     }
 }

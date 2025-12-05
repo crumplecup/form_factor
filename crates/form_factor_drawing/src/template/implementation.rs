@@ -184,10 +184,7 @@ impl FormTemplate for DrawingTemplate {
                         {
                             result.add_field_error(FieldValidationError::new(
                                 &field_def.id,
-                                format!(
-                                    "Value '{}' does not match pattern {}",
-                                    text, pattern
-                                ),
+                                format!("Value '{}' does not match pattern {}", text, pattern),
                                 ValidationErrorType::PatternMismatch,
                             ));
                         }

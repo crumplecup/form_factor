@@ -24,7 +24,10 @@ mod tool;
 
 pub use canvas::{CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas};
 pub use error::{FormError, FormErrorKind};
-pub use instance::{DrawingInstance, FormPage, InstanceError, InstanceErrorKind};
+pub use instance::{
+    DrawingInstance, FormPage, InstanceError, InstanceErrorKind, LEGACY_TEMPLATE_ID, ProjectFormat,
+    migrate_canvas_to_instance,
+};
 pub use layer::{Layer, LayerError, LayerManager, LayerType};
 pub use recent_projects::RecentProjects;
 pub use shape::{
