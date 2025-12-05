@@ -20,6 +20,7 @@ mod layer;
 mod recent_projects;
 mod shape;
 pub mod template;
+pub mod template_ui;
 mod tool;
 
 pub use canvas::{CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas};
@@ -36,5 +37,8 @@ pub use shape::{
 pub use template::{
     DrawingTemplate, DrawingTemplateBuilder, TemplateError, TemplateErrorKind, TemplatePage,
     TemplatePageBuilder, TemplateRegistry,
+};
+pub use template_ui::{
+    EditorMode, TemplateEditorState, TemplateManagerPanel, TemplateManagerState,
 };
 pub use tool::ToolMode;

@@ -262,7 +262,7 @@ impl TemplatePage {
 /// Builder for DrawingTemplate
 ///
 /// Provides a fluent API for constructing templates.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct DrawingTemplateBuilder {
     id: Option<String>,
     name: Option<String>,
