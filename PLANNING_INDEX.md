@@ -11,9 +11,10 @@ This index tracks all planning documents in the workspace. When documents are co
 ## Active Planning Documents
 
 ### Template/Instance System
-- **TEMPLATE_SYSTEM_PLAN.md** - `current` (2025-12-04)
-  - Strategic planning document for template/instance system implementation
-  - Multi-page support, shape extraction, migration strategy
+- **TEMPLATE_UI_PLAN.md** - `current` (2025-12-05)
+  - Visual template editor implementation plan
+  - Template manager panel, drag-and-drop field placement, property editor
+  - Supersedes Priority 5 from TEMPLATE_SYSTEM_PLAN
 
 ## Development Guidelines
 
@@ -47,7 +48,11 @@ This index tracks all planning documents in the workspace. When documents are co
 
 *These documents have been deleted from the workspace but remain in git history. View with `git show <commit>:<path>`*
 
-*(No archived documents yet)*
+### Template/Instance System (Completed)
+- **TEMPLATE_SYSTEM_PLAN.md** - `1cb1717` (2025-12-05)
+  - Strategic planning document for template/instance system implementation
+  - Priorities 1-4 completed: Template builder, field extraction, canvas integration, legacy migration
+  - Priority 5 (Template UI) expanded into separate planning document
 
 ## Document Categories Summary
 
@@ -55,9 +60,9 @@ This index tracks all planning documents in the workspace. When documents are co
 - **Development Guidelines**: 1 document
 - **Build & Workspace**: 2 documents
 - **Feature Guides**: 4 documents
-- **Archived**: 0 documents
+- **Archived**: 1 document
 
-**Total**: 8 markdown documents tracked (8 active, 0 archived)
+**Total**: 9 markdown documents tracked (8 active, 1 archived)
 
 ---
 
