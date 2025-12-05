@@ -136,8 +136,8 @@ impl TemplateManagerPanel {
         });
 
         // Delete confirmation dialog
-        if self.state.is_showing_delete_confirm() {
-            if let Some(template_id) = self.state.pending_delete() {
+        if self.state.is_showing_delete_confirm()
+            && let Some(template_id) = self.state.pending_delete() {
                 let template_id = template_id.to_string();
 
                 egui::Window::new("Delete Template")
@@ -161,7 +161,6 @@ impl TemplateManagerPanel {
                         });
                     });
             }
-        }
 
         action
     }

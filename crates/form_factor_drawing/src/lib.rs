@@ -39,7 +39,7 @@ pub use template::{
     TemplatePageBuilder, TemplateRegistry,
 };
 pub use template_ui::{
-    EditorAction, EditorMode, TemplateEditorPanel, TemplateEditorState, TemplateManagerPanel,
-    TemplateManagerState,
+    EditorAction, EditorMode, FieldPropertiesPanel, PropertiesAction, TemplateEditorPanel,
+    TemplateEditorState, TemplateManagerPanel, TemplateManagerState,
 };
 pub use tool::ToolMode;

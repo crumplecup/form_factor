@@ -1,8 +1,6 @@
 //! State management for template UI components.
 
 use crate::DrawingTemplateBuilder;
-use egui::{Pos2, Rect};
-use std::time::SystemTime;
 
 /// State for the template manager panel.
 #[derive(Debug, Default, Clone)]
@@ -71,8 +69,10 @@ impl TemplateManagerState {
 
 /// Editor mode for template editing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default)]
 pub enum EditorMode {
     /// Select and move existing fields
+    #[default]
     Select,
     /// Draw new field bounds
     Draw,
@@ -80,11 +80,6 @@ pub enum EditorMode {
     Edit,
 }
 
-impl Default for EditorMode {
-    fn default() -> Self {
-        Self::Select
-    }
-}
 
 /// State for the template editor.
 #[derive(Debug, Clone)]
@@ -177,12 +172,13 @@ impl TemplateEditorState {
     }
 
     /// Pushes a snapshot to the undo stack.
-    pub fn push_snapshot(&mut self, description: impl Into<String>) {
+    ///
+    /// The description parameter is currently unused but will be used in Priority 5
+    /// for undo history browsing.
+    pub fn push_snapshot(&mut self, _description: impl Into<String>) {
         if let Some(template) = &self.current_template {
             let snapshot = TemplateSnapshot {
                 template: template.clone(),
-                timestamp: SystemTime::now(),
-                action_description: description.into(),
             };
 
             self.undo_stack.push(snapshot);
@@ -201,8 +197,6 @@ impl TemplateEditorState {
             if let Some(current) = &self.current_template {
                 self.redo_stack.push(TemplateSnapshot {
                     template: current.clone(),
-                    timestamp: SystemTime::now(),
-                    action_description: "Redo point".to_string(),
                 });
             }
             self.current_template = Some(snapshot.template);
@@ -215,8 +209,6 @@ impl TemplateEditorState {
             if let Some(current) = &self.current_template {
                 self.undo_stack.push(TemplateSnapshot {
                     template: current.clone(),
-                    timestamp: SystemTime::now(),
-                    action_description: "Undo point".to_string(),
                 });
             }
             self.current_template = Some(snapshot.template);
@@ -235,65 +227,10 @@ impl TemplateEditorState {
 }
 
 /// Snapshot of template state for undo/redo.
+///
+/// Currently stores only the template state. In the future, this will include
+/// timestamp and action description for undo history browsing (Priority 5).
 #[derive(Debug, Clone)]
 pub struct TemplateSnapshot {
-    template: DrawingTemplateBuilder,
-    timestamp: SystemTime,
-    action_description: String,
-}
-
-/// Drag state for field manipulation.
-#[derive(Debug, Clone)]
-pub struct DragState {
-    field_index: usize,
-    drag_type: DragType,
-    start_pos: Pos2,
-    original_bounds: Rect,
-}
-
-impl DragState {
-    /// Creates a new drag state.
-    pub fn new(field_index: usize, drag_type: DragType, start_pos: Pos2, original_bounds: Rect) -> Self {
-        Self {
-            field_index,
-            drag_type,
-            start_pos,
-            original_bounds,
-        }
-    }
-
-    /// Gets the field index being dragged.
-    pub fn field_index(&self) -> usize {
-        self.field_index
-    }
-
-    /// Gets the drag type.
-    pub fn drag_type(&self) -> DragType {
-        self.drag_type
-    }
-
-    /// Gets the starting position.
-    pub fn start_pos(&self) -> Pos2 {
-        self.start_pos
-    }
-
-    /// Gets the original bounds.
-    pub fn original_bounds(&self) -> &Rect {
-        &self.original_bounds
-    }
-}
-
-/// Type of drag operation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DragType {
-    /// Moving the entire field
-    Move,
-    /// Resizing from top-left corner
-    ResizeTopLeft,
-    /// Resizing from top-right corner
-    ResizeTopRight,
-    /// Resizing from bottom-left corner
-    ResizeBottomLeft,
-    /// Resizing from bottom-right corner
-    ResizeBottomRight,
+    pub(crate) template: DrawingTemplateBuilder,
 }

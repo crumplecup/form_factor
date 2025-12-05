@@ -1,6 +1,6 @@
 //! Template editor panel for visual template creation and editing.
 
-use super::{EditorMode, TemplateEditorState};
+use super::{EditorMode, FieldPropertiesPanel, PropertiesAction, TemplateEditorState};
 use crate::TemplateRegistry;
 use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, Vec2};
 use form_factor_core::FieldDefinition;
@@ -14,6 +14,8 @@ pub struct TemplateEditorPanel {
     pub(super) drawing_state: Option<DrawingState>,
     /// Drag state for moving/resizing fields
     pub(super) drag_state: Option<DragOperation>,
+    /// Properties panel for editing field metadata
+    properties_panel: FieldPropertiesPanel,
 }
 
 /// State while drawing a new field.
@@ -55,6 +57,7 @@ impl TemplateEditorPanel {
             state: TemplateEditorState::new(),
             drawing_state: None,
             drag_state: None,
+            properties_panel: FieldPropertiesPanel::new(),
         }
     }
 
@@ -170,77 +173,104 @@ impl TemplateEditorPanel {
 
         ui.separator();
 
-        // Main editor area
+        // Main editor area with properties panel
         if self.state.current_template().is_some() {
             let current_page = self.state.current_page();
 
-            // Get fields for current page (need to do this before borrowing for painting)
-            let fields: Vec<FieldDefinition> = self
-                .state
-                .current_template()
-                .map(|t| {
-                    t.fields_for_page(current_page)
-                        .into_iter()
-                        .cloned()
-                        .collect()
-                })
-                .unwrap_or_default();
+            // Horizontal layout: canvas on left, properties on right
+            ui.horizontal(|ui| {
+                // Canvas area
+                ui.vertical(|ui| {
+                    // Get fields for current page (need to do this before borrowing for painting)
+                    let fields: Vec<FieldDefinition> = self
+                        .state
+                        .current_template()
+                        .map(|t| {
+                            t.fields_for_page(current_page)
+                                .into_iter()
+                                .cloned()
+                                .collect()
+                        })
+                        .unwrap_or_default();
 
-            let field_count = fields.len();
+                    let field_count = fields.len();
 
-            // Canvas area for template editing
-            let (response, painter) = ui.allocate_painter(
-                ui.available_size(),
-                Sense::click_and_drag(),
-            );
+                    // Canvas area for template editing
+                    let (response, painter) = ui.allocate_painter(
+                        egui::vec2(ui.available_width() * 0.7, ui.available_height()),
+                        Sense::click_and_drag(),
+                    );
 
-            let canvas_rect = response.rect;
+                    let canvas_rect = response.rect;
 
-            // Draw background
-            painter.rect_filled(canvas_rect, 0.0, Color32::from_gray(240));
+                    // Draw background
+                    painter.rect_filled(canvas_rect, 0.0, Color32::from_gray(240));
 
-            // Handle keyboard input
-            ui.input(|i| {
-                if i.key_pressed(egui::Key::Delete) {
-                    if let Some(selected_idx) = self.state.selected_field() {
-                        self.delete_field(selected_idx, current_page);
-                        debug!(field_index = selected_idx, "Field deleted");
+                    // Handle keyboard input
+                    ui.input(|i| {
+                        if i.key_pressed(egui::Key::Delete)
+                            && let Some(selected_idx) = self.state.selected_field() {
+                                self.delete_field(selected_idx, current_page);
+                                self.properties_panel.reset();
+                                debug!(field_index = selected_idx, "Field deleted");
+                            }
+                    });
+
+                    // Handle mouse interactions based on mode
+                    match self.state.mode() {
+                        EditorMode::Draw => {
+                            self.handle_draw_mode(&response, &painter, canvas_rect, current_page);
+                        }
+                        EditorMode::Select | EditorMode::Edit => {
+                            self.handle_select_mode(&response, &fields, canvas_rect, current_page);
+                        }
                     }
-                }
+
+                    // Render field overlays
+                    for (index, field) in fields.iter().enumerate() {
+                        let is_selected = self.state.selected_field() == Some(index);
+                        self.render_field(field, &painter, canvas_rect, is_selected);
+
+                        // Show resize handles for selected field in Select mode
+                        if is_selected && self.state.mode() == EditorMode::Select {
+                            self.render_resize_handles(field, &painter, canvas_rect);
+                        }
+                    }
+
+                    // Render drawing preview
+                    if let Some(drawing) = &self.drawing_state {
+                        self.render_drawing_preview(drawing, &painter);
+                    }
+
+                    // Show field count
+                    ui.label(format!("Fields on this page: {}", field_count));
+                });
+
+                ui.separator();
+
+                // Properties panel on the right
+                ui.vertical(|ui| {
+                    ui.set_min_width(250.0);
+                    egui::ScrollArea::vertical().show(ui, |ui| {
+                        let properties_action = self.properties_panel.show(ui, &mut self.state, current_page);
+
+                        match properties_action {
+                            PropertiesAction::Applied => {
+                                debug!("Field properties applied");
+                            }
+                            PropertiesAction::Cancelled => {
+                                debug!("Field properties cancelled");
+                            }
+                            PropertiesAction::Delete(field_idx) => {
+                                self.delete_field(field_idx, current_page);
+                                self.properties_panel.reset();
+                                debug!(field_index = field_idx, "Field deleted via properties panel");
+                            }
+                            PropertiesAction::None => {}
+                        }
+                    });
+                });
             });
-
-            // Handle mouse interactions based on mode
-            match self.state.mode() {
-                EditorMode::Draw => {
-                    self.handle_draw_mode(&response, &painter, canvas_rect, current_page);
-                }
-                EditorMode::Select => {
-                    self.handle_select_mode(&response, &fields, canvas_rect, current_page);
-                }
-                EditorMode::Edit => {
-                    // Edit mode just selects for now (properties panel in Priority 4)
-                    self.handle_select_mode(&response, &fields, canvas_rect, current_page);
-                }
-            }
-
-            // Render field overlays
-            for (index, field) in fields.iter().enumerate() {
-                let is_selected = self.state.selected_field() == Some(index);
-                self.render_field(field, &painter, canvas_rect, is_selected);
-
-                // Show resize handles for selected field in Select mode
-                if is_selected && self.state.mode() == EditorMode::Select {
-                    self.render_resize_handles(field, &painter, canvas_rect);
-                }
-            }
-
-            // Render drawing preview
-            if let Some(drawing) = &self.drawing_state {
-                self.render_drawing_preview(drawing, &painter);
-            }
-
-            // Show field count
-            ui.label(format!("Fields on this page: {}", field_count));
         } else {
             ui.centered_and_justified(|ui| {
                 ui.label("No template loaded. Create or open a template to begin editing.");
@@ -263,8 +293,8 @@ impl TemplateEditorPanel {
         // Simple transform: scale field bounds to canvas
         // TODO: Integrate with proper canvas transform pipeline
         let field_rect = Rect::from_min_size(
-            canvas_rect.min + Vec2::new(bounds.x as f32, bounds.y as f32),
-            Vec2::new(bounds.width as f32, bounds.height as f32),
+            canvas_rect.min + Vec2::new(bounds.x, bounds.y),
+            Vec2::new(bounds.width, bounds.height),
         );
 
         // Clamp to canvas bounds
@@ -309,8 +339,8 @@ impl TemplateEditorPanel {
             let bounds = &field.bounds;
 
             let field_rect = Rect::from_min_size(
-                canvas_rect.min + Vec2::new(bounds.x as f32, bounds.y as f32),
-                Vec2::new(bounds.width as f32, bounds.height as f32),
+                canvas_rect.min + Vec2::new(bounds.x, bounds.y),
+                Vec2::new(bounds.width, bounds.height),
             );
 
             let field_rect = field_rect.intersect(canvas_rect);
