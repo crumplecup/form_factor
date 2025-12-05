@@ -98,7 +98,8 @@ impl TemplateManagerPanel {
 
                             if radio.clicked() {
                                 debug!(template_id = %template.id(), "Template selected");
-                                self.state.set_selected_template(Some(template.id().to_string()));
+                                self.state
+                                    .set_selected_template(Some(template.id().to_string()));
                             }
                         });
 
@@ -137,30 +138,34 @@ impl TemplateManagerPanel {
 
         // Delete confirmation dialog
         if self.state.is_showing_delete_confirm()
-            && let Some(template_id) = self.state.pending_delete() {
-                let template_id = template_id.to_string();
+            && let Some(template_id) = self.state.pending_delete()
+        {
+            let template_id = template_id.to_string();
 
-                egui::Window::new("Delete Template")
-                    .collapsible(false)
-                    .resizable(false)
-                    .show(ui.ctx(), |ui| {
-                        ui.label(format!("Are you sure you want to delete template '{}'?", template_id));
-                        ui.label("This action cannot be undone.");
+            egui::Window::new("Delete Template")
+                .collapsible(false)
+                .resizable(false)
+                .show(ui.ctx(), |ui| {
+                    ui.label(format!(
+                        "Are you sure you want to delete template '{}'?",
+                        template_id
+                    ));
+                    ui.label("This action cannot be undone.");
 
-                        ui.horizontal(|ui| {
-                            if ui.button("Delete").clicked() {
-                                info!(template_id = %template_id, "Deleting template");
-                                action = ManagerAction::Delete(template_id.clone());
-                                self.state.hide_delete_confirm();
-                            }
+                    ui.horizontal(|ui| {
+                        if ui.button("Delete").clicked() {
+                            info!(template_id = %template_id, "Deleting template");
+                            action = ManagerAction::Delete(template_id.clone());
+                            self.state.hide_delete_confirm();
+                        }
 
-                            if ui.button("Cancel").clicked() {
-                                debug!("Delete cancelled");
-                                self.state.hide_delete_confirm();
-                            }
-                        });
+                        if ui.button("Cancel").clicked() {
+                            debug!("Delete cancelled");
+                            self.state.hide_delete_confirm();
+                        }
                     });
-            }
+                });
+        }
 
         action
     }

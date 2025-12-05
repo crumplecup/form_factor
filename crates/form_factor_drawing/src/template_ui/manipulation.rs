@@ -19,25 +19,28 @@ impl TemplateEditorPanel {
         page_index: usize,
     ) {
         if response.drag_started()
-            && let Some(start_pos) = response.interact_pointer_pos() {
-                self.drawing_state = Some(DrawingState {
-                    start_pos,
-                    current_pos: start_pos,
-                });
-                debug!("Started drawing field");
-            }
+            && let Some(start_pos) = response.interact_pointer_pos()
+        {
+            self.drawing_state = Some(DrawingState {
+                start_pos,
+                current_pos: start_pos,
+            });
+            debug!("Started drawing field");
+        }
 
         if response.dragged()
             && let Some(drawing) = &mut self.drawing_state
-                && let Some(current_pos) = response.interact_pointer_pos() {
-                    drawing.current_pos = current_pos;
-                }
+            && let Some(current_pos) = response.interact_pointer_pos()
+        {
+            drawing.current_pos = current_pos;
+        }
 
         if response.drag_stopped()
-            && let Some(drawing) = self.drawing_state.take() {
-                self.create_field_from_drawing(drawing, canvas_rect, page_index);
-                debug!("Completed drawing field");
-            }
+            && let Some(drawing) = self.drawing_state.take()
+        {
+            self.create_field_from_drawing(drawing, canvas_rect, page_index);
+            debug!("Completed drawing field");
+        }
     }
 
     /// Handles select mode interactions (selection, movement, resizing).
@@ -51,64 +54,71 @@ impl TemplateEditorPanel {
     ) {
         // Start drag operation
         if response.drag_started()
-            && let Some(start_pos) = response.interact_pointer_pos() {
-                // Check if clicking on resize handle of selected field
-                if let Some(selected_idx) = self.state.selected_field()
-                    && let Some(field) = fields.get(selected_idx)
-                        && let Some(handle_type) = self.get_resize_handle_at_position(
-                            start_pos,
-                            field,
-                            canvas_rect,
-                        ) {
-                            // Start resize operation
-                            self.drag_state = Some(DragOperation {
-                                field_index: selected_idx,
-                                operation_type: handle_type,
-                                start_pos,
-                                original_bounds: field.bounds,
-                            });
-                            debug!(field_index = selected_idx, handle = ?handle_type, "Started resize");
-                            return;
-                        }
-
-                // Check if clicking on a field (for selection or movement)
-                let field_idx = self.find_field_at_position(start_pos, fields, canvas_rect);
-                if let Some(idx) = field_idx {
-                    // Select the field
-                    self.state.set_selected_field(Some(idx));
-
-                    // Start move operation
-                    if let Some(field) = fields.get(idx) {
-                        self.drag_state = Some(DragOperation {
-                            field_index: idx,
-                            operation_type: DragOperationType::Move,
-                            start_pos,
-                            original_bounds: field.bounds,
-                        });
-                        debug!(field_index = idx, "Started move");
-                    }
-                } else {
-                    // Clicked on empty space - deselect
-                    self.state.set_selected_field(None);
-                    debug!("Deselected field");
-                }
+            && let Some(start_pos) = response.interact_pointer_pos()
+        {
+            // Check if clicking on resize handle of selected field
+            if let Some(selected_idx) = self.state.selected_field()
+                && let Some(field) = fields.get(selected_idx)
+                && let Some(handle_type) =
+                    self.get_resize_handle_at_position(start_pos, field, canvas_rect)
+            {
+                // Start resize operation
+                self.drag_state = Some(DragOperation {
+                    field_index: selected_idx,
+                    operation_type: handle_type,
+                    start_pos,
+                    original_bounds: field.bounds,
+                });
+                debug!(field_index = selected_idx, handle = ?handle_type, "Started resize");
+                return;
             }
+
+            // Check if clicking on a field (for selection or movement)
+            let field_idx = self.find_field_at_position(start_pos, fields, canvas_rect);
+            if let Some(idx) = field_idx {
+                // Select the field
+                self.state.set_selected_field(Some(idx));
+
+                // Start move operation
+                if let Some(field) = fields.get(idx) {
+                    self.drag_state = Some(DragOperation {
+                        field_index: idx,
+                        operation_type: DragOperationType::Move,
+                        start_pos,
+                        original_bounds: field.bounds,
+                    });
+                    debug!(field_index = idx, "Started move");
+                }
+            } else {
+                // Clicked on empty space - deselect
+                self.state.set_selected_field(None);
+                debug!("Deselected field");
+            }
+        }
 
         // Continue drag operation
         if response.dragged()
             && let Some(drag) = self.drag_state.clone()
-                && let Some(current_pos) = response.interact_pointer_pos() {
-                    self.update_field_bounds(&drag, current_pos, canvas_rect, page_index);
-                }
+            && let Some(current_pos) = response.interact_pointer_pos()
+        {
+            self.update_field_bounds(&drag, current_pos, canvas_rect, page_index);
+        }
 
         // End drag operation
         if response.drag_stopped()
-            && self.drag_state.is_some() {
-                self.drag_state = None;
-                // Push undo snapshot after drag completes
-                self.state.push_snapshot("Field manipulation");
-                debug!("Completed drag operation");
-            }
+            && let Some(drag) = self.drag_state.take()
+        {
+            // Push undo snapshot after drag completes with descriptive action
+            let action_desc = match drag.operation_type {
+                DragOperationType::Move => "Move field",
+                DragOperationType::ResizeTopLeft => "Resize field (top-left)",
+                DragOperationType::ResizeTopRight => "Resize field (top-right)",
+                DragOperationType::ResizeBottomLeft => "Resize field (bottom-left)",
+                DragOperationType::ResizeBottomRight => "Resize field (bottom-right)",
+            };
+            self.state.push_snapshot(action_desc);
+            debug!("Completed drag operation: {}", action_desc);
+        }
     }
 
     /// Renders resize handles for a field.
@@ -149,11 +159,7 @@ impl TemplateEditorPanel {
         let rect = Rect::from_two_pos(drawing.start_pos, drawing.current_pos);
 
         // Draw preview rectangle
-        painter.rect_filled(
-            rect,
-            2.0,
-            Color32::from_rgba_unmultiplied(255, 200, 0, 60),
-        );
+        painter.rect_filled(rect, 2.0, Color32::from_rgba_unmultiplied(255, 200, 0, 60));
         painter.rect_stroke(
             rect,
             2.0,
@@ -228,7 +234,8 @@ impl TemplateEditorPanel {
             // Add field to page
             if let Some(page) = template.pages.get_mut(page_index) {
                 page.add_field(field);
-                self.state.push_snapshot("Create field");
+                self.state
+                    .push_snapshot(format!("Create field '{}'", field_id));
                 debug!(field_id = %field_id, "Created new field");
             }
         }
@@ -238,13 +245,15 @@ impl TemplateEditorPanel {
     pub(super) fn delete_field(&mut self, field_index: usize, page_index: usize) {
         if let Some(template) = self.state.current_template_mut()
             && let Some(page) = template.pages.get_mut(page_index)
-                && field_index < page.fields.len() {
-                    let field_id = page.fields[field_index].id.clone();
-                    page.fields.remove(field_index);
-                    self.state.set_selected_field(None);
-                    self.state.push_snapshot("Delete field");
-                    debug!(field_id = %field_id, "Deleted field");
-                }
+            && field_index < page.fields.len()
+        {
+            let field_id = page.fields[field_index].id.clone();
+            page.fields.remove(field_index);
+            self.state.set_selected_field(None);
+            self.state
+                .push_snapshot(format!("Delete field '{}'", field_id));
+            debug!(field_id = %field_id, "Deleted field");
+        }
     }
 
     /// Determines which resize handle (if any) is at the given position.
@@ -356,8 +365,9 @@ impl TemplateEditorPanel {
         // Update the field bounds in the template
         if let Some(template) = self.state.current_template_mut()
             && let Some(page) = template.pages.get_mut(page_index)
-                && let Some(field) = page.fields.get_mut(drag.field_index) {
-                    field.bounds = new_bounds;
-                }
+            && let Some(field) = page.fields.get_mut(drag.field_index)
+        {
+            field.bounds = new_bounds;
+        }
     }
 }

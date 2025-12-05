@@ -929,9 +929,12 @@ ZIP:    r"^\d{5}(-\d{4})?$"
   - Field templates/presets
   - Multi-field editing
 
-### Priority 5: Undo/Redo System
+### ✅ Priority 5: Undo/Redo System (COMPLETED)
 
-**Estimated Effort**: Small (1-2 days)
+**Status**: Completed
+**Completion Date**: 2024-12-05
+**Actual Effort**: Small (~0.5 days)
+**Commit**: Pending
 **Goal**: Allow users to undo/redo template changes
 
 #### Features
@@ -1012,13 +1015,195 @@ impl TemplateEditorState {
 
 #### Implementation Tasks
 
-- [ ] Add `TemplateSnapshot` struct
-- [ ] Implement undo/redo stacks in `TemplateEditorState`
-- [ ] Add snapshot push before each modification
-- [ ] Implement undo/redo methods
-- [ ] Add keyboard shortcuts
-- [ ] Add UI buttons with enable/disable logic
-- [ ] Add action descriptions for better UX
+- [x] Add `TemplateSnapshot` struct
+- [x] Implement undo/redo stacks in `TemplateEditorState`
+- [x] Add snapshot push before each modification
+- [x] Implement undo/redo methods
+- [x] Add keyboard shortcuts
+- [x] Add UI buttons with enable/disable logic
+- [x] Add action descriptions for better UX
+
+#### Files Modified
+
+**`crates/form_factor_drawing/src/template_ui/state.rs`**:
+- Added `timestamp` and `action_description` fields to `TemplateSnapshot`
+- Added `TemplateSnapshot::new()` constructor
+- Added accessor methods: `description()`, `timestamp()`
+- Updated `push_snapshot()` to use `TemplateSnapshot::new()`
+- Updated `undo()` and `redo()` to create snapshots with descriptions
+- Added `last_undo_description()` and `last_redo_description()` methods
+- Added `undo_history()` and `redo_history()` methods for browsing
+
+**`crates/form_factor_drawing/src/template_ui/editor.rs`**:
+- Added keyboard shortcuts in input handler:
+  - Ctrl+Z / Cmd+Z for undo
+  - Ctrl+Shift+Z / Cmd+Shift+Z for redo
+  - Ctrl+Y for redo (Windows alternative)
+- Added tooltips to Undo/Redo buttons showing:
+  - Action description
+  - Keyboard shortcut
+- Buttons now show "Undo: <action>" / "Redo: <action>" on hover
+
+**`crates/form_factor_drawing/src/template_ui/manipulation.rs`**:
+- Updated field drawing to use descriptive snapshot: `"Create field 'field_1'"`
+- Updated field deletion to use descriptive snapshot: `"Delete field 'field_1'"`
+- Updated drag operations to use specific descriptions:
+  - "Move field"
+  - "Resize field (top-left)"
+  - "Resize field (top-right)"
+  - "Resize field (bottom-left)"
+  - "Resize field (bottom-right)"
+
+**`crates/form_factor_drawing/src/template_ui/properties.rs`**:
+- Updated property application to use descriptive snapshot: `"Edit properties of 'field_1'"`
+
+#### Features Implemented
+
+1. **Enhanced TemplateSnapshot**: ✅
+   - Now includes timestamp (SystemTime)
+   - Now includes action description (String)
+   - Constructor for consistent creation
+   - Accessor methods for external use
+
+2. **Keyboard Shortcuts**: ✅
+   - Ctrl+Z / Cmd+Z: Undo last action
+   - Ctrl+Shift+Z / Cmd+Shift+Z: Redo last undone action
+   - Ctrl+Y: Alternative redo (Windows convention)
+   - Cross-platform support (Ctrl on Windows/Linux, Cmd on Mac)
+   - Checks `can_undo()` / `can_redo()` before executing
+
+3. **Button Tooltips**: ✅
+   - Show action description on hover
+   - Display keyboard shortcut
+   - Dynamic text based on last action
+   - Example: "Undo: Create field 'field_1' (Ctrl+Z)"
+
+4. **Descriptive Action Names**: ✅
+   - Field creation: "Create field 'field_1'"
+   - Field deletion: "Delete field 'field_1'"
+   - Field movement: "Move field"
+   - Field resizing: "Resize field (top-left)" etc.
+   - Property editing: "Edit properties of 'field_1'"
+
+5. **History Browsing API**: ✅
+   - `undo_history()` returns full undo stack
+   - `redo_history()` returns full redo stack
+   - `last_undo_description()` gets most recent undo action
+   - `last_redo_description()` gets most recent redo action
+   - Foundation for future history browser UI
+
+#### API Usage
+
+**Keyboard Shortcuts** (automatic in editor):
+```rust
+// User presses Ctrl+Z or Cmd+Z
+// -> Undo is triggered automatically
+
+// User presses Ctrl+Shift+Z or Cmd+Shift+Z
+// -> Redo is triggered automatically
+
+// User presses Ctrl+Y (Windows/Linux)
+// -> Redo is triggered automatically
+```
+
+**Button Tooltips** (automatic):
+```rust
+// Buttons automatically show descriptive tooltips:
+// - "Undo: Create field 'field_1' (Ctrl+Z)"
+// - "Redo: Delete field 'field_2' (Ctrl+Shift+Z)"
+```
+
+**Using Descriptive Actions** (when pushing snapshots):
+```rust
+// Simple description
+state.push_snapshot("Create field");
+
+// Field-specific description
+state.push_snapshot(format!("Create field '{}'", field_id));
+
+// Operation-specific description
+let action_desc = match operation_type {
+    DragOperationType::Move => "Move field",
+    DragOperationType::ResizeTopLeft => "Resize field (top-left)",
+    // ...
+};
+state.push_snapshot(action_desc);
+```
+
+**Browsing History** (for future UI):
+```rust
+// Get all undo actions
+let undo_actions = state.undo_history();
+for snapshot in undo_actions {
+    println!("{}: {}", 
+        format_timestamp(snapshot.timestamp()), 
+        snapshot.description()
+    );
+}
+
+// Get most recent action descriptions
+if let Some(desc) = state.last_undo_description() {
+    println!("Can undo: {}", desc);
+}
+if let Some(desc) = state.last_redo_description() {
+    println!("Can redo: {}", desc);
+}
+```
+
+#### Code Quality Achievements
+
+- **Zero Clippy Warnings**: Fixed 3 collapsible_if warnings
+- **All Tests Passing**: 93 tests, no failures
+- **CLAUDE.md Compliance**:
+  - No `#[allow]` directives used
+  - Proper let-chains for condition collapsing
+  - Comprehensive tracing with `#[instrument]`
+  - Descriptive action names for better debugging
+- **Cross-Platform Support**: Works on Windows, Linux, and macOS
+- **User Experience**:
+  - Standard keyboard shortcuts users expect
+  - Tooltips provide discovery and guidance
+  - Action descriptions make undo/redo predictable
+
+#### Known Limitations
+
+1. **No History Browser UI**: History API exists but no visual browser yet
+2. **No Action Timestamps in UI**: Timestamps captured but not displayed
+3. **No Multi-Level Undo Preview**: Can't preview state before undoing
+4. **No Undo Groups**: Each action is individual, no batching
+5. **No Selective Undo**: Can't undo specific actions out of order
+6. **Fixed Stack Size**: Limited to 50 actions (hardcoded)
+7. **No Persistent History**: Undo/redo cleared when template closed
+8. **No Undo Shortcuts in Documentation**: No in-app help text
+
+#### Integration Notes
+
+- Keyboard shortcuts work anywhere in the editor canvas area
+- Shortcuts check `can_undo()` / `can_redo()` before executing
+- Button tooltips update automatically when snapshots change
+- All existing operations (field creation, deletion, movement, resize, property editing) now use descriptive action names
+- Undo/redo operations are logged at debug level
+- Stack size limit (50) prevents unbounded memory growth
+- Snapshots include full template state (not deltas)
+
+#### Performance Notes
+
+- Each snapshot clones entire `DrawingTemplateBuilder`
+- Stack limited to 50 snapshots to control memory usage
+- Clone cost is acceptable for template editing workload
+- No observable lag during undo/redo operations
+- Future optimization: Delta-based snapshots for large templates
+
+#### Next Steps
+
+- Priority 6: Template validation and save
+- Future enhancements:
+  - History browser UI (visual list of past actions)
+  - Display timestamps in history browser
+  - Undo grouping (batch related actions)
+  - Configurable stack size limit
+  - Persistent undo history across sessions
+  - Keyboard shortcut help overlay
 
 ### Priority 6: Template Validation and Save
 

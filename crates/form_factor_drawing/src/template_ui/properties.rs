@@ -55,13 +55,19 @@ impl FieldPropertiesPanel {
 
     /// Shows the properties panel for the selected field.
     #[instrument(skip(self, ui, state, page_index))]
-    pub fn show(&mut self, ui: &mut Ui, state: &mut TemplateEditorState, page_index: usize) -> PropertiesAction {
+    pub fn show(
+        &mut self,
+        ui: &mut Ui,
+        state: &mut TemplateEditorState,
+        page_index: usize,
+    ) -> PropertiesAction {
         let mut action = PropertiesAction::None;
 
         if let Some(selected_idx) = state.selected_field() {
             // Get the current field from the template
             let field = if let Some(template) = state.current_template() {
-                template.fields_for_page(page_index)
+                template
+                    .fields_for_page(page_index)
                     .get(selected_idx)
                     .map(|f| (*f).clone())
             } else {
@@ -75,7 +81,8 @@ impl FieldPropertiesPanel {
                     self.temp_label = field.label.clone();
                     self.temp_field_type = field.field_type;
                     self.temp_required = field.required;
-                    self.temp_validation_pattern = field.validation_pattern.clone().unwrap_or_default();
+                    self.temp_validation_pattern =
+                        field.validation_pattern.clone().unwrap_or_default();
                     self.temp_help_text = field.help_text.clone().unwrap_or_default();
                     self.temp_bounds = field.bounds;
                     self.temp_initialized = true;
@@ -111,32 +118,92 @@ impl FieldPropertiesPanel {
                         .selected_text(format!("{}", self.temp_field_type))
                         .show_ui(ui, |ui| {
                             // Common field types
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::FreeText, "Free Text");
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::FreeText,
+                                "Free Text",
+                            );
                             ui.selectable_value(&mut self.temp_field_type, FieldType::Date, "Date");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::DateOfBirth, "Date of Birth");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::Checkbox, "Checkbox");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::Signature, "Signature");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::Initials, "Initials");
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::DateOfBirth,
+                                "Date of Birth",
+                            );
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::Checkbox,
+                                "Checkbox",
+                            );
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::Signature,
+                                "Signature",
+                            );
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::Initials,
+                                "Initials",
+                            );
 
                             ui.separator();
                             ui.label("Personal Info");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::FirstName, "First Name");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::LastName, "Last Name");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::FullName, "Full Name");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::Email, "Email");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::PhoneNumber, "Phone");
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::FirstName,
+                                "First Name",
+                            );
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::LastName,
+                                "Last Name",
+                            );
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::FullName,
+                                "Full Name",
+                            );
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::Email,
+                                "Email",
+                            );
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::PhoneNumber,
+                                "Phone",
+                            );
 
                             ui.separator();
                             ui.label("Address");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::StreetAddress, "Street Address");
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::StreetAddress,
+                                "Street Address",
+                            );
                             ui.selectable_value(&mut self.temp_field_type, FieldType::City, "City");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::State, "State");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::ZipCode, "ZIP Code");
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::State,
+                                "State",
+                            );
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::ZipCode,
+                                "ZIP Code",
+                            );
 
                             ui.separator();
                             ui.label("Financial");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::Currency, "Currency");
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::Amount, "Amount");
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::Currency,
+                                "Currency",
+                            );
+                            ui.selectable_value(
+                                &mut self.temp_field_type,
+                                FieldType::Amount,
+                                "Amount",
+                            );
                         });
                 });
 
@@ -148,15 +215,18 @@ impl FieldPropertiesPanel {
 
                 ui.horizontal(|ui| {
                     ui.label("Pattern:");
-                    ui.add(TextEdit::singleline(&mut self.temp_validation_pattern)
-                        .hint_text("^[A-Za-z]+$"));
+                    ui.add(
+                        TextEdit::singleline(&mut self.temp_validation_pattern)
+                            .hint_text("^[A-Za-z]+$"),
+                    );
                 });
 
                 // Pattern presets
                 ui.horizontal(|ui| {
                     ui.label("Presets:");
                     if ui.small_button("Email").clicked() {
-                        self.temp_validation_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$".to_string();
+                        self.temp_validation_pattern =
+                            r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$".to_string();
                     }
                     if ui.small_button("Phone").clicked() {
                         self.temp_validation_pattern = r"^\d{3}-\d{3}-\d{4}$".to_string();
@@ -170,9 +240,11 @@ impl FieldPropertiesPanel {
 
                 // Help text
                 ui.label("Help Text");
-                ui.add(TextEdit::multiline(&mut self.temp_help_text)
-                    .hint_text("Optional help text for this field")
-                    .desired_rows(2));
+                ui.add(
+                    TextEdit::multiline(&mut self.temp_help_text)
+                        .hint_text("Optional help text for this field")
+                        .desired_rows(2),
+                );
 
                 ui.separator();
 
@@ -187,9 +259,17 @@ impl FieldPropertiesPanel {
 
                 ui.horizontal(|ui| {
                     ui.label("Width:");
-                    ui.add(DragValue::new(&mut self.temp_bounds.width).speed(1.0).range(20.0..=f32::INFINITY));
+                    ui.add(
+                        DragValue::new(&mut self.temp_bounds.width)
+                            .speed(1.0)
+                            .range(20.0..=f32::INFINITY),
+                    );
                     ui.label("Height:");
-                    ui.add(DragValue::new(&mut self.temp_bounds.height).speed(1.0).range(20.0..=f32::INFINITY));
+                    ui.add(
+                        DragValue::new(&mut self.temp_bounds.height)
+                            .speed(1.0)
+                            .range(20.0..=f32::INFINITY),
+                    );
                 });
 
                 ui.separator();
@@ -201,46 +281,55 @@ impl FieldPropertiesPanel {
                         self.validation_errors.clear();
 
                         if self.temp_id.is_empty() {
-                            self.validation_errors.push("ID cannot be empty".to_string());
+                            self.validation_errors
+                                .push("ID cannot be empty".to_string());
                         }
 
                         if self.temp_label.is_empty() {
-                            self.validation_errors.push("Label cannot be empty".to_string());
+                            self.validation_errors
+                                .push("Label cannot be empty".to_string());
                         }
 
                         // Validate regex pattern if provided
                         if !self.temp_validation_pattern.is_empty()
-                            && let Err(e) = regex::Regex::new(&self.temp_validation_pattern) {
-                                self.validation_errors.push(format!("Invalid regex pattern: {}", e));
-                            }
+                            && let Err(e) = regex::Regex::new(&self.temp_validation_pattern)
+                        {
+                            self.validation_errors
+                                .push(format!("Invalid regex pattern: {}", e));
+                        }
 
                         if self.validation_errors.is_empty() {
                             // Apply changes to the field
                             let mut applied = false;
                             if let Some(template) = state.current_template_mut()
                                 && let Some(page) = template.pages.get_mut(page_index)
-                                    && let Some(field) = page.fields.get_mut(selected_idx) {
-                                        field.id = self.temp_id.clone();
-                                        field.label = self.temp_label.clone();
-                                        field.field_type = self.temp_field_type.clone();
-                                        field.required = self.temp_required;
-                                        field.validation_pattern = if self.temp_validation_pattern.is_empty() {
-                                            None
-                                        } else {
-                                            Some(self.temp_validation_pattern.clone())
-                                        };
-                                        field.help_text = if self.temp_help_text.is_empty() {
-                                            None
-                                        } else {
-                                            Some(self.temp_help_text.clone())
-                                        };
-                                        field.bounds = self.temp_bounds;
-                                        applied = true;
-                                        debug!(field_id = %field.id, "Applied field property changes");
-                                    }
+                                && let Some(field) = page.fields.get_mut(selected_idx)
+                            {
+                                field.id = self.temp_id.clone();
+                                field.label = self.temp_label.clone();
+                                field.field_type = self.temp_field_type.clone();
+                                field.required = self.temp_required;
+                                field.validation_pattern =
+                                    if self.temp_validation_pattern.is_empty() {
+                                        None
+                                    } else {
+                                        Some(self.temp_validation_pattern.clone())
+                                    };
+                                field.help_text = if self.temp_help_text.is_empty() {
+                                    None
+                                } else {
+                                    Some(self.temp_help_text.clone())
+                                };
+                                field.bounds = self.temp_bounds;
+                                applied = true;
+                                debug!(field_id = %field.id, "Applied field property changes");
+                            }
 
                             if applied {
-                                state.push_snapshot("Edit field properties");
+                                state.push_snapshot(format!(
+                                    "Edit properties of '{}'",
+                                    self.temp_id
+                                ));
                                 action = PropertiesAction::Applied;
                             }
                         }

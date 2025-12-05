@@ -68,8 +68,7 @@ impl TemplateManagerState {
 }
 
 /// Editor mode for template editing.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum EditorMode {
     /// Select and move existing fields
     #[default]
@@ -79,7 +78,6 @@ pub enum EditorMode {
     /// Edit field properties
     Edit,
 }
-
 
 /// State for the template editor.
 #[derive(Debug, Clone)]
@@ -172,14 +170,9 @@ impl TemplateEditorState {
     }
 
     /// Pushes a snapshot to the undo stack.
-    ///
-    /// The description parameter is currently unused but will be used in Priority 5
-    /// for undo history browsing.
-    pub fn push_snapshot(&mut self, _description: impl Into<String>) {
+    pub fn push_snapshot(&mut self, description: impl Into<String>) {
         if let Some(template) = &self.current_template {
-            let snapshot = TemplateSnapshot {
-                template: template.clone(),
-            };
+            let snapshot = TemplateSnapshot::new(template.clone(), description);
 
             self.undo_stack.push(snapshot);
             self.redo_stack.clear();
@@ -195,9 +188,8 @@ impl TemplateEditorState {
     pub fn undo(&mut self) {
         if let Some(snapshot) = self.undo_stack.pop() {
             if let Some(current) = &self.current_template {
-                self.redo_stack.push(TemplateSnapshot {
-                    template: current.clone(),
-                });
+                let redo_snapshot = TemplateSnapshot::new(current.clone(), "Redo point");
+                self.redo_stack.push(redo_snapshot);
             }
             self.current_template = Some(snapshot.template);
         }
@@ -207,12 +199,31 @@ impl TemplateEditorState {
     pub fn redo(&mut self) {
         if let Some(snapshot) = self.redo_stack.pop() {
             if let Some(current) = &self.current_template {
-                self.undo_stack.push(TemplateSnapshot {
-                    template: current.clone(),
-                });
+                let undo_snapshot = TemplateSnapshot::new(current.clone(), "Undo point");
+                self.undo_stack.push(undo_snapshot);
             }
             self.current_template = Some(snapshot.template);
         }
+    }
+
+    /// Gets the description of the last undo action.
+    pub fn last_undo_description(&self) -> Option<&str> {
+        self.undo_stack.last().map(|s| s.description())
+    }
+
+    /// Gets the description of the last redo action.
+    pub fn last_redo_description(&self) -> Option<&str> {
+        self.redo_stack.last().map(|s| s.description())
+    }
+
+    /// Gets the undo stack for browsing history.
+    pub fn undo_history(&self) -> &[TemplateSnapshot] {
+        &self.undo_stack
+    }
+
+    /// Gets the redo stack for browsing history.
+    pub fn redo_history(&self) -> &[TemplateSnapshot] {
+        &self.redo_stack
     }
 
     /// Checks if undo is available.
@@ -227,10 +238,30 @@ impl TemplateEditorState {
 }
 
 /// Snapshot of template state for undo/redo.
-///
-/// Currently stores only the template state. In the future, this will include
-/// timestamp and action description for undo history browsing (Priority 5).
 #[derive(Debug, Clone)]
 pub struct TemplateSnapshot {
     pub(crate) template: DrawingTemplateBuilder,
+    timestamp: std::time::SystemTime,
+    action_description: String,
+}
+
+impl TemplateSnapshot {
+    /// Creates a new snapshot.
+    pub fn new(template: DrawingTemplateBuilder, description: impl Into<String>) -> Self {
+        Self {
+            template,
+            timestamp: std::time::SystemTime::now(),
+            action_description: description.into(),
+        }
+    }
+
+    /// Gets the action description.
+    pub fn description(&self) -> &str {
+        &self.action_description
+    }
+
+    /// Gets the timestamp.
+    pub fn timestamp(&self) -> std::time::SystemTime {
+        self.timestamp
+    }
 }

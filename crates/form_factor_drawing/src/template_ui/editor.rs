@@ -92,7 +92,11 @@ impl TemplateEditorPanel {
 
     /// Creates a new empty template.
     #[instrument(skip(self, template_id, template_name))]
-    pub fn new_template(&mut self, template_id: impl Into<String>, template_name: impl Into<String>) {
+    pub fn new_template(
+        &mut self,
+        template_id: impl Into<String>,
+        template_name: impl Into<String>,
+    ) {
         use crate::DrawingTemplateBuilder;
 
         let builder = DrawingTemplateBuilder::default()
@@ -113,15 +117,24 @@ impl TemplateEditorPanel {
         ui.horizontal(|ui| {
             // Mode buttons
             ui.label("Mode:");
-            if ui.selectable_label(self.state.mode() == EditorMode::Select, "Select").clicked() {
+            if ui
+                .selectable_label(self.state.mode() == EditorMode::Select, "Select")
+                .clicked()
+            {
                 self.state.set_mode(EditorMode::Select);
                 debug!("Switched to Select mode");
             }
-            if ui.selectable_label(self.state.mode() == EditorMode::Draw, "Draw").clicked() {
+            if ui
+                .selectable_label(self.state.mode() == EditorMode::Draw, "Draw")
+                .clicked()
+            {
                 self.state.set_mode(EditorMode::Draw);
                 debug!("Switched to Draw mode");
             }
-            if ui.selectable_label(self.state.mode() == EditorMode::Edit, "Edit").clicked() {
+            if ui
+                .selectable_label(self.state.mode() == EditorMode::Edit, "Edit")
+                .clicked()
+            {
                 self.state.set_mode(EditorMode::Edit);
                 debug!("Switched to Edit mode");
             }
@@ -151,11 +164,32 @@ impl TemplateEditorPanel {
             ui.separator();
 
             // Undo/Redo
-            if ui.add_enabled(self.state.can_undo(), egui::Button::new("Undo")).clicked() {
+            let undo_text = if let Some(desc) = self.state.last_undo_description() {
+                format!("Undo: {}", desc)
+            } else {
+                "Undo".to_string()
+            };
+
+            if ui
+                .add_enabled(self.state.can_undo(), egui::Button::new("Undo"))
+                .on_hover_text(format!("{} (Ctrl+Z)", undo_text))
+                .clicked()
+            {
                 self.state.undo();
                 debug!("Undo");
             }
-            if ui.add_enabled(self.state.can_redo(), egui::Button::new("Redo")).clicked() {
+
+            let redo_text = if let Some(desc) = self.state.last_redo_description() {
+                format!("Redo: {}", desc)
+            } else {
+                "Redo".to_string()
+            };
+
+            if ui
+                .add_enabled(self.state.can_redo(), egui::Button::new("Redo"))
+                .on_hover_text(format!("{} (Ctrl+Shift+Z)", redo_text))
+                .clicked()
+            {
                 self.state.redo();
                 debug!("Redo");
             }
@@ -208,12 +242,44 @@ impl TemplateEditorPanel {
 
                     // Handle keyboard input
                     ui.input(|i| {
+                        // Delete key
                         if i.key_pressed(egui::Key::Delete)
-                            && let Some(selected_idx) = self.state.selected_field() {
-                                self.delete_field(selected_idx, current_page);
-                                self.properties_panel.reset();
-                                debug!(field_index = selected_idx, "Field deleted");
-                            }
+                            && let Some(selected_idx) = self.state.selected_field()
+                        {
+                            self.delete_field(selected_idx, current_page);
+                            self.properties_panel.reset();
+                            debug!(field_index = selected_idx, "Field deleted");
+                        }
+
+                        // Undo: Ctrl+Z (Windows/Linux) or Cmd+Z (Mac)
+                        if i.key_pressed(egui::Key::Z)
+                            && (i.modifiers.ctrl || i.modifiers.command)
+                            && !i.modifiers.shift
+                            && self.state.can_undo()
+                        {
+                            self.state.undo();
+                            debug!("Undo via keyboard shortcut");
+                        }
+
+                        // Redo: Ctrl+Shift+Z (Windows/Linux) or Cmd+Shift+Z (Mac)
+                        if i.key_pressed(egui::Key::Z)
+                            && (i.modifiers.ctrl || i.modifiers.command)
+                            && i.modifiers.shift
+                            && self.state.can_redo()
+                        {
+                            self.state.redo();
+                            debug!("Redo via keyboard shortcut");
+                        }
+
+                        // Alternative Redo: Ctrl+Y (Windows/Linux)
+                        if i.key_pressed(egui::Key::Y)
+                            && i.modifiers.ctrl
+                            && !i.modifiers.command
+                            && self.state.can_redo()
+                        {
+                            self.state.redo();
+                            debug!("Redo via keyboard shortcut (Ctrl+Y)");
+                        }
                     });
 
                     // Handle mouse interactions based on mode
@@ -252,7 +318,9 @@ impl TemplateEditorPanel {
                 ui.vertical(|ui| {
                     ui.set_min_width(250.0);
                     egui::ScrollArea::vertical().show(ui, |ui| {
-                        let properties_action = self.properties_panel.show(ui, &mut self.state, current_page);
+                        let properties_action =
+                            self.properties_panel
+                                .show(ui, &mut self.state, current_page);
 
                         match properties_action {
                             PropertiesAction::Applied => {
@@ -264,7 +332,10 @@ impl TemplateEditorPanel {
                             PropertiesAction::Delete(field_idx) => {
                                 self.delete_field(field_idx, current_page);
                                 self.properties_panel.reset();
-                                debug!(field_index = field_idx, "Field deleted via properties panel");
+                                debug!(
+                                    field_index = field_idx,
+                                    "Field deleted via properties panel"
+                                );
                             }
                             PropertiesAction::None => {}
                         }
