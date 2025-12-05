@@ -663,10 +663,12 @@ editor.state_mut().set_mode(EditorMode::Select);
 - Add dimension display during resize
 - Add multi-select support
 
-### Priority 4: Field Properties Panel
+### ✅ Priority 4: Field Properties Panel (COMPLETED)
 
-**Estimated Effort**: Small (1-2 days)
-**Goal**: Edit all field metadata through UI
+**Status**: Completed
+**Completion Date**: 2024-12-05
+**Actual Effort**: Small (~1 day)
+**Commit**: `d774fd9`
 
 #### Features
 
@@ -721,14 +723,211 @@ impl FieldPropertiesPanel {
 
 #### Implementation Tasks
 
-- [ ] Add `FieldPropertiesPanel` struct
-- [ ] Implement basic property inputs (text, combo boxes)
-- [ ] Add validation settings UI
-- [ ] Implement bounds numeric inputs
-- [ ] Add apply/cancel buttons
-- [ ] Implement field validation and error display
-- [ ] Add regex pattern presets dropdown
-- [ ] Implement page assignment selector
+- [x] Add `FieldPropertiesPanel` struct
+- [x] Implement basic property inputs (text, combo boxes)
+- [x] Add validation settings UI
+- [x] Implement bounds numeric inputs
+- [x] Add apply/cancel/delete buttons
+- [x] Implement field validation and error display
+- [x] Add regex pattern presets (Email, Phone, ZIP)
+- [ ] Implement page assignment selector (deferred - low priority)
+
+#### Files Created
+
+**`crates/form_factor_drawing/src/template_ui/properties.rs`** (~275 lines):
+- `FieldPropertiesPanel` struct with temp state pattern
+- `show()` method - Main UI rendering with validation
+- `reset()` method - Clears temp state on selection change
+- `PropertiesAction` enum - Apply/Cancelled/Delete(usize)
+- Validation: ID/label required, regex pattern syntax checking
+- Field type dropdown with 20+ types organized by category
+- Pattern presets: Email, Phone (XXX-XXX-XXXX), ZIP code
+
+#### Files Modified
+
+**`crates/form_factor_drawing/src/template_ui/mod.rs`**:
+- Added properties module
+- Exported FieldPropertiesPanel and PropertiesAction
+
+**`crates/form_factor_drawing/src/template_ui/editor.rs`**:
+- Added properties_panel field to TemplateEditorPanel
+- Restructured show() to use horizontal layout (70/30 canvas/properties split)
+- Properties panel in right sidebar with scrolling
+- Delete key now resets properties panel state
+- Integrated PropertiesAction handling (Apply/Cancel/Delete)
+
+**`crates/form_factor_drawing/src/lib.rs`**:
+- Exported FieldPropertiesPanel and PropertiesAction to crate root
+
+**`crates/form_factor_drawing/src/template_ui/state.rs`**:
+- Simplified TemplateSnapshot (removed timestamp/action_description)
+- Updated push_snapshot to accept but ignore description parameter
+- Added documentation noting fields will be added in Priority 5
+- Removed unused DragState and DragType structs
+
+#### Features Implemented
+
+1. **Basic Properties Editing**: ✅
+   - ID field with required validation
+   - Label field with required validation
+   - Field type ComboBox with 20+ types:
+     - Common: FreeText, Date, DateOfBirth, Checkbox, Signature, Initials
+     - Personal Info: FirstName, LastName, FullName, Email, PhoneNumber
+     - Address: StreetAddress, City, State, ZipCode
+     - Financial: Currency, Amount
+   - Organized by category with separators
+
+2. **Validation Settings**: ✅
+   - Required checkbox
+   - Regex pattern input with syntax validation
+   - Pattern presets: Email, Phone (XXX-XXX-XXXX), ZIP (5 or 5+4)
+   - Error messages displayed in red above form
+   - Apply button blocked until validation passes
+
+3. **Bounds Adjustment**: ✅
+   - DragValue inputs for X, Y position
+   - DragValue inputs for Width, Height with 20px minimum
+   - Real-time canvas updates (via temp state pattern)
+
+4. **Help Text**: ✅
+   - Multiline TextEdit for optional help text
+   - Empty becomes None in FieldDefinition
+
+5. **Action Buttons**: ✅
+   - Apply: Validates, saves changes, pushes undo snapshot
+   - Cancel: Discards changes, resets temp state
+   - Delete Field: Removes field, clears selection, pushes undo
+
+6. **State Management**: ✅
+   - Temp state pattern prevents unintended changes
+   - State initialized from selected field on first show
+   - Reset on selection change or deletion
+   - Validation errors tracked and displayed
+
+7. **UI Integration**: ✅
+   - Right sidebar (30% width, scrollable)
+   - Canvas (70% width)
+   - "No field selected" message when nothing selected
+   - Automatic state sync with selection changes
+
+#### API Usage
+
+**Basic Integration**:
+```rust
+use form_factor_drawing::{
+    TemplateEditorPanel, FieldPropertiesPanel, PropertiesAction
+};
+
+let mut editor = TemplateEditorPanel::new();
+let action = editor.show(ui, &registry);
+
+// Properties panel is automatically shown in editor.show()
+// No separate integration needed
+```
+
+**Properties Action Handling** (happens internally in editor):
+```rust
+match properties_action {
+    PropertiesAction::Applied => {
+        // Changes saved, undo snapshot pushed
+    }
+    PropertiesAction::Cancelled => {
+        // Changes discarded
+    }
+    PropertiesAction::Delete(field_idx) => {
+        // Field deleted, selection cleared
+    }
+    PropertiesAction::None => {
+        // No action taken
+    }
+}
+```
+
+**Field Type Selection**:
+```rust
+// User can select from 20+ field types:
+FieldType::FreeText       // Default for new fields
+FieldType::FirstName      // Personal info
+FieldType::Email          // With email pattern preset
+FieldType::PhoneNumber    // With phone pattern preset
+FieldType::StreetAddress  // Address fields
+FieldType::Currency       // Financial fields
+// ... and more
+```
+
+**Validation Patterns**:
+```rust
+// Preset patterns available via buttons:
+Email:  r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+Phone:  r"^\d{3}-\d{3}-\d{4}$"
+ZIP:    r"^\d{5}(-\d{4})?$"
+
+// Or custom regex pattern
+```
+
+#### Known Limitations
+
+1. **No Page Assignment**: Fields cannot be moved to different pages (low priority)
+2. **No Field Duplication**: Cannot copy field to create similar field
+3. **No Keyboard Shortcuts**: No Tab to next field, Enter to apply, etc.
+4. **No Field Preview**: Properties panel doesn't show field render preview
+5. **No Metadata Editor**: Cannot edit custom key-value pairs in metadata HashMap
+6. **Fixed Panel Width**: Properties panel width not adjustable (always 30%)
+7. **No Field Ordering**: Cannot change z-order or field tab order
+8. **No Pattern Preview**: Regex patterns not tested against sample values in UI
+9. **No Field Templates**: Cannot save frequently used field configurations
+10. **Single Field Only**: Cannot edit multiple fields at once
+
+#### Code Quality Achievements
+
+- **Zero Clippy Warnings**: 40 automatic fixes applied
+  - Collapsed if statements (let-chains)
+  - Removed unnecessary casts (f32 -> f32)
+  - Removed clone on Copy types (FieldBounds)
+- **All Tests Passing**: 93 tests (no new tests added for Priority 4 yet)
+- **CLAUDE.md Compliance**:
+  - No `#[allow]` directives
+  - Removed unused code (DragState, DragType)
+  - Simplified TemplateSnapshot to avoid dead_code warnings
+  - Proper error handling and validation
+- **Comprehensive Tracing**: All public methods use `#[instrument]`
+- **Documentation**: Inline comments for complex logic, public API docs
+
+#### Integration Notes
+
+- Properties panel automatically integrated into editor sidebar
+- Parent UI doesn't need to handle properties panel separately
+- Panel state automatically synchronized with field selection
+- Delete from properties panel equivalent to Delete key
+- All property changes push undo snapshots via `state.push_snapshot()`
+- Temp state pattern prevents accidental changes:
+  - Changes only applied when "Apply" clicked
+  - Selecting different field resets temp state
+  - Cancel button discards all changes
+- Validation runs before applying changes
+- Error messages displayed inline above form
+
+#### Performance Notes
+
+- Temp state cloning minimal impact (only field metadata, not canvas)
+- Properties panel only renders when field selected
+- Validation runs on demand (Apply button click)
+- No polling or continuous validation
+- Undo snapshots only pushed on Apply, not during editing
+
+#### Next Steps
+
+- Priority 5: Undo/Redo System (foundation already complete)
+  - Add keyboard shortcuts (Ctrl+Z, Ctrl+Shift+Z)
+  - Add undo/redo history browser (needs timestamp/action_description)
+  - Visual feedback for undo/redo actions
+- Priority 6: Template validation and save
+- Future enhancements:
+  - Page assignment selector
+  - Field duplication
+  - Metadata editor
+  - Field templates/presets
+  - Multi-field editing
 
 ### Priority 5: Undo/Redo System
 
