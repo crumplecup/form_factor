@@ -433,10 +433,12 @@ match action {
 - Integrate with proper canvas transform pipeline for zoom/pan
 - Add keyboard shortcuts for page navigation
 
-### Priority 3: Field Drawing and Manipulation
+### ✅ Priority 3: Field Drawing and Manipulation (COMPLETED)
 
-**Estimated Effort**: Medium (3-4 days)
-**Goal**: Create, move, and resize fields visually
+**Status**: Completed
+**Completion Date**: 2024-12-05
+**Actual Effort**: Medium (~1 day)
+**Commit**: `ecf096e`
 
 #### Features
 
@@ -487,14 +489,179 @@ match action {
 
 #### Implementation Tasks
 
-- [ ] Implement field drawing state machine
-- [ ] Add preview rectangle rendering
-- [ ] Implement drag detection and tracking
-- [ ] Add resize handle rendering
-- [ ] Implement corner resize logic
-- [ ] Add field deletion with confirmation
-- [ ] Implement snap-to-edge functionality
-- [ ] Add minimum size constraints
+- [x] Implement field drawing state machine
+- [x] Add preview rectangle rendering
+- [x] Implement drag detection and tracking
+- [x] Add resize handle rendering
+- [x] Implement corner resize logic
+- [x] Add field deletion (without confirmation - uses undo instead)
+- [ ] Implement snap-to-edge functionality (deferred)
+- [x] Add minimum size constraints (20x20 pixels)
+
+#### Files Created
+
+**`crates/form_factor_drawing/src/template_ui/manipulation.rs`** (~380 lines):
+- `handle_draw_mode()` - Draws new fields with preview rectangle
+- `handle_select_mode()` - Handles selection, movement, and resizing
+- `render_resize_handles()` - Renders blue corner handles on selected field
+- `render_drawing_preview()` - Renders orange preview during drawing
+- `create_field_from_drawing()` - Creates FieldDefinition from drawn rectangle
+- `delete_field()` - Removes field with Delete key
+- `get_resize_handle_at_position()` - Hit testing for corner handles
+- `update_field_bounds()` - Updates bounds during drag operations
+- Constants: HANDLE_SIZE (8.0px), MIN_FIELD_SIZE (20.0px)
+
+#### Files Modified
+
+**`crates/form_factor_drawing/src/template_ui/editor.rs`**:
+- Added `DrawingState` struct for field creation preview
+- Added `DragOperation` struct for move/resize tracking
+- Added `DragOperationType` enum (Move, ResizeTopLeft, etc.)
+- Updated `TemplateEditorPanel` with drawing_state and drag_state fields
+- Modified `show()` to dispatch to mode-specific handlers
+- Integrated keyboard input for Delete key
+- Added resize handle rendering
+- Added drawing preview rendering
+- Made structs/fields `pub(super)` for manipulation module access
+- Made `find_field_at_position()` pub(super)
+
+**`crates/form_factor_drawing/src/template_ui/mod.rs`**:
+- Added manipulation module
+- Imports field manipulation functionality
+
+**`crates/form_factor_drawing/src/template/implementation.rs`**:
+- Made `pages` field `pub(crate)` on DrawingTemplateBuilder
+- Enables direct page access for field manipulation
+
+#### Features Implemented
+
+1. **Field Drawing (Draw Mode)**: ✅
+   - Click-and-drag creates preview rectangle
+   - Orange semi-transparent preview (255, 200, 0, 60)
+   - Shows dimensions during drawing (e.g., "100x50")
+   - Minimum size constraint (20x20 pixels)
+   - Auto-generates field ID (field_1, field_2, etc.)
+   - Auto-generates field label (Field 1, Field 2, etc.)
+   - Creates FieldDefinition with FreeText type
+   - Pushes undo snapshot after creation
+
+2. **Field Movement (Select Mode)**: ✅
+   - Click-and-drag on field body moves entire field
+   - Real-time position updates during drag
+   - Smooth movement with delta tracking
+   - Preserves field size during movement
+   - Pushes undo snapshot after move completes
+   - Tracing logs for debugging
+
+3. **Field Resizing (Select Mode)**: ✅
+   - Four corner resize handles (8px radius circles)
+   - Blue handles match selected field color
+   - Independent corner resize operations:
+     - Top-left: Resize from top-left corner
+     - Top-right: Resize from top-right corner
+     - Bottom-left: Resize from bottom-left corner
+     - Bottom-right: Resize from bottom-right corner
+   - Minimum size enforcement (20x20 pixels)
+   - Real-time size updates during resize
+   - Pushes undo snapshot after resize completes
+
+4. **Field Deletion**: ✅
+   - Delete key removes selected field
+   - Clears selection after deletion
+   - Pushes undo snapshot for undo capability
+   - Tracing logs for debugging
+   - No confirmation dialog (relies on undo)
+
+5. **Interaction State Management**: ✅
+   - DrawingState tracks preview rectangle (start_pos, current_pos)
+   - DragOperation tracks active drag (field_index, operation_type, start_pos, original_bounds)
+   - DragOperationType enum for operation types
+   - Proper state cleanup on drag completion
+   - Clone-based state handling to avoid borrow conflicts
+
+6. **Visual Feedback**: ✅
+   - Orange preview rectangle during field drawing
+   - Blue resize handles (8px) on selected field
+   - Selection highlighting (blue overlay from Priority 2)
+   - Dimension display during drawing
+   - Smooth real-time updates
+
+#### API Usage
+
+**Draw Mode - Creating Fields**:
+```rust
+// Switch to Draw mode
+editor.state_mut().set_mode(EditorMode::Draw);
+
+// User clicks and drags on canvas
+// - DrawingState captures start and current positions
+// - Orange preview shows during drag
+// - On release, field is created automatically
+```
+
+**Select Mode - Moving Fields**:
+```rust
+// Switch to Select mode
+editor.state_mut().set_mode(EditorMode::Select);
+
+// User clicks on field -> selects it
+// User drags field -> DragOperation::Move
+// Field position updates in real-time
+// On release, undo snapshot is pushed
+```
+
+**Select Mode - Resizing Fields**:
+```rust
+// Field must be selected first
+// User clicks on corner handle -> DragOperation::Resize*
+// Field bounds update in real-time
+// Minimum size enforced (20x20)
+// On release, undo snapshot is pushed
+```
+
+**Delete Field**:
+```rust
+// Select field first
+// Press Delete key -> field removed
+// Selection cleared
+// Undo snapshot pushed
+```
+
+#### Known Limitations
+
+1. **No Snap-to-Grid**: Fields can be placed at any pixel position
+2. **No Snap-to-Field**: No automatic alignment with other field edges
+3. **No Multi-Select**: Can only manipulate one field at a time
+4. **No Bulk Operations**: No copy/paste or duplicate fields
+5. **No Field Validation**: Can create fields with invalid IDs or properties
+6. **Default Field Type Only**: All created fields are FreeText type
+7. **No Confirmation Dialog**: Delete immediately removes (relies on undo)
+8. **Resize Handles Always Visible**: No hover state, always shown on selected
+9. **No Cursor Changes**: Cursor doesn't indicate move/resize operations
+10. **No Dimension Display During Resize**: Only shows during initial draw
+
+#### Integration Notes
+
+- Field drawing requires Draw mode (click mode button in toolbar)
+- Field movement/resizing requires Select mode
+- Delete key must be pressed while field is selected
+- All operations push undo snapshots automatically
+- Minimum field size is 20x20 pixels (enforced during draw and resize)
+- Auto-generated field IDs are sequential (field_1, field_2, etc.)
+- All created fields default to FreeText type
+- Parent UI can query editor state to check current mode
+
+#### Next Steps
+
+- Priority 4: Implement field properties panel for editing metadata
+- Priority 5: Undo/Redo system (foundation already complete)
+- Priority 6: Template validation and save
+- Add snap-to-grid feature
+- Add snap-to-field edges feature
+- Add field type selector during drawing
+- Add cursor changes for move/resize
+- Add dimension display during resize
+- Add multi-select support
 
 ### Priority 4: Field Properties Panel
 
