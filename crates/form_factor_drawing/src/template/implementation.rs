@@ -309,6 +309,16 @@ impl DrawingTemplateBuilder {
         self
     }
 
+    /// Get the template ID (for validation)
+    pub fn get_id(&self) -> &str {
+        self.id.as_deref().unwrap_or("")
+    }
+
+    /// Get the template name (for validation)
+    pub fn get_name(&self) -> &str {
+        self.name.as_deref().unwrap_or("")
+    }
+
     /// Get the number of pages in the template
     pub fn page_count(&self) -> usize {
         self.pages.len()

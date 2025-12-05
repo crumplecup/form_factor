@@ -16,6 +16,10 @@ pub struct TemplateEditorPanel {
     pub(super) drag_state: Option<DragOperation>,
     /// Properties panel for editing field metadata
     properties_panel: FieldPropertiesPanel,
+    /// Whether this is a new template (not yet in registry)
+    is_new: bool,
+    /// Validation errors from last validation attempt
+    validation_errors: Vec<crate::ValidationError>,
 }
 
 /// State while drawing a new field.
@@ -58,6 +62,8 @@ impl TemplateEditorPanel {
             drawing_state: None,
             drag_state: None,
             properties_panel: FieldPropertiesPanel::new(),
+            is_new: true,
+            validation_errors: Vec::new(),
         }
     }
 
@@ -105,6 +111,8 @@ impl TemplateEditorPanel {
             .version("1.0.0");
 
         self.state.set_current_template(Some(builder));
+        self.is_new = true;
+        self.validation_errors.clear();
         info!("Created new template");
     }
 
@@ -196,9 +204,37 @@ impl TemplateEditorPanel {
 
             ui.separator();
 
-            // Save/Cancel buttons
+            // Save/Cancel buttons with validation
+            if ui.button("Validate").clicked() {
+                if let Some(template) = self.state.current_template() {
+                    self.validation_errors =
+                        crate::TemplateValidator::validate(template, _registry, self.is_new);
+                    if self.validation_errors.is_empty() {
+                        info!("Template validation passed");
+                    } else {
+                        debug!(
+                            error_count = self.validation_errors.len(),
+                            "Template validation failed"
+                        );
+                    }
+                }
+            }
+
             if ui.button("Save Template").clicked() {
-                action = EditorAction::Save;
+                if let Some(template) = self.state.current_template() {
+                    self.validation_errors =
+                        crate::TemplateValidator::validate(template, _registry, self.is_new);
+                    if self.validation_errors.is_empty() {
+                        action = EditorAction::Save {
+                            is_new: self.is_new,
+                        };
+                    } else {
+                        debug!(
+                            error_count = self.validation_errors.len(),
+                            "Cannot save: validation failed"
+                        );
+                    }
+                }
             }
             if ui.button("Cancel").clicked() {
                 action = EditorAction::Cancel;
@@ -206,6 +242,19 @@ impl TemplateEditorPanel {
         });
 
         ui.separator();
+
+        // Show validation errors if any
+        if !self.validation_errors.is_empty() {
+            ui.horizontal(|ui| {
+                ui.colored_label(egui::Color32::RED, "❌ Validation Errors:");
+            });
+            ui.indent("validation_errors", |ui| {
+                for error in &self.validation_errors {
+                    ui.colored_label(egui::Color32::RED, format!("• {}", error.message()));
+                }
+            });
+            ui.separator();
+        }
 
         // Main editor area with properties panel
         if self.state.current_template().is_some() {
@@ -431,7 +480,10 @@ pub enum EditorAction {
     /// No action
     None,
     /// Save template
-    Save,
+    Save {
+        /// Whether this is a new template (not yet in registry)
+        is_new: bool,
+    },
     /// Cancel editing
     Cancel,
 }

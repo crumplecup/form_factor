@@ -40,6 +40,7 @@ pub use template::{
 };
 pub use template_ui::{
     EditorAction, EditorMode, FieldPropertiesPanel, PropertiesAction, TemplateEditorPanel,
-    TemplateEditorState, TemplateManagerPanel, TemplateManagerState,
+    TemplateEditorState, TemplateManagerPanel, TemplateManagerState, TemplateSnapshot,
+    TemplateValidator, ValidationError,
 };
 pub use tool::ToolMode;
