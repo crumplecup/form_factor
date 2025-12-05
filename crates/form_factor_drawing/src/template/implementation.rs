@@ -309,6 +309,27 @@ impl DrawingTemplateBuilder {
         self
     }
 
+    /// Get the number of pages in the template
+    pub fn page_count(&self) -> usize {
+        self.pages.len()
+    }
+
+    /// Get all field definitions across all pages
+    pub fn fields(&self) -> Vec<&FieldDefinition> {
+        self.pages
+            .iter()
+            .flat_map(|page| page.fields.iter())
+            .collect()
+    }
+
+    /// Get fields for a specific page (0-indexed)
+    pub fn fields_for_page(&self, page_index: usize) -> Vec<&FieldDefinition> {
+        self.pages
+            .get(page_index)
+            .map(|page| page.fields.iter().collect())
+            .unwrap_or_default()
+    }
+
     /// Build the template
     pub fn build(self) -> Result<DrawingTemplate, TemplateError> {
         let template = DrawingTemplate {
