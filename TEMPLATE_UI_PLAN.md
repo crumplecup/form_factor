@@ -235,10 +235,12 @@ pub enum DragType {
 - Implement duplicate template logic in parent
 - Add template creation wizard for New action
 
-### Priority 2: Basic Template Editor
+### ✅ Priority 2: Basic Template Editor (COMPLETED)
 
-**Estimated Effort**: Medium (3-4 days)
-**Goal**: Load template, view fields, basic selection
+**Status**: Completed
+**Completion Date**: 2024-12-05
+**Actual Effort**: Medium (~1 day)
+**Commit**: `d216baf`
 
 #### Features
 
@@ -290,14 +292,146 @@ pub enum DragType {
 
 #### Implementation Tasks
 
-- [ ] Add `TemplateEditorState` struct
-- [ ] Implement template loading from registry
-- [ ] Render form image and field overlays
-- [ ] Implement field selection (click detection)
-- [ ] Add selection highlight rendering
-- [ ] Implement page navigation
-- [ ] Add mode switching UI
-- [ ] Integrate with existing canvas zoom/pan
+- [x] Add `TemplateEditorState` struct (completed in Priority 1)
+- [x] Implement template loading from registry (basic version, needs to_builder())
+- [x] Render field overlays (simple transform, not full canvas pipeline)
+- [x] Implement field selection (click detection)
+- [x] Add selection highlight rendering
+- [x] Implement page navigation
+- [x] Add mode switching UI
+- [ ] Integrate with existing canvas zoom/pan (deferred - simple transform for now)
+
+#### Files Created
+
+**`crates/form_factor_drawing/src/template_ui/editor.rs`** (~280 lines):
+- `TemplateEditorPanel` widget for egui
+- Template canvas with painter allocation
+- Field overlay rendering with simple coordinate transform
+- Click detection and hit testing for field selection
+- Page navigation controls
+- Mode switching toolbar
+- Undo/Redo button integration
+- `EditorAction` enum (None, Save, Cancel)
+
+#### Files Modified
+
+**`crates/form_factor_drawing/src/lib.rs`**:
+- Added re-export of `EditorAction`, `TemplateEditorPanel`
+
+**`crates/form_factor_drawing/src/template/implementation.rs`**:
+- Added `page_count()` method to `DrawingTemplateBuilder`
+- Added `fields()` method to get all fields across pages
+- Added `fields_for_page(index)` method to get fields for specific page
+- Enables builder to be queried without building
+
+**`crates/form_factor_drawing/src/template_ui/mod.rs`**:
+- Added editor module
+- Re-exported `EditorAction`, `TemplateEditorPanel`
+
+#### Features Implemented
+
+1. **Template Canvas**: ✅
+   - Allocates painter area with click_and_drag sense
+   - Gray background (Color32::from_gray(240))
+   - Renders all fields for current page
+   - Simple coordinate transform (canvas-relative)
+
+2. **Field Overlay Rendering**: ✅
+   - Semi-transparent rectangles with rounded corners
+   - Blue overlay for selected fields (0, 150, 255, 100)
+   - Green overlay for unselected fields (0, 200, 0, 80)
+   - Border strokes (2px selected, 1px unselected)
+   - Field ID labels at top-left of each field
+
+3. **Field Selection**: ✅
+   - Click detection on canvas
+   - `find_field_at_position()` hit testing
+   - Reverse iteration (top fields selected first)
+   - Updates `TemplateEditorState.selected_field`
+   - Tracing logs for selection changes
+   - Deselect by clicking empty area
+
+4. **Selection Highlighting**: ✅
+   - Blue color for selected fields
+   - Green color for unselected fields
+   - Thicker border (2px) for selected
+   - Visual feedback on click
+
+5. **Page Navigation**: ✅
+   - Previous/Next buttons in toolbar
+   - Current page / total pages display (e.g., "1 / 2")
+   - Boundary checking prevents invalid navigation
+   - Updates `TemplateEditorState.current_page`
+   - Tracing logs for page changes
+
+6. **Mode Switching**: ✅
+   - Selectable labels for Select/Draw/Edit modes
+   - Visual highlighting of current mode
+   - Updates `TemplateEditorState.mode`
+   - Tracing logs for mode changes
+
+7. **Undo/Redo Integration**: ✅
+   - Buttons enabled/disabled based on stack state
+   - Calls `TemplateEditorState.undo()/redo()`
+   - Uses snapshot system from Priority 1
+
+8. **Save/Cancel Actions**: ✅
+   - Save Template button returns `EditorAction::Save`
+   - Cancel button returns `EditorAction::Cancel`
+   - Parent UI handles actual save/cancel logic
+
+#### API Integration
+
+**Creating New Template**:
+```rust
+let mut editor = TemplateEditorPanel::new();
+editor.new_template("my_template", "My Template");
+```
+
+**Loading Template** (incomplete):
+```rust
+let loaded = editor.load_template("template_id", &registry);
+// TODO: Needs DrawingTemplate.to_builder() method
+```
+
+**Rendering Editor**:
+```rust
+let action = editor.show(ui, &registry);
+match action {
+    EditorAction::Save => { /* save template */ },
+    EditorAction::Cancel => { /* close editor */ },
+    EditorAction::None => { /* continue editing */ },
+}
+```
+
+#### Known Limitations
+
+1. **No Form Image Display**: Canvas shows gray background only, no actual form image
+2. **Simple Coordinate Transform**: Direct pixel mapping, not integrated with canvas transform pipeline
+3. **No Zoom/Pan**: Canvas is fixed size, no zoom or pan controls
+4. **load_template() Incomplete**: Needs `DrawingTemplate.to_builder()` method to edit existing templates
+5. **No Field Properties Display**: Selected field info not shown yet (waits for Priority 4)
+6. **No Field Editing**: Can only view and select, not modify fields (waits for Priority 3)
+7. **No Keyboard Shortcuts**: Page navigation is mouse-only (PgUp/PgDn not implemented)
+8. **Field Count Only**: Shows "Fields on this page: N" but no other template metadata
+
+#### Integration Notes
+
+- Panel requires `TemplateRegistry` reference in `show()` method
+- Returns `EditorAction` enum for parent to handle
+- Parent must handle Save action (validate and persist to registry)
+- Parent must handle Cancel action (close editor, discard changes)
+- Editor maintains internal state in `TemplateEditorState`
+- State includes undo/redo stacks with 50 action limit
+
+#### Next Steps
+
+- Priority 3: Implement field drawing and manipulation
+- Priority 4: Add field properties panel
+- Implement `DrawingTemplate.to_builder()` for loading existing templates
+- Add form image display to canvas
+- Integrate with proper canvas transform pipeline for zoom/pan
+- Add keyboard shortcuts for page navigation
 
 ### Priority 3: Field Drawing and Manipulation
 
