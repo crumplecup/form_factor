@@ -538,12 +538,12 @@ impl DrawingCanvas {
 
             match Rectangle::from_corners(top_left, bottom_right, stroke, fill) {
                 Ok(mut rect) => {
-                    rect.name = format!(
+                    rect.set_name(format!(
                         "Logo: {} ({:.1}%, scale={:.2}x)",
                         result.logo_name,
                         result.confidence * 100.0,
                         result.scale
-                    );
+                    ));
                     self.detections.push(Shape::Rectangle(rect));
                 }
                 Err(e) => {

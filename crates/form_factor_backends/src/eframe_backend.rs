@@ -36,11 +36,7 @@ impl eframe::App for EframeApp {
 
         self.last_frame_time = Some(now);
 
-        let app_ctx = AppContext {
-            egui_ctx: ctx,
-            delta_time,
-            frame_count: self.frame_count,
-        };
+        let app_ctx = AppContext::new(ctx, delta_time, self.frame_count);
 
         self.app.update(&app_ctx);
         self.frame_count += 1;

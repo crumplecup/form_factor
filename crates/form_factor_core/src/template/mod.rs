@@ -8,4 +8,7 @@ mod page_navigation;
 mod types;
 
 pub use page_navigation::PageNavigation;
-pub use types::{FieldBounds, FieldDefinition, FieldDefinitionBuilder, FieldType, FormTemplate};
+pub use types::{
+    FieldBounds, FieldBoundsBuilder, FieldDefinition, FieldDefinitionBuilder, FieldType,
+    FormTemplate,
+};

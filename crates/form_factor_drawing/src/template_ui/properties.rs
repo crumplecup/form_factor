@@ -21,7 +21,12 @@ pub struct FieldPropertiesPanel {
     temp_required: bool,
     temp_validation_pattern: String,
     temp_help_text: String,
-    temp_bounds: FieldBounds,
+    
+    /// Temporary bounds values for editing
+    temp_x: f32,
+    temp_y: f32,
+    temp_width: f32,
+    temp_height: f32,
 
     /// Whether temporary state has been initialized
     temp_initialized: bool,
@@ -43,12 +48,10 @@ impl Default for FieldPropertiesPanel {
             temp_required: false,
             temp_validation_pattern: String::new(),
             temp_help_text: String::new(),
-            temp_bounds: FieldBounds {
-                x: 0.0,
-                y: 0.0,
-                width: 100.0,
-                height: 30.0,
-            },
+            temp_x: 0.0,
+            temp_y: 0.0,
+            temp_width: 100.0,
+            temp_height: 30.0,
             temp_initialized: false,
             field_type_selector: None,
             show_field_type_selector: false,
@@ -72,7 +75,8 @@ impl FieldPropertiesPanel {
     ) -> PropertiesAction {
         let mut action = PropertiesAction::None;
 
-        if let Some(selected_idx) = state.selected_field() {
+        let selected_idx = *state.selected_field();
+        if let Some(selected_idx) = selected_idx {
             // Get the current field from the template
             let field = if let Some(template) = state.current_template() {
                 template
@@ -87,13 +91,16 @@ impl FieldPropertiesPanel {
                 // Initialize temp state if needed
                 if !self.temp_initialized {
                     self.temp_id = field.id().clone();
-                    self.temp_label = field.label.clone();
-                    self.temp_field_type = field.field_type;
-                    self.temp_required = field.required;
+                    self.temp_label = field.label().clone();
+                    self.temp_field_type = field.field_type().clone();
+                    self.temp_required = *field.required();
                     self.temp_validation_pattern =
-                        field.validation_pattern.clone().unwrap_or_default();
-                    self.temp_help_text = field.help_text.clone().unwrap_or_default();
-                    self.temp_bounds = field.bounds();
+                        field.validation_pattern().clone().unwrap_or_default();
+                    self.temp_help_text = field.help_text().clone().unwrap_or_default();
+                    self.temp_x = *field.bounds().x();
+                    self.temp_y = *field.bounds().y();
+                    self.temp_width = *field.bounds().width();
+                    self.temp_height = *field.bounds().height();
                     self.temp_initialized = true;
                 }
 
@@ -201,21 +208,21 @@ impl FieldPropertiesPanel {
                 ui.label("Position & Size");
                 ui.horizontal(|ui| {
                     ui.label("X:");
-                    ui.add(DragValue::new(&mut self.temp_bounds.x).speed(1.0));
+                    ui.add(DragValue::new(&mut self.temp_x).speed(1.0));
                     ui.label("Y:");
-                    ui.add(DragValue::new(&mut self.temp_bounds.y).speed(1.0));
+                    ui.add(DragValue::new(&mut self.temp_y).speed(1.0));
                 });
 
                 ui.horizontal(|ui| {
                     ui.label("Width:");
                     ui.add(
-                        DragValue::new(&mut self.temp_bounds.width)
+                        DragValue::new(&mut self.temp_width)
                             .speed(1.0)
                             .range(20.0..=f32::INFINITY),
                     );
                     ui.label("Height:");
                     ui.add(
-                        DragValue::new(&mut self.temp_bounds.height)
+                        DragValue::new(&mut self.temp_height)
                             .speed(1.0)
                             .range(20.0..=f32::INFINITY),
                     );
@@ -254,24 +261,31 @@ impl FieldPropertiesPanel {
                                 && let Some(page) = template.pages.get_mut(page_index)
                                 && let Some(field) = page.fields.get_mut(selected_idx)
                             {
-                                field.id = self.temp_id.clone();
-                                field.label = self.temp_label.clone();
-                                field.field_type = self.temp_field_type.clone();
-                                field.required = self.temp_required;
-                                field.validation_pattern =
+                                // Use setter methods
+                                let label: String = self.temp_label.clone();
+                                field.set_label(label);
+                                field.set_field_type(self.temp_field_type.clone());
+                                field.set_required(self.temp_required);
+                                field.set_validation_pattern(
                                     if self.temp_validation_pattern.is_empty() {
                                         None
                                     } else {
                                         Some(self.temp_validation_pattern.clone())
-                                    };
-                                field.help_text = if self.temp_help_text.is_empty() {
+                                    }
+                                );
+                                field.set_help_text(if self.temp_help_text.is_empty() {
                                     None
                                 } else {
                                     Some(self.temp_help_text.clone())
-                                };
-                                field.bounds() = self.temp_bounds;
+                                });
+                                field.set_bounds(FieldBounds::new(
+                                    self.temp_x,
+                                    self.temp_y,
+                                    self.temp_width,
+                                    self.temp_height,
+                                ));
                                 applied = true;
-                                debug!(field_id = %field.id, "Applied field property changes");
+                                debug!(field_id = %field.id(), "Applied field property changes");
                             }
 
                             if applied {

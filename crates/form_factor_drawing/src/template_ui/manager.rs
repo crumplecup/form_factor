@@ -3,7 +3,7 @@
 use super::TemplateManagerState;
 use crate::TemplateRegistry;
 use egui::{ScrollArea, Ui};
-use form_factor_core::FormTemplate;
+
 use tracing::{debug, info, instrument};
 
 /// Template manager panel.
@@ -99,8 +99,7 @@ impl TemplateManagerPanel {
 
                             if radio.clicked() {
                                 debug!(template_id = %template.id(), "Template selected");
-                                self.state
-                                    .set_selected_template(Some(template.id().to_string()));
+                                self.state.with_selected_template(Some(template.id().to_string()));
                             }
                         });
 

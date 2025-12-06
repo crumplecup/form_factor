@@ -113,12 +113,14 @@ impl Layer {
 }
 
 /// Error type for layer operations
-#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 pub enum LayerError {
     /// Layer with the given type was not found
     #[display("Layer not found: {}", _0)]
     LayerNotFound(LayerType),
 }
+
+impl std::error::Error for LayerError {}
 
 /// Manages the collection of layers with type-safe access
 ///

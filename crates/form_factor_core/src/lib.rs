@@ -30,7 +30,8 @@ pub use error::{IoError, IoOperation};
 
 // Re-export template types at crate root
 pub use template::{
-    FieldBounds, FieldDefinition, FieldDefinitionBuilder, FieldType, FormTemplate, PageNavigation,
+    FieldBounds, FieldBoundsBuilder, FieldDefinition, FieldDefinitionBuilder, FieldType,
+    FormTemplate, PageNavigation,
 };
 
 // Re-export instance types at crate root

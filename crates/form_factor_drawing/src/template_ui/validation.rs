@@ -49,22 +49,22 @@ impl TemplateValidator {
         // Check field ID uniqueness
         let mut seen_field_ids = HashSet::new();
         for field in &all_fields {
-            if !seen_field_ids.insert(&field.id) {
+            if !seen_field_ids.insert(field.id()) {
                 errors.push(ValidationError::DuplicateFieldId(field.id().clone()));
-                debug!(field_id = %field.id, "Validation error: Duplicate field ID");
+                debug!(field_id = %field.id(), "Validation error: Duplicate field ID");
             }
         }
 
         // Check field bounds validity
         for field in &all_fields {
-            if field.bounds().width() <= 0.0 || field.bounds().height() <= 0.0 {
+            if *field.bounds().width() <= 0.0 || *field.bounds().height() <= 0.0 {
                 errors.push(ValidationError::InvalidFieldBounds {
                     field_id: field.id().clone(),
-                    width: field.bounds().width(),
-                    height: field.bounds().height(),
+                    width: *field.bounds().width(),
+                    height: *field.bounds().height(),
                 });
                 debug!(
-                    field_id = %field.id,
+                    field_id = %field.id(),
                     width = field.bounds().width(),
                     height = field.bounds().height(),
                     "Validation error: Invalid field bounds"
@@ -74,7 +74,7 @@ impl TemplateValidator {
 
         // Check regex patterns
         for field in &all_fields {
-            if let Some(pattern) = &field.validation_pattern
+            if let Some(pattern) = field.validation_pattern()
                 && Regex::new(pattern).is_err()
             {
                 errors.push(ValidationError::InvalidRegexPattern {
@@ -82,7 +82,7 @@ impl TemplateValidator {
                     pattern: pattern.clone(),
                 });
                 debug!(
-                    field_id = %field.id,
+                    field_id = %field.id(),
                     pattern = %pattern,
                     "Validation error: Invalid regex pattern"
                 );
@@ -92,15 +92,15 @@ impl TemplateValidator {
         // Check that each field's page_index is valid
         let page_count = template.page_count();
         for field in &all_fields {
-            if field.page_index >= page_count {
+            if *field.page_index() >= page_count {
                 errors.push(ValidationError::InvalidPageIndex {
                     field_id: field.id().clone(),
-                    page_index: field.page_index,
+                    page_index: *field.page_index(),
                     page_count,
                 });
                 debug!(
-                    field_id = %field.id,
-                    page_index = field.page_index,
+                    field_id = %field.id(),
+                    page_index = field.page_index(),
                     page_count = page_count,
                     "Validation error: Invalid page index"
                 );

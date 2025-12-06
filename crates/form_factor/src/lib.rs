@@ -13,7 +13,7 @@
 //!
 //! impl App for MyApp {
 //!     fn update(&mut self, ctx: &AppContext) {
-//!         egui::CentralPanel::default().show(ctx.egui_ctx, |ui| {
+//!         egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
 //!             ui.heading("Hello Form Factor!");
 //!         });
 //!     }

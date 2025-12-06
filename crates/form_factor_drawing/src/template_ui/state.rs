@@ -4,7 +4,7 @@ use crate::DrawingTemplateBuilder;
 
 /// State for the template manager panel.
 #[derive(Debug, Default, Clone, derive_getters::Getters, derive_setters::Setters)]
-#[setters(prefix = "with_")]
+#[setters(prefix = "with_", borrow_self)]
 pub struct TemplateManagerState {
     /// Search query for filtering templates
     search_query: String,
@@ -37,14 +37,14 @@ impl TemplateManagerState {
 
     /// Shows delete confirmation dialog.
     pub fn show_delete_confirmation(&mut self, template_id: String) {
-        self.pending_delete = Some(template_id);
-        self.show_delete_confirm = true;
+        self.with_pending_delete(Some(template_id));
+        self.with_show_delete_confirm(true);
     }
 
     /// Hides delete confirmation dialog.
     pub fn hide_delete_confirmation(&mut self) {
-        self.show_delete_confirm = false;
-        self.pending_delete = None;
+        self.with_show_delete_confirm(false);
+        self.with_pending_delete(None);
     }
 
     /// Gets the template ID pending deletion.
@@ -66,7 +66,8 @@ pub enum EditorMode {
 }
 
 /// State for the template editor.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_getters::Getters, derive_setters::Setters)]
+#[setters(prefix = "with_", borrow_self)]
 pub struct TemplateEditorState {
     /// Current template being edited
     current_template: Option<DrawingTemplateBuilder>,
@@ -106,53 +107,18 @@ impl TemplateEditorState {
         Self::default()
     }
 
-    /// Gets the current template.
-    pub fn current_template(&self) -> Option<&DrawingTemplateBuilder> {
-        self.current_template.as_ref()
-    }
-
     /// Gets the current template mutably.
     pub fn current_template_mut(&mut self) -> Option<&mut DrawingTemplateBuilder> {
         self.current_template.as_mut()
     }
 
-    /// Sets the current template.
+    /// Sets the current template and resets state.
     pub fn set_current_template(&mut self, template: Option<DrawingTemplateBuilder>) {
-        self.current_template = template;
-        self.selected_field = None;
-        self.current_page = 0;
+        self.with_current_template(template);
+        self.with_selected_field(None);
+        self.with_current_page(0);
         self.undo_stack.clear();
         self.redo_stack.clear();
-    }
-
-    /// Gets the selected field index.
-    pub fn selected_field(&self) -> Option<usize> {
-        self.selected_field
-    }
-
-    /// Sets the selected field index.
-    pub fn set_selected_field(&mut self, index: Option<usize>) {
-        self.selected_field = index;
-    }
-
-    /// Gets the current page.
-    pub fn current_page(&self) -> usize {
-        self.current_page
-    }
-
-    /// Sets the current page.
-    pub fn set_current_page(&mut self, page: usize) {
-        self.current_page = page;
-    }
-
-    /// Gets the editor mode.
-    pub fn mode(&self) -> EditorMode {
-        self.mode
-    }
-
-    /// Sets the editor mode.
-    pub fn set_mode(&mut self, mode: EditorMode) {
-        self.mode = mode;
     }
 
     /// Pushes a snapshot to the undo stack.
@@ -194,12 +160,12 @@ impl TemplateEditorState {
 
     /// Gets the description of the last undo action.
     pub fn last_undo_description(&self) -> Option<&str> {
-        self.undo_stack.last().map(|s| s.description())
+        self.undo_stack.last().map(|s| s.action_description().as_str())
     }
 
     /// Gets the description of the last redo action.
     pub fn last_redo_description(&self) -> Option<&str> {
-        self.redo_stack.last().map(|s| s.description())
+        self.redo_stack.last().map(|s| s.action_description().as_str())
     }
 
     /// Gets the undo stack for browsing history.
@@ -224,7 +190,7 @@ impl TemplateEditorState {
 }
 
 /// Snapshot of template state for undo/redo.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_getters::Getters)]
 pub struct TemplateSnapshot {
     pub(crate) template: DrawingTemplateBuilder,
     timestamp: std::time::SystemTime,
@@ -239,15 +205,5 @@ impl TemplateSnapshot {
             timestamp: std::time::SystemTime::now(),
             action_description: description.into(),
         }
-    }
-
-    /// Gets the action description.
-    pub fn description(&self) -> &str {
-        &self.action_description
-    }
-
-    /// Gets the timestamp.
-    pub fn timestamp(&self) -> std::time::SystemTime {
-        self.timestamp
     }
 }

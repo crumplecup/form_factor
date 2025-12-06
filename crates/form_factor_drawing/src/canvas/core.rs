@@ -3,7 +3,7 @@
 use crate::{LayerManager, LayerType, Shape, ToolMode};
 use derive_getters::Getters;
 use egui::{Color32, Pos2, Stroke};
-use form_factor_core::{FieldDefinition, FormTemplate};
+use form_factor_core::FieldDefinition;
 use serde::{Deserialize, Serialize};
 use tracing::debug;
 
@@ -501,8 +501,8 @@ impl DrawingCanvas {
             let bounds = field.bounds();
 
             // Check horizontal edges (top and bottom)
-            let y_top_dist = (pos.y - bounds.y()).abs();
-            let y_bottom_dist = (pos.y - (bounds.y() + bounds.height())).abs();
+            let y_top_dist = (pos.y - *bounds.y()).abs();
+            let y_bottom_dist = (pos.y - (*bounds.y() + *bounds.height())).abs();
 
             if y_top_dist < min_y_dist {
                 min_y_dist = y_top_dist;
@@ -510,12 +510,12 @@ impl DrawingCanvas {
             }
             if y_bottom_dist < min_y_dist {
                 min_y_dist = y_bottom_dist;
-                snapped_y = bounds.y() + bounds.height();
+                snapped_y = *bounds.y() + *bounds.height();
             }
 
             // Check vertical edges (left and right)
-            let x_left_dist = (pos.x - bounds.x()).abs();
-            let x_right_dist = (pos.x - (bounds.x() + bounds.width())).abs();
+            let x_left_dist = (pos.x - *bounds.x()).abs();
+            let x_right_dist = (pos.x - (*bounds.x() + *bounds.width())).abs();
 
             if x_left_dist < min_x_dist {
                 min_x_dist = x_left_dist;
@@ -523,7 +523,7 @@ impl DrawingCanvas {
             }
             if x_right_dist < min_x_dist {
                 min_x_dist = x_right_dist;
-                snapped_x = bounds.x() + bounds.width();
+                snapped_x = *bounds.x() + *bounds.width();
             }
         }
 

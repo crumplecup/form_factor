@@ -87,7 +87,7 @@ impl DrawingTemplate {
         // Check for duplicate field IDs
         let mut seen_ids = std::collections::HashSet::new();
         for field in self.fields() {
-            if !seen_ids.insert(&field.id) {
+            if !seen_ids.insert(field.id()) {
                 return Err(TemplateError::new(
                     TemplateErrorKind::DuplicateFieldId(field.id().clone()),
                     line!(),
@@ -96,11 +96,12 @@ impl DrawingTemplate {
             }
 
             // Check that field's page_index is valid
-            if field.page_index >= self.pages.len() {
+            if *field.page_index() >= self.pages.len() {
                 return Err(TemplateError::new(
                     TemplateErrorKind::InvalidField(format!(
                         "Field '{}' references invalid page index {}",
-                        field.id, field.page_index
+                        field.id(),
+                        field.page_index()
                     )),
                     line!(),
                     file!(),
@@ -151,7 +152,7 @@ impl FormTemplate for DrawingTemplate {
         self.pages
             .iter()
             .flat_map(|page| page.fields.iter())
-            .find(|f| f.id == field_id)
+            .find(|f| f.id() == field_id)
     }
 
     fn validate_instance(&self, instance: &dyn FormInstance) -> ValidationResult {
@@ -177,21 +178,21 @@ impl FormTemplate for DrawingTemplate {
 
         // Check all required fields are present
         for field_def in self.fields() {
-            if field_def.required {
-                if let Some(field_value) = instance.field_value(&field_def.id) {
+            if *field_def.required() {
+                if let Some(field_value) = instance.field_value(field_def.id()) {
                     if field_value.is_empty() {
-                        result.add_missing_required(field_def.id.clone());
+                        result.add_missing_required(field_def.id().clone());
                     } else {
                         // Check type compatibility
                         if !field_value
-                            .content
-                            .matches_field_type(&field_def.field_type)
+                            .content()
+                            .matches_field_type(field_def.field_type())
                         {
                             result.add_field_error(FieldValidationError::new(
-                                &field_def.id,
+                                field_def.id(),
                                 format!(
                                     "Value type does not match expected type {}",
-                                    field_def.field_type
+                                    field_def.field_type()
                                 ),
                                 ValidationErrorType::TypeMismatch,
                             ));
@@ -204,14 +205,14 @@ impl FormTemplate for DrawingTemplate {
                             && !regex.is_match(text)
                         {
                             result.add_field_error(FieldValidationError::new(
-                                &field_def.id,
+                                field_def.id(),
                                 format!("Value '{}' does not match pattern {}", text, pattern),
                                 ValidationErrorType::PatternMismatch,
                             ));
                         }
                     }
                 } else {
-                    result.add_missing_required(field_def.id.clone());
+                    result.add_missing_required(field_def.id().clone());
                 }
             }
         }

@@ -3,7 +3,7 @@
 use super::{EditorMode, FieldPropertiesPanel, PropertiesAction, TemplateEditorState};
 use crate::TemplateRegistry;
 use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, Vec2};
-use form_factor_core::{FieldDefinition, FormTemplate};
+use form_factor_core::FieldDefinition;
 use tracing::{debug, info, instrument};
 
 /// Template editor panel.
@@ -171,24 +171,24 @@ impl TemplateEditorPanel {
             // Mode buttons
             ui.label("Mode:");
             if ui
-                .selectable_label(self.state.mode() == EditorMode::Select, "Select")
+                .selectable_label(*self.state.mode() == EditorMode::Select, "Select")
                 .clicked()
             {
-                self.state.set_mode(EditorMode::Select);
+                self.state.with_mode(EditorMode::Select);
                 debug!("Switched to Select mode");
             }
             if ui
-                .selectable_label(self.state.mode() == EditorMode::Draw, "Draw")
+                .selectable_label(*self.state.mode() == EditorMode::Draw, "Draw")
                 .clicked()
             {
-                self.state.set_mode(EditorMode::Draw);
+                self.state.with_mode(EditorMode::Draw);
                 debug!("Switched to Draw mode");
             }
             if ui
-                .selectable_label(self.state.mode() == EditorMode::Edit, "Edit")
+                .selectable_label(*self.state.mode() == EditorMode::Edit, "Edit")
                 .clicked()
             {
-                self.state.set_mode(EditorMode::Edit);
+                self.state.with_mode(EditorMode::Edit);
                 debug!("Switched to Edit mode");
             }
 
@@ -198,18 +198,18 @@ impl TemplateEditorPanel {
             if let Some(template) = self.state.current_template() {
                 ui.label("Page:");
 
-                let current_page = self.state.current_page();
+                let current_page = *self.state.current_page();
                 let page_count = template.page_count();
 
                 if ui.button("<").clicked() && current_page > 0 {
-                    self.state.set_current_page(current_page - 1);
+                    self.state.with_current_page(current_page - 1);
                     debug!(page = current_page - 1, "Previous page");
                 }
 
                 ui.label(format!("{} / {}", current_page + 1, page_count.max(1)));
 
                 if ui.button(">").clicked() && current_page < page_count.saturating_sub(1) {
-                    self.state.set_current_page(current_page + 1);
+                    self.state.with_current_page(current_page + 1);
                     debug!(page = current_page + 1, "Next page");
                 }
             }
@@ -303,24 +303,25 @@ impl TemplateEditorPanel {
 
         // Main editor area with properties panel
         if self.state.current_template().is_some() {
-            let current_page = self.state.current_page();
+            let current_page_val = *self.state.current_page();
+            
+            // Get fields for current page outside closure
+            let fields: Vec<FieldDefinition> = self
+                .state
+                .current_template()
+                .as_ref()
+                .map(|t| {
+                    t.fields_for_page(current_page_val)
+                        .into_iter()
+                        .cloned()
+                        .collect()
+                })
+                .unwrap_or_default();
 
             // Horizontal layout: canvas on left, properties on right
             ui.horizontal(|ui| {
                 // Canvas area
                 ui.vertical(|ui| {
-                    // Get fields for current page (need to do this before borrowing for painting)
-                    let fields: Vec<FieldDefinition> = self
-                        .state
-                        .current_template()
-                        .map(|t| {
-                            t.fields_for_page(current_page)
-                                .into_iter()
-                                .cloned()
-                                .collect()
-                        })
-                        .unwrap_or_default();
-
                     let field_count = fields.len();
 
                     // Canvas area for template editing
@@ -335,14 +336,16 @@ impl TemplateEditorPanel {
                     painter.rect_filled(canvas_rect, 0.0, Color32::from_gray(240));
 
                     // Handle keyboard input
+                    let selected_idx = *self.state.selected_field();
+                    
                     ui.input(|i| {
                         // Delete key
                         if i.key_pressed(egui::Key::Delete)
-                            && let Some(selected_idx) = self.state.selected_field()
+                            && let Some(idx) = selected_idx
                         {
-                            self.delete_field(selected_idx, current_page);
+                            self.delete_field(idx, current_page_val);
                             self.properties_panel.reset();
-                            debug!(field_index = selected_idx, "Field deleted");
+                            debug!(field_index = idx, "Field deleted");
                         }
 
                         // Undo: Ctrl+Z (Windows/Linux) or Cmd+Z (Mac)
@@ -377,22 +380,22 @@ impl TemplateEditorPanel {
                     });
 
                     // Handle mouse interactions based on mode
-                    match self.state.mode() {
+                    match *self.state.mode() {
                         EditorMode::Draw => {
-                            self.handle_draw_mode(&response, &painter, canvas_rect, current_page);
+                            self.handle_draw_mode(&response, &painter, canvas_rect, current_page_val);
                         }
                         EditorMode::Select | EditorMode::Edit => {
-                            self.handle_select_mode(&response, &fields, canvas_rect, current_page);
+                            self.handle_select_mode(&response, &fields, canvas_rect, current_page_val);
                         }
                     }
 
                     // Render field overlays
                     for (index, field) in fields.iter().enumerate() {
-                        let is_selected = self.state.selected_field() == Some(index);
+                        let is_selected = *self.state.selected_field() == Some(index);
                         self.render_field(field, &painter, canvas_rect, is_selected);
 
                         // Show resize handles for selected field in Select mode
-                        if is_selected && self.state.mode() == EditorMode::Select {
+                        if is_selected && *self.state.mode() == EditorMode::Select {
                             self.render_resize_handles(field, &painter, canvas_rect);
                         }
                     }
@@ -414,7 +417,7 @@ impl TemplateEditorPanel {
                     egui::ScrollArea::vertical().show(ui, |ui| {
                         let properties_action =
                             self.properties_panel
-                                .show(ui, &mut self.state, current_page);
+                                .show(ui, &mut self.state, current_page_val);
 
                         match properties_action {
                             PropertiesAction::Applied => {
@@ -424,7 +427,7 @@ impl TemplateEditorPanel {
                                 debug!("Field properties cancelled");
                             }
                             PropertiesAction::Delete(field_idx) => {
-                                self.delete_field(field_idx, current_page);
+                                self.delete_field(field_idx, current_page_val);
                                 self.properties_panel.reset();
                                 debug!(
                                     field_index = field_idx,
@@ -458,8 +461,8 @@ impl TemplateEditorPanel {
         // Simple transform: scale field bounds to canvas
         // TODO: Integrate with proper canvas transform pipeline
         let field_rect = Rect::from_min_size(
-            canvas_rect.min + Vec2::new(bounds.x, bounds.y),
-            Vec2::new(bounds.width, bounds.height),
+            canvas_rect.min + Vec2::new(*bounds.x(), *bounds.y()),
+            Vec2::new(*bounds.width(), *bounds.height()),
         );
 
         // Clamp to canvas bounds
@@ -486,7 +489,7 @@ impl TemplateEditorPanel {
         painter.text(
             field_rect.min + Vec2::new(5.0, 5.0),
             egui::Align2::LEFT_TOP,
-            &field.id,
+            field.id(),
             egui::FontId::proportional(12.0),
             Color32::BLACK,
         );
@@ -501,11 +504,11 @@ impl TemplateEditorPanel {
     ) -> Option<usize> {
         // Search in reverse order so top fields are selected first
         for (index, field) in fields.iter().enumerate().rev() {
-            let bounds = &field.bounds();
+            let bounds = field.bounds();
 
             let field_rect = Rect::from_min_size(
-                canvas_rect.min + Vec2::new(bounds.x, bounds.y),
-                Vec2::new(bounds.width, bounds.height),
+                canvas_rect.min + Vec2::new(*bounds.x(), *bounds.y()),
+                Vec2::new(*bounds.width(), *bounds.height()),
             );
 
             let field_rect = field_rect.intersect(canvas_rect);

@@ -3,18 +3,31 @@
 //! This module defines the trait interface that applications implement,
 //! keeping them independent of the underlying event loop backend.
 
+use derive_getters::Getters;
 use egui::Context;
 
 /// Context information provided to the application each frame
+#[derive(Debug, Getters)]
 pub struct AppContext<'a> {
     /// The egui context for building UI
-    pub egui_ctx: &'a Context,
+    egui_ctx: &'a Context,
 
     /// Time elapsed since the last frame (in seconds)
-    pub delta_time: f32,
+    delta_time: f32,
 
     /// Frame number (increments each frame)
-    pub frame_count: u64,
+    frame_count: u64,
+}
+
+impl<'a> AppContext<'a> {
+    /// Creates a new application context.
+    pub fn new(egui_ctx: &'a Context, delta_time: f32, frame_count: u64) -> Self {
+        Self {
+            egui_ctx,
+            delta_time,
+            frame_count,
+        }
+    }
 }
 
 /// Core trait that all applications must implement.

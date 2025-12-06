@@ -195,7 +195,7 @@ impl App for FormFactorApp {
                             .pick_file()
                             && let Some(path_str) = path.to_str()
                         {
-                            match self.canvas.load_from_file(path_str, ctx.egui_ctx) {
+                            match self.canvas.load_from_file(path_str, ctx.egui_ctx()) {
                                 Ok(()) => {
                                     tracing::info!("Loaded project from {}", path_str);
                                     // Emit FileOpened event
@@ -338,7 +338,7 @@ impl App for FormFactorApp {
         }
 
         // Top panel with mode switcher
-        egui::TopBottomPanel::top("mode_switcher_panel").show(ctx.egui_ctx, |ui| {
+        egui::TopBottomPanel::top("mode_switcher_panel").show(ctx.egui_ctx(), |ui| {
             ui.add_space(4.0);
             self.mode_switcher.ui(ui, &mut self.app_state);
             ui.add_space(4.0);
@@ -348,14 +348,14 @@ impl App for FormFactorApp {
         #[cfg(feature = "plugins")]
         egui::SidePanel::right("plugin_panel")
             .default_width(280.0)
-            .show(ctx.egui_ctx, |ui| {
+            .show(ctx.egui_ctx(), |ui| {
                 egui::ScrollArea::vertical().show(ui, |ui| {
                     self.plugin_manager.render_plugins(ui);
                 });
             });
 
         // Main canvas area
-        egui::CentralPanel::default().show(ctx.egui_ctx, |ui| {
+        egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
             self.canvas.ui(ui);
         });
     }

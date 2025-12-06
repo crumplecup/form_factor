@@ -1273,16 +1273,16 @@ impl DrawingCanvas {
 
         // Render each field
         for field in fields {
-            let bounds = &field.bounds();
+            let bounds = field.bounds();
 
             // Convert field bounds from image coordinates to canvas coordinates
             let min = Pos2::new(
-                bounds.x() * scale + image_offset.x,
-                bounds.y() * scale + image_offset.y,
+                *bounds.x() * scale + image_offset.x,
+                *bounds.y() * scale + image_offset.y,
             );
             let max = Pos2::new(
-                (bounds.x() + bounds.width()) * scale + image_offset.x,
-                (bounds.y() + bounds.height()) * scale + image_offset.y,
+                (*bounds.x() + *bounds.width()) * scale + image_offset.x,
+                (*bounds.y() + *bounds.height()) * scale + image_offset.y,
             );
 
             // Apply zoom/pan transformation

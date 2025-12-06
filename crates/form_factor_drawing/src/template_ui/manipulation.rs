@@ -1,8 +1,11 @@
 //! Field manipulation helpers for the template editor.
 
 use super::editor::{DragOperation, DragOperationType, DrawingState, TemplateEditorPanel};
+use crate::template_ui::{TemplateManagerError, TemplateManagerResult};
 use egui::{Color32, Pos2, Rect, Response, Stroke, Vec2};
-use form_factor_core::{FieldBounds, FieldDefinition, FieldType};
+use form_factor_core::{
+    FieldBoundsBuilder, FieldDefinition, FieldDefinitionBuilder, FieldType,
+};
 use tracing::{debug, instrument};
 
 const HANDLE_SIZE: f32 = 8.0;
@@ -38,8 +41,11 @@ impl TemplateEditorPanel {
         if response.drag_stopped()
             && let Some(drawing) = self.drawing_state.take()
         {
-            self.create_field_from_drawing(drawing, canvas_rect, page_index);
-            debug!("Completed drawing field");
+            if let Err(e) = self.create_field_from_drawing(drawing, canvas_rect, page_index) {
+                tracing::error!(error = %e, "Failed to create field from drawing");
+            } else {
+                debug!("Completed drawing field");
+            }
         }
     }
 
@@ -58,16 +64,16 @@ impl TemplateEditorPanel {
         {
             // Check if clicking on resize handle of selected field
             if let Some(selected_idx) = self.state.selected_field()
-                && let Some(field) = fields.get(selected_idx)
+                && let Some(field) = fields.get(*selected_idx)
                 && let Some(handle_type) =
                     self.get_resize_handle_at_position(start_pos, field, canvas_rect)
             {
                 // Start resize operation
                 self.drag_state = Some(DragOperation {
-                    field_index: selected_idx,
+                    field_index: *selected_idx,
                     operation_type: handle_type,
                     start_pos,
-                    original_bounds: field.bounds(),
+                    original_bounds: *field.bounds(),
                 });
                 debug!(field_index = selected_idx, handle = ?handle_type, "Started resize");
                 return;
@@ -77,7 +83,7 @@ impl TemplateEditorPanel {
             let field_idx = self.find_field_at_position(start_pos, fields, canvas_rect);
             if let Some(idx) = field_idx {
                 // Select the field
-                self.state.set_selected_field(Some(idx));
+                self.state.with_selected_field(Some(idx));
 
                 // Start move operation
                 if let Some(field) = fields.get(idx) {
@@ -85,13 +91,13 @@ impl TemplateEditorPanel {
                         field_index: idx,
                         operation_type: DragOperationType::Move,
                         start_pos,
-                        original_bounds: field.bounds(),
+                        original_bounds: *field.bounds(),
                     });
                     debug!(field_index = idx, "Started move");
                 }
             } else {
                 // Clicked on empty space - deselect
-                self.state.set_selected_field(None);
+                self.state.with_selected_field(None);
                 debug!("Deselected field");
             }
         }
@@ -101,7 +107,9 @@ impl TemplateEditorPanel {
             && let Some(drag) = self.drag_state.clone()
             && let Some(current_pos) = response.interact_pointer_pos()
         {
-            self.update_field_bounds(&drag, current_pos, canvas_rect, page_index);
+            if let Err(e) = self.update_field_bounds(&drag, current_pos, canvas_rect, page_index) {
+                tracing::error!(error = %e, "Failed to update field bounds");
+            }
         }
 
         // End drag operation
@@ -130,8 +138,8 @@ impl TemplateEditorPanel {
     ) {
         let bounds = &field.bounds();
         let field_rect = Rect::from_min_size(
-            canvas_rect.min + Vec2::new(bounds.x, bounds.y),
-            Vec2::new(bounds.width, bounds.height),
+            canvas_rect.min + Vec2::new(*bounds.x(), *bounds.y()),
+            Vec2::new(*bounds.width(), *bounds.height()),
         );
 
         let handle_color = Color32::from_rgb(0, 100, 200);
@@ -184,13 +192,13 @@ impl TemplateEditorPanel {
         drawing: DrawingState,
         canvas_rect: Rect,
         page_index: usize,
-    ) {
+    ) -> TemplateManagerResult<()> {
         let rect = Rect::from_two_pos(drawing.start_pos, drawing.current_pos);
 
         // Enforce minimum size
         if rect.width() < MIN_FIELD_SIZE || rect.height() < MIN_FIELD_SIZE {
             debug!("Field too small, ignoring");
-            return;
+            return Ok(());
         }
 
         // Convert to canvas-relative coordinates
@@ -200,27 +208,31 @@ impl TemplateEditorPanel {
         let field_count = self
             .state
             .current_template()
+            .as_ref()
             .map(|t| t.fields().len())
             .unwrap_or(0);
         let field_id = format!("field_{}", field_count + 1);
 
         // Create field definition
-        let field = FieldDefinition {
-            id: field_id.clone(),
-            label: format!("Field {}", field_count + 1),
-            field_type: FieldType::FreeText,
-            page_index,
-            bounds: FieldBounds {
-                x: canvas_pos.x,
-                y: canvas_pos.y,
-                width: rect.width(),
-                height: rect.height(),
-            },
-            required: false,
-            validation_pattern: None,
-            help_text: None,
-            metadata: std::collections::HashMap::new(),
-        };
+        let bounds = FieldBoundsBuilder::default()
+            .x(canvas_pos.x)
+            .y(canvas_pos.y)
+            .width(rect.width())
+            .height(rect.height())
+            .build()
+            .map_err(|e| TemplateManagerError::new(format!("Failed to build field bounds: {}", e)))?;
+
+        let field = FieldDefinitionBuilder::default()
+            .id(field_id.clone())
+            .label(format!("Field {}", field_count + 1))
+            .field_type(FieldType::FreeText)
+            .page_index(page_index)
+            .bounds(bounds)
+            .required(false)
+            .build()
+            .map_err(|e| {
+                TemplateManagerError::new(format!("Failed to build field definition: {}", e))
+            })?;
 
         // Add field to template
         if let Some(template) = self.state.current_template_mut() {
@@ -239,6 +251,8 @@ impl TemplateEditorPanel {
                 debug!(field_id = %field_id, "Created new field");
             }
         }
+
+        Ok(())
     }
 
     /// Deletes a field from the template.
@@ -247,9 +261,9 @@ impl TemplateEditorPanel {
             && let Some(page) = template.pages.get_mut(page_index)
             && field_index < page.fields.len()
         {
-            let field_id = page.fields[field_index].id.clone();
+            let field_id = page.fields[field_index].id().clone();
             page.fields.remove(field_index);
-            self.state.set_selected_field(None);
+            self.state.with_selected_field(None);
             self.state
                 .push_snapshot(format!("Delete field '{}'", field_id));
             debug!(field_id = %field_id, "Deleted field");
@@ -265,8 +279,8 @@ impl TemplateEditorPanel {
     ) -> Option<DragOperationType> {
         let bounds = &field.bounds();
         let field_rect = Rect::from_min_size(
-            canvas_rect.min + Vec2::new(bounds.x, bounds.y),
-            Vec2::new(bounds.width, bounds.height),
+            canvas_rect.min + Vec2::new(*bounds.x(), *bounds.y()),
+            Vec2::new(*bounds.width(), *bounds.height()),
         );
 
         let handle_radius = HANDLE_SIZE;
@@ -295,70 +309,85 @@ impl TemplateEditorPanel {
         current_pos: Pos2,
         _canvas_rect: Rect,
         page_index: usize,
-    ) {
+    ) -> TemplateManagerResult<()> {
         let delta = current_pos - drag.start_pos;
 
         let new_bounds = match drag.operation_type {
             DragOperationType::Move => {
                 // Move the entire field
-                FieldBounds {
-                    x: drag.original_bounds.x + delta.x,
-                    y: drag.original_bounds.y + delta.y,
-                    width: drag.original_bounds.width,
-                    height: drag.original_bounds.height,
-                }
+                FieldBoundsBuilder::default()
+                    .x(*drag.original_bounds.x() + delta.x)
+                    .y(*drag.original_bounds.y() + delta.y)
+                    .width(*drag.original_bounds.width())
+                    .height(*drag.original_bounds.height())
+                    .build()
+                    .map_err(|e| {
+                        TemplateManagerError::new(format!("Failed to build field bounds: {}", e))
+                    })?
             }
             DragOperationType::ResizeTopLeft => {
                 // Resize from top-left corner
-                let new_x = drag.original_bounds.x + delta.x;
-                let new_y = drag.original_bounds.y + delta.y;
-                let new_width = drag.original_bounds.width - delta.x;
-                let new_height = drag.original_bounds.height - delta.y;
+                let new_x = *drag.original_bounds.x() + delta.x;
+                let new_y = *drag.original_bounds.y() + delta.y;
+                let new_width = (*drag.original_bounds.width() - delta.x).max(MIN_FIELD_SIZE);
+                let new_height = (*drag.original_bounds.height() - delta.y).max(MIN_FIELD_SIZE);
 
-                FieldBounds {
-                    x: new_x,
-                    y: new_y,
-                    width: new_width.max(MIN_FIELD_SIZE),
-                    height: new_height.max(MIN_FIELD_SIZE),
-                }
+                FieldBoundsBuilder::default()
+                    .x(new_x)
+                    .y(new_y)
+                    .width(new_width)
+                    .height(new_height)
+                    .build()
+                    .map_err(|e| {
+                        TemplateManagerError::new(format!("Failed to build field bounds: {}", e))
+                    })?
             }
             DragOperationType::ResizeTopRight => {
                 // Resize from top-right corner
-                let new_y = drag.original_bounds.y + delta.y;
-                let new_width = drag.original_bounds.width + delta.x;
-                let new_height = drag.original_bounds.height - delta.y;
+                let new_y = *drag.original_bounds.y() + delta.y;
+                let new_width = (*drag.original_bounds.width() + delta.x).max(MIN_FIELD_SIZE);
+                let new_height = (*drag.original_bounds.height() - delta.y).max(MIN_FIELD_SIZE);
 
-                FieldBounds {
-                    x: drag.original_bounds.x,
-                    y: new_y,
-                    width: new_width.max(MIN_FIELD_SIZE),
-                    height: new_height.max(MIN_FIELD_SIZE),
-                }
+                FieldBoundsBuilder::default()
+                    .x(*drag.original_bounds.x())
+                    .y(new_y)
+                    .width(new_width)
+                    .height(new_height)
+                    .build()
+                    .map_err(|e| {
+                        TemplateManagerError::new(format!("Failed to build field bounds: {}", e))
+                    })?
             }
             DragOperationType::ResizeBottomLeft => {
                 // Resize from bottom-left corner
-                let new_x = drag.original_bounds.x + delta.x;
-                let new_width = drag.original_bounds.width - delta.x;
-                let new_height = drag.original_bounds.height + delta.y;
+                let new_x = *drag.original_bounds.x() + delta.x;
+                let new_width = (*drag.original_bounds.width() - delta.x).max(MIN_FIELD_SIZE);
+                let new_height = (*drag.original_bounds.height() + delta.y).max(MIN_FIELD_SIZE);
 
-                FieldBounds {
-                    x: new_x,
-                    y: drag.original_bounds.y,
-                    width: new_width.max(MIN_FIELD_SIZE),
-                    height: new_height.max(MIN_FIELD_SIZE),
-                }
+                FieldBoundsBuilder::default()
+                    .x(new_x)
+                    .y(*drag.original_bounds.y())
+                    .width(new_width)
+                    .height(new_height)
+                    .build()
+                    .map_err(|e| {
+                        TemplateManagerError::new(format!("Failed to build field bounds: {}", e))
+                    })?
             }
             DragOperationType::ResizeBottomRight => {
                 // Resize from bottom-right corner
-                let new_width = drag.original_bounds.width + delta.x;
-                let new_height = drag.original_bounds.height + delta.y;
+                let new_width = (*drag.original_bounds.width() + delta.x).max(MIN_FIELD_SIZE);
+                let new_height = (*drag.original_bounds.height() + delta.y).max(MIN_FIELD_SIZE);
 
-                FieldBounds {
-                    x: drag.original_bounds.x,
-                    y: drag.original_bounds.y,
-                    width: new_width.max(MIN_FIELD_SIZE),
-                    height: new_height.max(MIN_FIELD_SIZE),
-                }
+                FieldBoundsBuilder::default()
+                    .x(*drag.original_bounds.x())
+                    .y(*drag.original_bounds.y())
+                    .width(new_width)
+                    .height(new_height)
+                    .build()
+                    .map_err(|e| {
+                        TemplateManagerError::new(format!("Failed to build field bounds: {}", e))
+                    })?
             }
         };
 
@@ -367,7 +396,9 @@ impl TemplateEditorPanel {
             && let Some(page) = template.pages.get_mut(page_index)
             && let Some(field) = page.fields.get_mut(drag.field_index)
         {
-            field.bounds() = new_bounds;
+            field.set_bounds(new_bounds);
         }
+
+        Ok(())
     }
 }

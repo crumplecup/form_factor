@@ -336,6 +336,36 @@ impl FieldDefinition {
             .as_deref()
             .or_else(|| self.field_type.validation_pattern())
     }
+
+    /// Sets the bounds for this field (used during template editing)
+    pub fn set_bounds(&mut self, bounds: FieldBounds) {
+        self.bounds = bounds;
+    }
+
+    /// Sets the label for this field (used during template editing)
+    pub fn set_label(&mut self, label: impl Into<String>) {
+        self.label = label.into();
+    }
+
+    /// Sets the field type (used during template editing)
+    pub fn set_field_type(&mut self, field_type: FieldType) {
+        self.field_type = field_type;
+    }
+
+    /// Sets the required flag (used during template editing)
+    pub fn set_required(&mut self, required: bool) {
+        self.required = required;
+    }
+
+    /// Sets the validation pattern (used during template editing)
+    pub fn set_validation_pattern(&mut self, pattern: Option<String>) {
+        self.validation_pattern = pattern;
+    }
+
+    /// Sets the help text (used during template editing)
+    pub fn set_help_text(&mut self, help_text: Option<String>) {
+        self.help_text = help_text;
+    }
 }
 
 /// Builder for FieldDefinition
@@ -431,7 +461,16 @@ impl FieldDefinitionBuilder {
 ///
 /// Coordinates are in image pixel space (top-left origin).
 /// All values must be non-negative finite numbers.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, derive_getters::Getters)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Serialize,
+    Deserialize,
+    derive_getters::Getters,
+    derive_builder::Builder,
+)]
 pub struct FieldBounds {
     /// X coordinate of top-left corner (image pixel space)
     x: f32,

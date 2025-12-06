@@ -260,8 +260,8 @@ fn shape_to_bounds(shape: &Shape) -> FieldBounds {
 /// Returns a score between 0.0 (no overlap) and 1.0 (perfect overlap).
 fn calculate_overlap(bounds1: &FieldBounds, bounds2: &FieldBounds) -> f32 {
     // Calculate intersection rectangle
-    let x1 = bounds1.x().max(bounds2.x());
-    let y1 = bounds1.y().max(bounds2.y());
+    let x1 = bounds1.x().max(*bounds2.x());
+    let y1 = bounds1.y().max(*bounds2.y());
     let x2 = (bounds1.x() + bounds1.width()).min(bounds2.x() + bounds2.width());
     let y2 = (bounds1.y() + bounds1.height()).min(bounds2.y() + bounds2.height());
 
@@ -299,10 +299,10 @@ fn extract_text_from_region(
 
     // Convert bounds to region tuple (x, y, width, height) as unsigned integers
     let region = (
-        bounds.x.max(0.0) as u32,
-        bounds.y.max(0.0) as u32,
-        bounds.width.max(0.0) as u32,
-        bounds.height.max(0.0) as u32,
+        bounds.x().max(0.0) as u32,
+        bounds.y().max(0.0) as u32,
+        bounds.width().max(0.0) as u32,
+        bounds.height().max(0.0) as u32,
     );
 
     // Extract text from the region

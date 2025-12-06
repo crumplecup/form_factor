@@ -579,7 +579,7 @@ impl DrawingCanvas {
 
     /// Finalize a template field (when in template mode)
     fn finalize_template_field(&mut self) {
-        use form_factor_core::{FieldDefinition, FieldType};
+        use form_factor_core::FieldType;
 
         let field_def = if let super::core::CanvasState::Drawing {
             start,
@@ -605,23 +605,19 @@ impl DrawingCanvas {
                             0
                         };
                         let field_id = format!("field_{}", field_count + 1);
+                        let bounds = form_factor_core::FieldBounds::new(min_x, min_y, width, height);
 
-                        Some(FieldDefinition {
-                            id: field_id.clone(),
-                            label: format!("Field {}", field_count + 1),
-                            field_type: FieldType::FreeText,
-                            page_index: 0, // TODO: Use current page
-                            bounds: form_factor_core::FieldBounds {
-                                x: min_x,
-                                y: min_y,
-                                width,
-                                height,
-                            },
-                            required: false,
-                            validation_pattern: None,
-                            help_text: None,
-                            metadata: std::collections::HashMap::new(),
-                        })
+                        Some(
+                            form_factor_core::FieldDefinitionBuilder::default()
+                                .id(field_id.clone())
+                                .label(format!("Field {}", field_count + 1))
+                                .field_type(FieldType::FreeText)
+                                .page_index(0) // TODO: Use current page
+                                .bounds(bounds)
+                                .required(false)
+                                .build()
+                                .expect("Valid field definition"),
+                        )
                     } else {
                         None
                     }
@@ -642,23 +638,19 @@ impl DrawingCanvas {
                             0
                         };
                         let field_id = format!("field_{}", field_count + 1);
+                        let bounds = form_factor_core::FieldBounds::new(min_x, min_y, width, height);
 
-                        Some(FieldDefinition {
-                            id: field_id.clone(),
-                            label: format!("Field {}", field_count + 1),
-                            field_type: FieldType::FreeText,
-                            page_index: 0, // TODO: Use current page
-                            bounds: form_factor_core::FieldBounds {
-                                x: min_x,
-                                y: min_y,
-                                width,
-                                height,
-                            },
-                            required: false,
-                            validation_pattern: None,
-                            help_text: None,
-                            metadata: std::collections::HashMap::new(),
-                        })
+                        Some(
+                            form_factor_core::FieldDefinitionBuilder::default()
+                                .id(field_id.clone())
+                                .label(format!("Field {}", field_count + 1))
+                                .field_type(FieldType::FreeText)
+                                .page_index(0) // TODO: Use current page
+                                .bounds(bounds)
+                                .required(false)
+                                .build()
+                                .expect("Valid field definition"),
+                        )
                     } else {
                         None
                     }
@@ -1099,7 +1091,7 @@ impl DrawingCanvas {
             let mut builder = FieldDefinition::builder()
                 .id(field.id().to_string())
                 .label(field.label().to_string())
-                .field_type(*field.field_type())
+                .field_type(field.field_type().clone())
                 .page_index(*field.page_index())
                 .bounds(new_bounds)
                 .required(*field.required());

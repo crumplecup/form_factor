@@ -5,7 +5,7 @@
 
 use crate::{DrawingInstance, DrawingTemplate, TemplateError};
 use egui::{Color32, RichText, ScrollArea, Ui};
-use form_factor_core::{FieldType, FieldValue, FormInstance};
+use form_factor_core::FormInstance;
 use std::collections::HashMap;
 use tracing::{debug, instrument, warn};
 
@@ -135,7 +135,7 @@ impl DataEntryPanel {
         // Instance name input
         ui.horizontal(|ui| {
             ui.label("Instance Name:");
-            let mut name = self.instance.instance_name().unwrap_or_default().to_string();
+            let mut name = self.instance.instance_name().as_ref().map(|s| s.as_str()).unwrap_or_default().to_string();
             if ui.text_edit_singleline(&mut name).changed() {
                 self.instance.set_instance_name(name);
                 self.dirty = true;
@@ -164,7 +164,7 @@ impl DataEntryPanel {
 
         // Field list (scrollable)
         ScrollArea::vertical()
-            .id_source("data_entry_fields")
+            .id_salt("data_entry_fields")
             .show(ui, |ui| {
                 action = self.render_fields(ui);
             });
@@ -234,90 +234,4 @@ impl DataEntryPanel {
         DataEntryAction::None
     }
 
-    /// Render a single field input widget
-    #[instrument(skip(self, ui))]
-    fn render_field_widget(
-        &mut self,
-        ui: &mut Ui,
-        field_id: &str,
-        field_type: &FieldType,
-        label: &str,
-        required: bool,
-    ) {
-        ui.horizontal(|ui| {
-            // Label with required indicator
-            let label_text = if required {
-                format!("{} *", label)
-            } else {
-                label.to_string()
-            };
-            ui.label(label_text);
-
-            // Get current value
-            let current_value = self
-                .instance
-                .field_values()
-                .get(field_id)
-                .cloned()
-                .unwrap_or_else(|| FieldValue::Text(String::new()));
-
-            // Render input widget based on field type
-            match field_type {
-                FieldType::Text
-                | FieldType::FullName
-                | FieldType::FirstName
-                | FieldType::LastName
-                | FieldType::Email
-                | FieldType::PhoneNumber => {
-                    let mut text = match current_value {
-                        FieldValue::Text(s) => s,
-                        _ => String::new(),
-                    };
-
-                    if ui.text_edit_singleline(&mut text).changed() {
-                        self.instance
-                            .set_field_value(field_id.to_string(), FieldValue::Text(text));
-                        self.dirty = true;
-                    }
-                }
-                FieldType::Checkbox => {
-                    let mut checked = matches!(current_value, FieldValue::Boolean(true));
-                    if ui.checkbox(&mut checked, "").changed() {
-                        self.instance.set_field_value(
-                            field_id.to_string(),
-                            FieldValue::Boolean(checked),
-                        );
-                        self.dirty = true;
-                    }
-                }
-                FieldType::Date | FieldType::DateOfBirth | FieldType::DateSigned => {
-                    // TODO: Use date picker widget
-                    let mut text = match current_value {
-                        FieldValue::Text(s) => s,
-                        _ => String::new(),
-                    };
-
-                    if ui.text_edit_singleline(&mut text).changed() {
-                        self.instance
-                            .set_field_value(field_id.to_string(), FieldValue::Text(text));
-                        self.dirty = true;
-                    }
-                }
-                _ => {
-                    // Default to text input for other types
-                    let mut text = format!("{:?}", current_value);
-                    if ui.text_edit_singleline(&mut text).changed() {
-                        self.instance
-                            .set_field_value(field_id.to_string(), FieldValue::Text(text));
-                        self.dirty = true;
-                    }
-                }
-            }
-        });
-
-        // Show validation error if present
-        if let Some(error) = self.validation_errors.get(field_id) {
-            ui.label(RichText::new(error).color(Color32::RED).small());
-        }
-    }
 }
