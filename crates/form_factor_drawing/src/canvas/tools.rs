@@ -226,6 +226,15 @@ impl DrawingCanvas {
     pub(super) fn handle_selection_click(&mut self, pos: Pos2) {
         let _span = tracing::debug_span!("hit_testing").entered();
 
+        // Check if we're in template mode
+        if matches!(
+            self.template_mode(),
+            super::core::TemplateMode::Creating | super::core::TemplateMode::Editing
+        ) {
+            self.handle_field_selection_click(pos);
+            return;
+        }
+
         // Find the topmost shape that contains the click point
         // Iterate in reverse to select the most recently drawn shape first
         let mut selected = None;
@@ -281,6 +290,52 @@ impl DrawingCanvas {
             debug!("Shape selected - setting selected_layer to Shapes");
             self.set_selected_layer(Some(LayerType::Shapes));
         }
+    }
+
+    /// Handle field selection in template mode
+    fn handle_field_selection_click(&mut self, pos: Pos2) {
+        let _span = tracing::debug_span!("field_hit_testing").entered();
+
+        let Some(template) = self.current_template() else {
+            return;
+        };
+
+        // Find the topmost field that contains the click point
+        let mut selected_field = None;
+        for (page_idx, page) in template.pages.iter().enumerate().rev() {
+            for (field_idx, field) in page.fields.iter().enumerate().rev() {
+                // Check if point is within field bounds
+                let contains = pos.x >= field.bounds.x
+                    && pos.x <= field.bounds.x + field.bounds.width
+                    && pos.y >= field.bounds.y
+                    && pos.y <= field.bounds.y + field.bounds.height;
+
+                debug!(
+                    field_id = %field.id,
+                    field_idx,
+                    page_idx,
+                    contains,
+                    "Testing field"
+                );
+
+                if contains {
+                    selected_field = Some(field_idx);
+                    break;
+                }
+            }
+            if selected_field.is_some() {
+                break;
+            }
+        }
+
+        debug!(
+            ?selected_field,
+            selected_field_old = ?self.selected_field(),
+            "Field selection result"
+        );
+
+        self.set_selected_field(selected_field);
+        self.set_show_properties(selected_field.is_some());
     }
 
     /// Start drawing a new shape

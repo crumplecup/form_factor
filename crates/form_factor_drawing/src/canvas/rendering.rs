@@ -313,6 +313,37 @@ impl DrawingCanvas {
             );
         }
 
+        // Draw template fields if Template layer is visible
+        let template_visible = self.layer_manager.is_visible(LayerType::Template);
+        if template_visible
+            && let (Some(image_size), Some(_texture)) = (self.form_image_size, &self.form_image)
+            && let Some(template) = self.current_template()
+        {
+            // Calculate the same transform as for shapes
+            let canvas_size = response.rect.size();
+            let scale_x = canvas_size.x / image_size.x;
+            let scale_y = canvas_size.y / image_size.y;
+            let scale = scale_x.min(scale_y);
+            let fitted_size = image_size * scale;
+            let offset_x = (canvas_size.x - fitted_size.x) / 2.0;
+            let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
+            let image_offset = response.rect.min + egui::vec2(offset_x, offset_y);
+
+            // Render all fields from all pages
+            for (_page_idx, page) in template.pages.iter().enumerate() {
+                for (idx, field) in page.fields.iter().enumerate() {
+                    self.render_template_field(
+                        field,
+                        idx,
+                        scale,
+                        image_offset,
+                        &painter,
+                        &to_screen,
+                    );
+                }
+            }
+        }
+
         // Draw grid on top of everything if Grid layer is visible
         if self.layer_manager.is_visible(LayerType::Grid) {
             debug!(
@@ -895,6 +926,71 @@ impl DrawingCanvas {
                     painter.add(egui::Shape::closed_line(points, poly.stroke));
                 }
             }
+        }
+    }
+
+    /// Render a template field with zoom transformation applied
+    fn render_template_field(
+        &self,
+        field: &FieldDefinition,
+        field_idx: usize,
+        scale: f32,
+        image_offset: Pos2,
+        painter: &egui::Painter,
+        transform: &egui::emath::TSTransform,
+    ) {
+        // Convert field bounds from image coordinates to canvas coordinates
+        let x = field.bounds.x * scale + image_offset.x;
+        let y = field.bounds.y * scale + image_offset.y;
+        let width = field.bounds.width * scale;
+        let height = field.bounds.height * scale;
+
+        // Create rectangle corners in canvas space
+        let top_left = Pos2::new(x, y);
+        let top_right = Pos2::new(x + width, y);
+        let bottom_right = Pos2::new(x + width, y + height);
+        let bottom_left = Pos2::new(x, y + height);
+
+        // Apply zoom/pan transform
+        let transformed_corners: Vec<Pos2> = vec![top_left, top_right, bottom_right, bottom_left]
+            .iter()
+            .map(|p| transform.mul_pos(*p))
+            .collect();
+
+        // Draw field rectangle
+        let is_selected = self.selected_field() == &Some(field_idx);
+        let stroke = if is_selected {
+            Stroke::new(3.0, Color32::from_rgb(0, 150, 255)) // Blue for selected
+        } else {
+            Stroke::new(2.0, Color32::from_rgb(100, 100, 255)) // Lighter blue for unselected
+        };
+        
+        let fill = if is_selected {
+            Color32::from_rgba_premultiplied(0, 150, 255, 30) // Translucent blue
+        } else {
+            Color32::from_rgba_premultiplied(100, 100, 255, 15) // More translucent
+        };
+
+        // Draw filled field
+        painter.add(egui::Shape::convex_polygon(
+            transformed_corners.clone(),
+            fill,
+            egui::Stroke::NONE,
+        ));
+        
+        // Draw outline
+        painter.add(egui::Shape::closed_line(transformed_corners.clone(), stroke));
+
+        // Draw field label
+        if let Some(center_pos) = transformed_corners.get(0) {
+            let label_pos = Pos2::new(center_pos.x + 5.0, center_pos.y + 5.0);
+            painter.text(
+                label_pos,
+                egui::Align2::LEFT_TOP,
+                &field.label,
+                egui::FontId::proportional(12.0),
+                Color32::from_rgb(0, 100, 200),
+            );
         }
     }
 
