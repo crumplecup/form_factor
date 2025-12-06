@@ -50,6 +50,12 @@ impl FormFactorApp {
                 tracing::info!("Registered OCR plugin");
             }
 
+            #[cfg(feature = "plugin-template")]
+            {
+                manager.register(Box::new(form_factor::template::TemplatePlugin::new()));
+                tracing::info!("Registered template plugin");
+            }
+
             manager
         };
 

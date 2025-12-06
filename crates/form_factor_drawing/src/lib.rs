@@ -39,8 +39,8 @@ pub use template::{
     TemplatePageBuilder, TemplateRegistry,
 };
 pub use template_ui::{
-    EditorAction, EditorMode, FieldPropertiesPanel, PropertiesAction, TemplateEditorPanel,
-    TemplateEditorState, TemplateManagerPanel, TemplateManagerState, TemplateSnapshot,
-    TemplateValidator, ValidationError,
+    EditorAction, EditorMode, FieldPropertiesPanel, ManagerAction, PropertiesAction,
+    TemplateEditorPanel, TemplateEditorState, TemplateManagerPanel, TemplateManagerState,
+    TemplateSnapshot, TemplateValidator, ValidationError,
 };
 pub use tool::ToolMode;

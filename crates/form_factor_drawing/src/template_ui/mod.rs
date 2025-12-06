@@ -8,7 +8,7 @@ mod state;
 mod validation;
 
 pub use editor::{EditorAction, TemplateEditorPanel};
-pub use manager::TemplateManagerPanel;
+pub use manager::{ManagerAction, TemplateManagerPanel};
 pub use properties::{FieldPropertiesPanel, PropertiesAction};
 pub use state::{EditorMode, TemplateEditorState, TemplateManagerState, TemplateSnapshot};
 pub use validation::{TemplateValidator, ValidationError};

@@ -30,9 +30,10 @@ plugin-layers = ["dep:form_factor_drawing"]
 plugin-file = []
 plugin-detection = ["dep:form_factor_drawing"]
 plugin-ocr = ["dep:form_factor_drawing"]
+plugin-template = ["dep:form_factor_drawing"]
 
 # Convenience feature to enable all plugins
-all-plugins = ["plugin-canvas", "plugin-layers", "plugin-file", "plugin-detection", "plugin-ocr"]
+all-plugins = ["plugin-canvas", "plugin-layers", "plugin-file", "plugin-detection", "plugin-ocr", "plugin-template"]
 
 [lints.rust]
 unsafe_code = "forbid"

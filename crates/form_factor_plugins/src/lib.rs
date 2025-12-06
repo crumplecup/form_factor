@@ -22,6 +22,7 @@
 //! - `plugin-file` - File open/save operations
 //! - `plugin-detection` - Computer vision detection features
 //! - `plugin-ocr` - OCR text extraction
+//! - `plugin-template` - Template creation and management
 //! - `all-plugins` - Enable all available plugins
 //!
 //! # Example
@@ -79,3 +80,6 @@ pub mod detection;
 
 #[cfg(feature = "plugin-ocr")]
 pub mod ocr;
+
+#[cfg(feature = "plugin-template")]
+pub mod template;
