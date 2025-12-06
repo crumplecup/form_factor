@@ -10,7 +10,7 @@ use std::collections::HashMap;
 ///
 /// Represents a filled form based on a template, with support for multiple pages.
 /// Each page wraps a DrawingCanvas containing shapes, detections, and image data.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, derive_getters::Getters)]
 pub struct DrawingInstance {
     /// File format version (for migration compatibility)
     #[serde(default = "default_instance_version")]
@@ -23,16 +23,20 @@ pub struct DrawingInstance {
     instance_name: Option<String>,
 
     /// Pages in this instance
+    #[getter(skip)]
     pages: Vec<FormPage>,
 
     /// Field values across all pages (indexed by field ID)
+    #[getter(skip)]
     field_values: HashMap<String, FieldValue>,
 
     /// Validation results (if validated)
     #[serde(skip)]
+    #[getter(skip)]
     validation_results: Option<ValidationResult>,
 
     /// Instance metadata
+    #[getter(skip)]
     metadata: HashMap<String, String>,
 }
 
@@ -148,7 +152,7 @@ impl FormInstance for DrawingInstance {
     fn field_values_for_page(&self, page_index: usize) -> Vec<FieldValue> {
         self.field_values
             .values()
-            .filter(|v| v.page_index == page_index)
+            .filter(|v| *v.page_index() == page_index)
             .cloned()
             .collect()
     }

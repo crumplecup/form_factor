@@ -453,7 +453,7 @@ impl TemplateEditorPanel {
         canvas_rect: Rect,
         is_selected: bool,
     ) {
-        let bounds = &field.bounds;
+        let bounds = &field.bounds();
 
         // Simple transform: scale field bounds to canvas
         // TODO: Integrate with proper canvas transform pipeline
@@ -501,7 +501,7 @@ impl TemplateEditorPanel {
     ) -> Option<usize> {
         // Search in reverse order so top fields are selected first
         for (index, field) in fields.iter().enumerate().rev() {
-            let bounds = &field.bounds;
+            let bounds = &field.bounds();
 
             let field_rect = Rect::from_min_size(
                 canvas_rect.min + Vec2::new(bounds.x, bounds.y),

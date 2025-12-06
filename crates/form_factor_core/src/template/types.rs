@@ -275,43 +275,43 @@ impl std::fmt::Display for FieldType {
 ///
 /// Describes a single field's location, type, validation rules, and metadata.
 /// Field definitions are immutable once created; use a builder to construct them.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, derive_getters::Getters)]
 pub struct FieldDefinition {
     /// Unique ID within the template
     ///
     /// Must be unique across all fields in all pages of the template.
     /// Convention: lowercase_with_underscores
     /// Examples: "employee_name", "gross_wages", "signature_date"
-    pub id: String,
+    id: String,
 
     /// Human-readable label for display in UI
     ///
     /// Examples: "Employee Name", "Gross Wages", "Signature Date"
-    pub label: String,
+    label: String,
 
     /// Semantic field type
-    pub field_type: FieldType,
+    field_type: FieldType,
 
     /// Which page this field appears on (0-indexed)
-    pub page_index: usize,
+    page_index: usize,
 
     /// Expected position and dimensions (in image pixel coordinates)
     ///
     /// This is the template default. Instances may have different actual
     /// positions based on detection or manual placement.
-    pub bounds: FieldBounds,
+    bounds: FieldBounds,
 
     /// Whether this field is required for validation
-    pub required: bool,
+    required: bool,
 
     /// Optional custom validation pattern (regex)
     ///
     /// If None, uses FieldType::validation_pattern() default.
     /// If Some, overrides the default pattern.
-    pub validation_pattern: Option<String>,
+    validation_pattern: Option<String>,
 
     /// Optional help text for users filling the field
-    pub help_text: Option<String>,
+    help_text: Option<String>,
 
     /// Additional metadata for this field
     ///
@@ -319,7 +319,7 @@ pub struct FieldDefinition {
     /// - "export_column": "employee_ssn"
     /// - "tax_box": "a"
     /// - "ocr_confidence_threshold": "0.8"
-    pub metadata: HashMap<String, String>,
+    metadata: HashMap<String, String>,
 }
 
 impl FieldDefinition {
@@ -431,16 +431,16 @@ impl FieldDefinitionBuilder {
 ///
 /// Coordinates are in image pixel space (top-left origin).
 /// All values must be non-negative finite numbers.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, derive_getters::Getters)]
 pub struct FieldBounds {
     /// X coordinate of top-left corner (image pixel space)
-    pub x: f32,
+    x: f32,
     /// Y coordinate of top-left corner (image pixel space)
-    pub y: f32,
+    y: f32,
     /// Width in pixels
-    pub width: f32,
+    width: f32,
     /// Height in pixels
-    pub height: f32,
+    height: f32,
 }
 
 impl FieldBounds {

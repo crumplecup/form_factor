@@ -12,7 +12,7 @@ impl TemplateBrowserPlugin {
     /// Creates a new template browser plugin.
     pub fn new() -> Self {
         Self {
-            browser: TemplateBrowser::new(),
+            browser: TemplateBrowser::default(),
         }
     }
 

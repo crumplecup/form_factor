@@ -9,7 +9,6 @@
 use derive_getters::Getters;
 use enum_map::{Enum, EnumMap};
 use serde::{Deserialize, Serialize};
-use std::fmt;
 use strum::IntoEnumIterator;
 
 /// Types of layers in the canvas
@@ -28,34 +27,30 @@ use strum::IntoEnumIterator;
     Deserialize,
     Enum,
     strum::EnumIter,
+    derive_more::Display,
 )]
 pub enum LayerType {
     /// The canvas layer (background form image) - rendered first (bottom)
+    #[display("Canvas")]
     Canvas,
     /// The detections layer (automatically detected regions)
+    #[display("Detections")]
     Detections,
     /// The template layer (field definitions - blueprint for forms)
+    #[display("Template")]
     Template,
     /// The instance layer (filled-in form data)
+    #[display("Instance")]
     Instance,
     /// The shapes layer (user-drawn annotations)
+    #[display("Shapes")]
     Shapes,
     /// The grid layer (alignment grid overlay) - rendered last (top)
+    #[display("Grid")]
     Grid,
 }
 
-impl fmt::Display for LayerType {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LayerType::Canvas => write!(f, "Canvas"),
-            LayerType::Detections => write!(f, "Detections"),
-            LayerType::Template => write!(f, "Template"),
-            LayerType::Instance => write!(f, "Instance"),
-            LayerType::Shapes => write!(f, "Shapes"),
-            LayerType::Grid => write!(f, "Grid"),
-        }
-    }
-}
+
 
 /// A layer with visibility and lock control
 #[derive(Debug, Clone, Serialize, Deserialize, Getters)]
@@ -118,23 +113,12 @@ impl Layer {
 }
 
 /// Error type for layer operations
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
 pub enum LayerError {
     /// Layer with the given type was not found
+    #[display("Layer not found: {}", _0)]
     LayerNotFound(LayerType),
 }
-
-impl fmt::Display for LayerError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            LayerError::LayerNotFound(layer_type) => {
-                write!(f, "Layer not found: {}", layer_type)
-            }
-        }
-    }
-}
-
-impl std::error::Error for LayerError {}
 
 /// Manages the collection of layers with type-safe access
 ///

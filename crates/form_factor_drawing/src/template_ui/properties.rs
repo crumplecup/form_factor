@@ -86,14 +86,14 @@ impl FieldPropertiesPanel {
             if let Some(field) = field {
                 // Initialize temp state if needed
                 if !self.temp_initialized {
-                    self.temp_id = field.id.clone();
+                    self.temp_id = field.id().clone();
                     self.temp_label = field.label.clone();
                     self.temp_field_type = field.field_type;
                     self.temp_required = field.required;
                     self.temp_validation_pattern =
                         field.validation_pattern.clone().unwrap_or_default();
                     self.temp_help_text = field.help_text.clone().unwrap_or_default();
-                    self.temp_bounds = field.bounds;
+                    self.temp_bounds = field.bounds();
                     self.temp_initialized = true;
                 }
 
@@ -269,7 +269,7 @@ impl FieldPropertiesPanel {
                                 } else {
                                     Some(self.temp_help_text.clone())
                                 };
-                                field.bounds = self.temp_bounds;
+                                field.bounds() = self.temp_bounds;
                                 applied = true;
                                 debug!(field_id = %field.id, "Applied field property changes");
                             }

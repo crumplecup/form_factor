@@ -67,7 +67,7 @@ impl TemplateEditorPanel {
                     field_index: selected_idx,
                     operation_type: handle_type,
                     start_pos,
-                    original_bounds: field.bounds,
+                    original_bounds: field.bounds(),
                 });
                 debug!(field_index = selected_idx, handle = ?handle_type, "Started resize");
                 return;
@@ -85,7 +85,7 @@ impl TemplateEditorPanel {
                         field_index: idx,
                         operation_type: DragOperationType::Move,
                         start_pos,
-                        original_bounds: field.bounds,
+                        original_bounds: field.bounds(),
                     });
                     debug!(field_index = idx, "Started move");
                 }
@@ -128,7 +128,7 @@ impl TemplateEditorPanel {
         painter: &egui::Painter,
         canvas_rect: Rect,
     ) {
-        let bounds = &field.bounds;
+        let bounds = &field.bounds();
         let field_rect = Rect::from_min_size(
             canvas_rect.min + Vec2::new(bounds.x, bounds.y),
             Vec2::new(bounds.width, bounds.height),
@@ -263,7 +263,7 @@ impl TemplateEditorPanel {
         field: &FieldDefinition,
         canvas_rect: Rect,
     ) -> Option<DragOperationType> {
-        let bounds = &field.bounds;
+        let bounds = &field.bounds();
         let field_rect = Rect::from_min_size(
             canvas_rect.min + Vec2::new(bounds.x, bounds.y),
             Vec2::new(bounds.width, bounds.height),
@@ -367,7 +367,7 @@ impl TemplateEditorPanel {
             && let Some(page) = template.pages.get_mut(page_index)
             && let Some(field) = page.fields.get_mut(drag.field_index)
         {
-            field.bounds = new_bounds;
+            field.bounds() = new_bounds;
         }
     }
 }

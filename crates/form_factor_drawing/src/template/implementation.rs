@@ -10,7 +10,7 @@ use std::collections::HashMap;
 ///
 /// Represents a form template with multiple pages, field definitions,
 /// and optional reference shapes for visual guidance.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, derive_getters::Getters)]
 pub struct DrawingTemplate {
     /// Unique template identifier
     id: String,
@@ -48,6 +48,27 @@ impl DrawingTemplate {
         })
     }
 
+    /// Returns the number of pages in this template.
+    #[must_use]
+    pub fn page_count(&self) -> usize {
+        self.pages.len()
+    }
+
+    /// Returns the total number of fields across all pages.
+    #[must_use]
+    pub fn field_count(&self) -> usize {
+        self.pages.iter().map(|page| page.fields.len()).sum()
+    }
+
+    /// Returns all field definitions across all pages.
+    #[must_use]
+    pub fn fields(&self) -> Vec<&FieldDefinition> {
+        self.pages
+            .iter()
+            .flat_map(|page| page.fields.iter())
+            .collect()
+    }
+
     /// Validate the template structure
     ///
     /// Checks for:
@@ -68,7 +89,7 @@ impl DrawingTemplate {
         for field in self.fields() {
             if !seen_ids.insert(&field.id) {
                 return Err(TemplateError::new(
-                    TemplateErrorKind::DuplicateFieldId(field.id.clone()),
+                    TemplateErrorKind::DuplicateFieldId(field.id().clone()),
                     line!(),
                     file!(),
                 ));

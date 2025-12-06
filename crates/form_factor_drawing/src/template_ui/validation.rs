@@ -50,23 +50,23 @@ impl TemplateValidator {
         let mut seen_field_ids = HashSet::new();
         for field in &all_fields {
             if !seen_field_ids.insert(&field.id) {
-                errors.push(ValidationError::DuplicateFieldId(field.id.clone()));
+                errors.push(ValidationError::DuplicateFieldId(field.id().clone()));
                 debug!(field_id = %field.id, "Validation error: Duplicate field ID");
             }
         }
 
         // Check field bounds validity
         for field in &all_fields {
-            if field.bounds.width <= 0.0 || field.bounds.height <= 0.0 {
+            if field.bounds().width() <= 0.0 || field.bounds().height() <= 0.0 {
                 errors.push(ValidationError::InvalidFieldBounds {
-                    field_id: field.id.clone(),
-                    width: field.bounds.width,
-                    height: field.bounds.height,
+                    field_id: field.id().clone(),
+                    width: field.bounds().width(),
+                    height: field.bounds().height(),
                 });
                 debug!(
                     field_id = %field.id,
-                    width = field.bounds.width,
-                    height = field.bounds.height,
+                    width = field.bounds().width(),
+                    height = field.bounds().height(),
                     "Validation error: Invalid field bounds"
                 );
             }
@@ -78,7 +78,7 @@ impl TemplateValidator {
                 && Regex::new(pattern).is_err()
             {
                 errors.push(ValidationError::InvalidRegexPattern {
-                    field_id: field.id.clone(),
+                    field_id: field.id().clone(),
                     pattern: pattern.clone(),
                 });
                 debug!(
@@ -94,7 +94,7 @@ impl TemplateValidator {
         for field in &all_fields {
             if field.page_index >= page_count {
                 errors.push(ValidationError::InvalidPageIndex {
-                    field_id: field.id.clone(),
+                    field_id: field.id().clone(),
                     page_index: field.page_index,
                     page_count,
                 });

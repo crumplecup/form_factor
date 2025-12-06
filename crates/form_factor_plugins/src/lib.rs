@@ -84,5 +84,7 @@ pub mod ocr;
 pub mod properties;
 
 mod template_browser_plugin;
+/// UI components for template management.
+pub mod template_ui;
 
 pub use template_browser_plugin::TemplateBrowserPlugin;

@@ -4,13 +4,15 @@ use crate::{TemplateBrowserError, TemplateBrowserErrorKind, TemplateBrowserResul
 use chrono::{DateTime, Utc};
 use derive_builder::Builder;
 use derive_getters::Getters;
+use derive_setters::Setters;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tracing::{debug, instrument, warn};
 
 /// UI state for browsing and managing templates.
-#[derive(Debug, Clone, Getters, Builder)]
+#[derive(Debug, Clone, Getters, Setters, Builder)]
 #[builder(setter(into))]
+#[setters(prefix = "with_")]
 pub struct TemplateBrowser {
     /// List of available templates with metadata.
     #[builder(default)]
@@ -36,11 +38,13 @@ pub struct TemplateBrowser {
 impl TemplateBrowser {
     /// Creates a new template browser.
     #[instrument]
-    pub fn new() -> Self {
+    pub fn new() -> TemplateBrowserResult<Self> {
         debug!("Creating new template browser");
         TemplateBrowserBuilder::default()
             .build()
-            .expect("TemplateBrowser builder should not fail with defaults")
+            .map_err(|e| {
+                TemplateBrowserError::new(TemplateBrowserErrorKind::BrowserBuilder(e.to_string()))
+            })
     }
 
     /// Adds a template to the browser.
@@ -85,20 +89,6 @@ impl TemplateBrowser {
             .and_then(|idx| self.templates.get(idx))
     }
 
-    /// Sets the selected template index.
-    #[instrument(skip(self))]
-    pub fn set_selected_index(&mut self, index: Option<usize>) {
-        debug!(?index, "Setting selected template index");
-        self.selected_index = index;
-    }
-
-    /// Updates the filter text.
-    #[instrument(skip(self), fields(text_len = text.len()))]
-    pub fn set_filter_text(&mut self, text: String) {
-        debug!("Updating filter text");
-        self.filter_text = text;
-    }
-
     /// Gets filtered templates based on current filter text.
     #[instrument(skip(self), fields(filter = %self.filter_text, total = self.templates.len()))]
     pub fn filtered_templates(&self) -> Vec<(usize, &TemplateEntry)> {
@@ -122,7 +112,7 @@ impl TemplateBrowser {
         }
     }
 
-    /// Sets the sort order and re-sorts templates.
+    /// Sets the sort order and re-sorts templates (requires special logic for sorting).
     #[instrument(skip(self), fields(order = ?order))]
     pub fn set_sort_order(&mut self, order: SortOrder) {
         debug!("Setting sort order and resorting templates");
@@ -168,21 +158,28 @@ impl TemplateBrowser {
         self.expanded = !self.expanded;
     }
 
-    /// Sets the expanded state.
-    pub fn set_expanded(&mut self, expanded: bool) {
-        self.expanded = expanded;
-    }
+
 }
 
 impl Default for TemplateBrowser {
     fn default() -> Self {
-        Self::new()
+        Self::new().unwrap_or_else(|_| {
+            TemplateBrowserBuilder::default()
+                .templates(Vec::new())
+                .selected_index(None)
+                .filter_text(String::new())
+                .sort_order(SortOrder::NameAscending)
+                .expanded(true)
+                .build()
+                .expect("Hardcoded default values cannot fail")
+        })
     }
 }
 
 /// Entry in the template browser list.
-#[derive(Debug, Clone, Getters, Builder)]
+#[derive(Debug, Clone, Getters, Setters, Builder)]
 #[builder(setter(into))]
+#[setters(prefix = "with_")]
 pub struct TemplateEntry {
     /// Template ID
     template_id: String,
@@ -202,29 +199,24 @@ pub struct TemplateEntry {
 impl TemplateEntry {
     /// Creates a new template entry.
     #[instrument(skip(metadata), fields(template_id = %template_id))]
-    pub fn new(template_id: String, metadata: TemplateMetadata) -> Self {
+    pub fn new(template_id: String, metadata: TemplateMetadata) -> TemplateBrowserResult<Self> {
         debug!("Creating template entry");
         TemplateEntryBuilder::default()
             .template_id(template_id)
             .metadata(metadata)
             .build()
-            .expect("TemplateEntry builder should not fail")
+            .map_err(|e| {
+                TemplateBrowserError::new(TemplateBrowserErrorKind::EntryBuilder(e.to_string()))
+            })
     }
 
-    /// Sets the file path.
-    pub fn set_file_path(&mut self, path: Option<PathBuf>) {
-        self.file_path = path;
-    }
 
-    /// Sets the thumbnail.
-    pub fn set_thumbnail(&mut self, thumbnail: Option<Vec<u8>>) {
-        self.thumbnail = thumbnail;
-    }
 }
 
 /// Metadata about a template for browsing and display.
-#[derive(Debug, Clone, Serialize, Deserialize, Getters, Builder)]
+#[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters, Builder)]
 #[builder(setter(into))]
+#[setters(prefix = "with_")]
 pub struct TemplateMetadata {
     /// Template name for display.
     name: String,
@@ -261,12 +253,14 @@ pub struct TemplateMetadata {
 impl TemplateMetadata {
     /// Creates a new template metadata.
     #[instrument(fields(name = %name))]
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String) -> TemplateBrowserResult<Self> {
         debug!("Creating template metadata");
         TemplateMetadataBuilder::default()
             .name(name)
             .build()
-            .expect("TemplateMetadata builder should not fail")
+            .map_err(|e| {
+                TemplateBrowserError::new(TemplateBrowserErrorKind::MetadataBuilder(e.to_string()))
+            })
     }
 
     /// Sets the modified timestamp to now.

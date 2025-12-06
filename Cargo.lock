@@ -971,6 +971,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_setters"
+version = "0.1.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ae5c625eda104c228c06ecaf988d1c60e542176bd7a490e60eeda3493244c0c9"
+dependencies = [
+ "darling",
+ "proc-macro2",
+ "quote",
+ "syn 2.0.108",
+]
+
+[[package]]
 name = "dirs"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1483,6 +1495,7 @@ dependencies = [
  "derive-getters",
  "derive_builder",
  "derive_more",
+ "derive_setters",
  "egui",
  "serde",
  "tracing",
@@ -1508,6 +1521,7 @@ dependencies = [
  "derive-getters",
  "derive_builder",
  "derive_more",
+ "derive_setters",
  "dirs",
  "egui",
  "enum-map",

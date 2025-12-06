@@ -82,15 +82,15 @@ pub trait FormInstance: Send + Sync {
 /// Links a field definition (by ID) to its actual content and location.
 /// The bounds may differ from the template's expected bounds to handle
 /// form variations and detection results.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, derive_getters::Getters)]
 pub struct FieldValue {
     /// ID of the field definition this value corresponds to
     ///
     /// Must match a FieldDefinition.id in the template.
-    pub field_id: String,
+    field_id: String,
 
     /// The actual value content
-    pub content: FieldContent,
+    content: FieldContent,
 
     /// Actual bounds where this field was found/placed
     ///
@@ -98,20 +98,20 @@ pub struct FieldValue {
     /// - Form variations (different printing, scaling)
     /// - Detection results
     /// - Manual adjustment
-    pub bounds: FieldBounds,
+    bounds: FieldBounds,
 
     /// Page index where this value appears (0-indexed)
-    pub page_index: usize,
+    page_index: usize,
 
     /// Confidence score (0.0-1.0) if detected via OCR/CV
     ///
     /// None if manually entered or not applicable.
-    pub confidence: Option<f32>,
+    confidence: Option<f32>,
 
     /// Whether this value has been manually verified by a user
     ///
     /// Used to track human review of automated extractions.
-    pub verified: bool,
+    verified: bool,
 }
 
 impl FieldValue {
@@ -270,26 +270,26 @@ impl FieldContent {
 ///
 /// Captures all validation errors, missing required fields, and
 /// metadata about the validation process.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, derive_getters::Getters)]
 pub struct ValidationResult {
     /// Overall validation passed
     ///
     /// True only if no errors and all required fields present.
-    pub valid: bool,
+    valid: bool,
 
     /// Field-specific validation issues
-    pub field_errors: Vec<FieldValidationError>,
+    field_errors: Vec<FieldValidationError>,
 
     /// Required fields that are missing or empty
-    pub missing_required: Vec<String>,
+    missing_required: Vec<String>,
 
     /// Template version this was validated against
-    pub template_version: String,
+    template_version: String,
 
     /// Timestamp of validation (ISO 8601 format)
     ///
     /// Example: "2024-12-04T10:30:00Z"
-    pub timestamp: String,
+    timestamp: String,
 }
 
 impl ValidationResult {
@@ -359,16 +359,16 @@ impl ValidationResult {
 /// A field-specific validation error
 ///
 /// Describes a validation failure for a particular field.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, derive_getters::Getters)]
 pub struct FieldValidationError {
     /// Field ID that failed validation
-    pub field_id: String,
+    field_id: String,
 
     /// Human-readable error message
-    pub message: String,
+    message: String,
 
     /// Error category for programmatic handling
-    pub error_type: ValidationErrorType,
+    error_type: ValidationErrorType,
 }
 
 impl FieldValidationError {

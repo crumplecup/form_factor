@@ -429,7 +429,7 @@ impl DrawingCanvas {
         self.detections
             .iter()
             .filter(|shape| match shape {
-                Shape::Rectangle(rect) => rect.name.starts_with("Text Region"),
+                Shape::Rectangle(rect) => rect.name().starts_with("Text Region"),
                 _ => false,
             })
             .count()
@@ -440,7 +440,7 @@ impl DrawingCanvas {
         self.detections
             .iter()
             .filter(|shape| match shape {
-                Shape::Rectangle(rect) => rect.name.starts_with("Logo:"),
+                Shape::Rectangle(rect) => rect.name().starts_with("Logo:"),
                 _ => false,
             })
             .count()
@@ -498,32 +498,32 @@ impl DrawingCanvas {
 
         // Check each field for snapping opportunities
         for field in fields {
-            let bounds = &field.bounds;
+            let bounds = field.bounds();
 
             // Check horizontal edges (top and bottom)
-            let y_top_dist = (pos.y - bounds.y).abs();
-            let y_bottom_dist = (pos.y - (bounds.y + bounds.height)).abs();
+            let y_top_dist = (pos.y - bounds.y()).abs();
+            let y_bottom_dist = (pos.y - (bounds.y() + bounds.height())).abs();
 
             if y_top_dist < min_y_dist {
                 min_y_dist = y_top_dist;
-                snapped_y = bounds.y;
+                snapped_y = *bounds.y();
             }
             if y_bottom_dist < min_y_dist {
                 min_y_dist = y_bottom_dist;
-                snapped_y = bounds.y + bounds.height;
+                snapped_y = bounds.y() + bounds.height();
             }
 
             // Check vertical edges (left and right)
-            let x_left_dist = (pos.x - bounds.x).abs();
-            let x_right_dist = (pos.x - (bounds.x + bounds.width)).abs();
+            let x_left_dist = (pos.x - bounds.x()).abs();
+            let x_right_dist = (pos.x - (bounds.x() + bounds.width())).abs();
 
             if x_left_dist < min_x_dist {
                 min_x_dist = x_left_dist;
-                snapped_x = bounds.x;
+                snapped_x = *bounds.x();
             }
             if x_right_dist < min_x_dist {
                 min_x_dist = x_right_dist;
-                snapped_x = bounds.x + bounds.width;
+                snapped_x = bounds.x() + bounds.width();
             }
         }
 

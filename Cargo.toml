@@ -28,6 +28,7 @@ tracing = "0.1"
 accesskit = { version = "0.21.1", features = ["serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 derive-getters = "0.5"
+derive_setters = "0.1"
 derive_builder = "0.20"
 derive_more = { version = "2.1", features = ["display", "error", "from"] }
 dotenvy = "0.15"

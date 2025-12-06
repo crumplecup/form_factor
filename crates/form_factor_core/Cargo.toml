@@ -12,6 +12,7 @@ chrono = { workspace = true }
 derive_builder = { workspace = true }
 derive-getters = { workspace = true }
 derive_more = { workspace = true }
+derive_setters = { workspace = true }
 egui = { workspace = true }
 serde = { workspace = true }
 tracing = { workspace = true }

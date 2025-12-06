@@ -19,6 +19,18 @@ pub enum TemplateBrowserErrorKind {
     /// Template not found.
     #[display("Template not found: {}", _0)]
     TemplateNotFound(String),
+
+    /// Builder error when constructing TemplateBrowser.
+    #[display("Failed to build TemplateBrowser: {}", _0)]
+    BrowserBuilder(String),
+
+    /// Builder error when constructing TemplateEntry.
+    #[display("Failed to build TemplateEntry: {}", _0)]
+    EntryBuilder(String),
+
+    /// Builder error when constructing TemplateMetadata.
+    #[display("Failed to build TemplateMetadata: {}", _0)]
+    MetadataBuilder(String),
 }
 
 /// Error wrapper with location tracking for template browser operations.

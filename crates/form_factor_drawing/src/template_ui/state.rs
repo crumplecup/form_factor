@@ -3,7 +3,8 @@
 use crate::DrawingTemplateBuilder;
 
 /// State for the template manager panel.
-#[derive(Debug, Default, Clone, derive_getters::Getters)]
+#[derive(Debug, Default, Clone, derive_getters::Getters, derive_setters::Setters)]
+#[setters(prefix = "with_")]
 pub struct TemplateManagerState {
     /// Search query for filtering templates
     search_query: String,
@@ -29,19 +30,9 @@ impl TemplateManagerState {
         &mut self.search_query
     }
 
-    /// Sets the search query.
-    pub fn set_search_query(&mut self, query: impl Into<String>) {
-        self.search_query = query.into();
-    }
-
     /// Gets the selected template ID.
     pub fn selected_template_str(&self) -> Option<&str> {
         self.selected_template.as_deref()
-    }
-
-    /// Sets the selected template ID.
-    pub fn set_selected_template(&mut self, id: Option<String>) {
-        self.selected_template = id;
     }
 
     /// Shows delete confirmation dialog.

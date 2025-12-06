@@ -11,6 +11,7 @@
 
 use crate::{Circle, LayerType, PolygonShape, Rectangle, Shape, ToolMode};
 use egui::Pos2;
+use form_factor_core::{FieldBounds, FieldDefinition};
 use tracing::{debug, instrument, trace, warn};
 
 use super::core::DrawingCanvas;
@@ -332,13 +333,13 @@ impl DrawingCanvas {
         for (page_idx, page) in template.pages.iter().enumerate().rev() {
             for (field_idx, field) in page.fields.iter().enumerate().rev() {
                 // Check if point is within field bounds
-                let contains = pos.x >= field.bounds.x
-                    && pos.x <= field.bounds.x + field.bounds.width
-                    && pos.y >= field.bounds.y
-                    && pos.y <= field.bounds.y + field.bounds.height;
+                let contains = pos.x >= *field.bounds().x()
+                    && pos.x <= *field.bounds().x() + *field.bounds().width()
+                    && pos.y >= *field.bounds().y()
+                    && pos.y <= *field.bounds().y() + *field.bounds().height();
 
                 debug!(
-                    field_id = %field.id,
+                    field_id = %field.id(),
                     field_idx,
                     page_idx,
                     contains,
@@ -688,7 +689,7 @@ impl DrawingCanvas {
                     self.set_show_properties(true);
 
                     debug!(
-                        field_id = %field.id,
+                        field_id = %field.id(),
                         field_index = field_idx,
                         "Created template field"
                     );
@@ -1061,7 +1062,7 @@ impl DrawingCanvas {
         self.set_state(super::core::CanvasState::DraggingField {
             field_index: field_idx,
             drag_start: pos,
-            original_bounds: field.bounds,
+            original_bounds: *field.bounds(),
         });
 
         debug!(field_idx, ?pos, "Started dragging field");
@@ -1082,13 +1083,41 @@ impl DrawingCanvas {
         let delta_x = pos.x - drag_start.x;
         let delta_y = pos.y - drag_start.y;
 
-        // Update field position
+        // Update field position by reconstructing with new bounds
         if let Some(template) = self.current_template_mut()
             && let Some(page) = template.pages.first_mut()
-            && let Some(field) = page.fields.get_mut(field_index)
+            && let Some(field) = page.fields.get(field_index)
         {
-            field.bounds.x = original_bounds.x + delta_x;
-            field.bounds.y = original_bounds.y + delta_y;
+            let new_bounds = FieldBounds::new(
+                *original_bounds.x() + delta_x,
+                *original_bounds.y() + delta_y,
+                *original_bounds.width(),
+                *original_bounds.height(),
+            );
+
+            // Reconstruct field with new bounds
+            let mut builder = FieldDefinition::builder()
+                .id(field.id().to_string())
+                .label(field.label().to_string())
+                .field_type(*field.field_type())
+                .page_index(*field.page_index())
+                .bounds(new_bounds)
+                .required(*field.required());
+
+            if let Some(pattern) = field.validation_pattern() {
+                builder = builder.validation_pattern(pattern.to_string());
+            }
+
+            if let Some(text) = field.help_text() {
+                builder = builder.help_text(text.to_string());
+            }
+
+            // TODO: Copy metadata as well
+            let updated_field = builder
+                .build()
+                .expect("Field reconstruction with valid data should not fail");
+
+            page.fields[field_index] = updated_field;
         }
     }
 

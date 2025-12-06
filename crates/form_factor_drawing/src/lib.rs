@@ -17,6 +17,7 @@ mod app_mode;
 mod canvas;
 mod error;
 pub mod instance;
+pub mod instance_ui;
 mod layer;
 mod mode_switcher;
 mod recent_projects;
@@ -32,6 +33,7 @@ pub use instance::{
     DrawingInstance, FormPage, InstanceError, InstanceErrorKind, LEGACY_TEMPLATE_ID, ProjectFormat,
     migrate_canvas_to_instance,
 };
+pub use instance_ui::{DataEntryAction, DataEntryPanel};
 pub use layer::{Layer, LayerError, LayerManager, LayerType};
 pub use mode_switcher::ModeSwitcher;
 pub use recent_projects::RecentProjects;

@@ -283,8 +283,8 @@ impl DrawingCanvas {
                             ));
                         }
                         Shape::Circle(circle) => {
-                            let transformed_center = to_screen.mul_pos(circle.center);
-                            let transformed_radius = circle.radius * self.zoom_level;
+                            let transformed_center = to_screen.mul_pos(*circle.center());
+                            let transformed_radius = circle.radius() * self.zoom_level;
                             painter.circle_stroke(
                                 transformed_center,
                                 transformed_radius,
@@ -405,9 +405,12 @@ impl DrawingCanvas {
                     ui.label("Name:");
 
                     // Create text edit with explicit ID for focusing
-                    let text_edit =
-                        egui::TextEdit::singleline(&mut rect.name).id_salt("rectangle_name");
+                    let mut name = rect.name().clone();
+                    let text_edit = egui::TextEdit::singleline(&mut name).id_salt("rectangle_name");
                     let response = ui.add(text_edit);
+                    if response.changed() {
+                        rect.set_name(name);
+                    }
 
                     debug!(
                         has_focus = response.has_focus(),
@@ -466,9 +469,12 @@ impl DrawingCanvas {
                     ui.label("Name:");
 
                     // Create text edit with explicit ID for focusing
-                    let text_edit =
-                        egui::TextEdit::singleline(&mut circle.name).id_salt("circle_name");
+                    let mut name = circle.name().clone();
+                    let text_edit = egui::TextEdit::singleline(&mut name).id_salt("circle_name");
                     let response = ui.add(text_edit);
+                    if response.changed() {
+                        circle.set_name(name);
+                    }
 
                     debug!(
                         has_focus = response.has_focus(),
@@ -491,10 +497,10 @@ impl DrawingCanvas {
 
                 ui.separator();
 
-                ui.label(format!("Radius: {:.1}", circle.radius));
+                ui.label(format!("Radius: {:.1}", circle.radius()));
                 ui.label(format!(
                     "Center: ({:.1}, {:.1})",
-                    circle.center.x, circle.center.y
+                    circle.center().x, circle.center().y
                 ));
             }
             Shape::Polygon(poly) => {
@@ -507,9 +513,12 @@ impl DrawingCanvas {
                     ui.label("Name:");
 
                     // Create text edit with explicit ID for focusing
-                    let text_edit =
-                        egui::TextEdit::singleline(&mut poly.name).id_salt("polygon_name");
+                    let mut name = poly.name().clone();
+                    let text_edit = egui::TextEdit::singleline(&mut name).id_salt("polygon_name");
                     let response = ui.add(text_edit);
+                    if response.changed() {
+                        poly.set_name(name);
+                    }
 
                     debug!(
                         has_focus = response.has_focus(),
@@ -578,7 +587,10 @@ impl DrawingCanvas {
 
                     ui.horizontal(|ui| {
                         ui.label("Name:");
-                        ui.text_edit_singleline(&mut rect.name);
+                        let mut name = rect.name().clone();
+                        if ui.text_edit_singleline(&mut name).changed() {
+                            rect.set_name(name);
+                        }
                     });
 
                     ui.separator();
@@ -623,15 +635,18 @@ impl DrawingCanvas {
 
                     ui.horizontal(|ui| {
                         ui.label("Name:");
-                        ui.text_edit_singleline(&mut circle.name);
+                        let mut name = circle.name().clone();
+                        if ui.text_edit_singleline(&mut name).changed() {
+                            circle.set_name(name);
+                        }
                     });
 
                     ui.separator();
 
-                    ui.label(format!("Radius: {:.1}", circle.radius));
+                    ui.label(format!("Radius: {:.1}", circle.radius()));
                     ui.label(format!(
                         "Center: ({:.1}, {:.1})",
-                        circle.center.x, circle.center.y
+                        circle.center().x, circle.center().y
                     ));
 
                     ui.separator();
@@ -648,7 +663,10 @@ impl DrawingCanvas {
 
                     ui.horizontal(|ui| {
                         ui.label("Name:");
-                        ui.text_edit_singleline(&mut poly.name);
+                        let mut name = poly.name().clone();
+                        if ui.text_edit_singleline(&mut name).changed() {
+                            poly.set_name(name);
+                        }
                     });
 
                     ui.separator();
@@ -890,21 +908,21 @@ impl DrawingCanvas {
                 // Draw filled quadrilateral
                 painter.add(egui::Shape::convex_polygon(
                     transformed_corners.clone(),
-                    rect.fill,
+                    *rect.fill(),
                     egui::Stroke::NONE,
                 ));
                 // Draw outline
-                painter.add(egui::Shape::closed_line(transformed_corners, rect.stroke));
+                painter.add(egui::Shape::closed_line(transformed_corners, *rect.stroke()));
             }
             Shape::Circle(circle) => {
                 // Note: rotation_angle removed - circles are symmetric anyway
-                let transformed_center = transform.mul_pos(circle.center);
-                let transformed_radius = circle.radius * self.zoom_level;
+                let transformed_center = transform.mul_pos(*circle.center());
+                let transformed_radius = circle.radius() * self.zoom_level;
                 painter.circle(
                     transformed_center,
                     transformed_radius,
-                    circle.fill,
-                    circle.stroke,
+                    *circle.fill(),
+                    *circle.stroke(),
                 );
             }
             Shape::Polygon(poly) => {
@@ -924,11 +942,11 @@ impl DrawingCanvas {
                     // Draw filled polygon
                     painter.add(egui::Shape::convex_polygon(
                         points.clone(),
-                        poly.fill,
+                        *poly.fill(),
                         egui::Stroke::NONE,
                     ));
                     // Draw outline
-                    painter.add(egui::Shape::closed_line(points, poly.stroke));
+                    painter.add(egui::Shape::closed_line(points, *poly.stroke()));
                 }
             }
         }
@@ -945,10 +963,10 @@ impl DrawingCanvas {
         transform: &egui::emath::TSTransform,
     ) {
         // Convert field bounds from image coordinates to canvas coordinates
-        let x = field.bounds.x * scale + image_offset.x;
-        let y = field.bounds.y * scale + image_offset.y;
-        let width = field.bounds.width * scale;
-        let height = field.bounds.height * scale;
+        let x = field.bounds().x() * scale + image_offset.x;
+        let y = field.bounds().y() * scale + image_offset.y;
+        let width = field.bounds().width() * scale;
+        let height = field.bounds().height() * scale;
 
         // Create rectangle corners in canvas space
         let top_left = Pos2::new(x, y);
@@ -995,7 +1013,7 @@ impl DrawingCanvas {
             painter.text(
                 label_pos,
                 egui::Align2::LEFT_TOP,
-                &field.label,
+                &field.label(),
                 egui::FontId::proportional(12.0),
                 Color32::from_rgb(0, 100, 200),
             );
@@ -1038,7 +1056,7 @@ impl DrawingCanvas {
                 }
             }
             Shape::Circle(circle) => {
-                let transformed_center = transform.mul_pos(circle.center);
+                let transformed_center = transform.mul_pos(*circle.center());
 
                 // Draw control point at center
                 painter.rect_filled(
@@ -1060,7 +1078,7 @@ impl DrawingCanvas {
                 );
 
                 // Draw control point on edge
-                let edge_point = egui::pos2(circle.center.x + circle.radius, circle.center.y);
+                let edge_point = egui::pos2(circle.center().x + circle.radius(), circle.center().y);
                 let transformed_edge = transform.mul_pos(edge_point);
                 painter.rect_filled(
                     egui::Rect::from_center_size(
@@ -1156,11 +1174,11 @@ impl DrawingCanvas {
                         mapped_corners[2],
                         mapped_corners[3],
                     ],
-                    rect.stroke,
-                    rect.fill,
+                    *rect.stroke(),
+                    *rect.fill(),
                 )
                 .map(|mut r| {
-                    r.name = rect.name.clone();
+                    r.set_name(rect.name().clone());
                     Shape::Rectangle(r)
                 })
                 .unwrap_or_else(|e| {
@@ -1171,16 +1189,16 @@ impl DrawingCanvas {
             }
             Shape::Circle(circle) => {
                 let mapped_center = Pos2::new(
-                    circle.center.x * scale + image_offset.x,
-                    circle.center.y * scale + image_offset.y,
+                    circle.center().x * scale + image_offset.x,
+                    circle.center().y * scale + image_offset.y,
                 );
-                let mapped_radius = circle.radius * scale;
+                let mapped_radius = circle.radius() * scale;
 
                 // Circle::new returns Result, but we're mapping from existing valid circle
                 // so this should not fail unless coordinates became invalid during transformation
-                Circle::new(mapped_center, mapped_radius, circle.stroke, circle.fill)
+                Circle::new(mapped_center, mapped_radius, *circle.stroke(), *circle.fill())
                     .map(|mut c| {
-                        c.name = circle.name.clone();
+                        c.set_name(circle.name().clone());
                         Shape::Circle(c)
                     })
                     .unwrap_or_else(|e| {
@@ -1207,9 +1225,9 @@ impl DrawingCanvas {
                     .collect();
 
                 // Use from_points constructor
-                PolygonShape::from_points(mapped_points, poly.stroke, poly.fill)
+                PolygonShape::from_points(mapped_points, *poly.stroke(), *poly.fill())
                     .map(|mut p| {
-                        p.name = poly.name.clone();
+                        p.set_name(poly.name().clone());
                         Shape::Polygon(p)
                     })
                     .unwrap_or_else(|e| {
@@ -1255,16 +1273,16 @@ impl DrawingCanvas {
 
         // Render each field
         for field in fields {
-            let bounds = &field.bounds;
+            let bounds = &field.bounds();
 
             // Convert field bounds from image coordinates to canvas coordinates
             let min = Pos2::new(
-                bounds.x * scale + image_offset.x,
-                bounds.y * scale + image_offset.y,
+                bounds.x() * scale + image_offset.x,
+                bounds.y() * scale + image_offset.y,
             );
             let max = Pos2::new(
-                (bounds.x + bounds.width) * scale + image_offset.x,
-                (bounds.y + bounds.height) * scale + image_offset.y,
+                (bounds.x() + bounds.width()) * scale + image_offset.x,
+                (bounds.y() + bounds.height()) * scale + image_offset.y,
             );
 
             // Apply zoom/pan transformation
@@ -1288,7 +1306,7 @@ impl DrawingCanvas {
             painter.text(
                 label_pos,
                 egui::Align2::LEFT_TOP,
-                &field.label,
+                &field.label(),
                 egui::FontId::proportional(12.0),
                 Color32::from_rgb(20, 80, 20),
             );
@@ -1308,7 +1326,7 @@ impl DrawingCanvas {
                     && let Some(page) = template.pages.get_mut(current_page)
                     && field_idx < page.fields.len()
                 {
-                    let field_id = page.fields[field_idx].id.clone();
+                    let field_id = page.fields[field_idx].id().clone();
                     page.fields.remove(field_idx);
                     self.set_selected_field(None);
                     self.set_show_properties(false);

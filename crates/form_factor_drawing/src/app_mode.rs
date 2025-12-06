@@ -6,34 +6,26 @@
 use crate::{DrawingInstance, DrawingTemplate};
 use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
-use std::fmt;
 
 /// Application modes defining the current UI state and available operations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default, derive_more::Display)]
 pub enum AppMode {
     /// Default canvas mode with drawing tools and plugins
     #[default]
+    #[display("Canvas")]
     Canvas,
     /// Template library browser and management
+    #[display("Template Manager")]
     TemplateManager,
     /// Template editor for creating/modifying templates
+    #[display("Template Editor")]
     TemplateEditor,
     /// Instance filling mode for data entry
+    #[display("Fill Form")]
     InstanceFilling,
     /// Instance viewing mode for reviewing completed forms
+    #[display("View Form")]
     InstanceViewing,
-}
-
-impl fmt::Display for AppMode {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            AppMode::Canvas => write!(f, "Canvas"),
-            AppMode::TemplateManager => write!(f, "Template Manager"),
-            AppMode::TemplateEditor => write!(f, "Template Editor"),
-            AppMode::InstanceFilling => write!(f, "Fill Form"),
-            AppMode::InstanceViewing => write!(f, "View Form"),
-        }
-    }
 }
 
 /// Application state managing current mode and associated data.

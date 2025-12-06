@@ -105,13 +105,13 @@ impl DrawingInstance {
 
         // For each field in the template, find matching detections
         for field_def in fields {
-            debug!(field_id = %field_def.id, "Processing field");
+            debug!(field_id = %field_def.id(), "Processing field");
 
             // Find best matching detection for this field
             match find_best_detection_match(field_def, detections) {
                 Some(detection_match) => {
                     debug!(
-                        field_id = %field_def.id,
+                        field_id = %field_def.id(),
                         detection_index = detection_match.detection_index,
                         overlap = detection_match.overlap_score,
                         "Found matching detection"
@@ -122,7 +122,7 @@ impl DrawingInstance {
                     {
                         Ok((text, confidence)) => {
                             debug!(
-                                field_id = %field_def.id,
+                                field_id = %field_def.id(),
                                 text_length = text.len(),
                                 confidence,
                                 "Extracted text from region"
@@ -130,7 +130,7 @@ impl DrawingInstance {
 
                             // Create field value with extracted text
                             let field_value = FieldValue::new_text(
-                                &field_def.id,
+                                field_def.id(),
                                 text,
                                 detection_match.bounds,
                                 page_index,
@@ -138,7 +138,7 @@ impl DrawingInstance {
                             .with_confidence(confidence);
 
                             // Store the field value
-                            self.set_field_value(&field_def.id, field_value)
+                            self.set_field_value(field_def.id(), field_value)
                                 .map_err(|e| {
                                     InstanceError::new(
                                         InstanceErrorKind::OCRFailed(e.to_string()),
@@ -151,7 +151,7 @@ impl DrawingInstance {
                         }
                         Err(e) => {
                             warn!(
-                                field_id = %field_def.id,
+                                field_id = %field_def.id(),
                                 error = %e,
                                 "Failed to extract text from detection"
                             );
@@ -161,7 +161,7 @@ impl DrawingInstance {
                 }
                 None => {
                     debug!(
-                        field_id = %field_def.id,
+                        field_id = %field_def.id(),
                         "No matching detection found for field"
                     );
                     // No detection found for this field - leave it empty
@@ -189,7 +189,7 @@ fn find_best_detection_match(
         let detection_bounds = shape_to_bounds(detection);
 
         // Calculate overlap score
-        let overlap = calculate_overlap(&field_def.bounds, &detection_bounds);
+        let overlap = calculate_overlap(field_def.bounds(), &detection_bounds);
 
         // Update best match if this is better
         if overlap > best_score {
@@ -260,10 +260,10 @@ fn shape_to_bounds(shape: &Shape) -> FieldBounds {
 /// Returns a score between 0.0 (no overlap) and 1.0 (perfect overlap).
 fn calculate_overlap(bounds1: &FieldBounds, bounds2: &FieldBounds) -> f32 {
     // Calculate intersection rectangle
-    let x1 = bounds1.x.max(bounds2.x);
-    let y1 = bounds1.y.max(bounds2.y);
-    let x2 = (bounds1.x + bounds1.width).min(bounds2.x + bounds2.width);
-    let y2 = (bounds1.y + bounds1.height).min(bounds2.y + bounds2.height);
+    let x1 = bounds1.x().max(bounds2.x());
+    let y1 = bounds1.y().max(bounds2.y());
+    let x2 = (bounds1.x() + bounds1.width()).min(bounds2.x() + bounds2.width());
+    let y2 = (bounds1.y() + bounds1.height()).min(bounds2.y() + bounds2.height());
 
     // Check if there's any intersection
     if x2 <= x1 || y2 <= y1 {
@@ -274,8 +274,8 @@ fn calculate_overlap(bounds1: &FieldBounds, bounds2: &FieldBounds) -> f32 {
     let intersection_area = (x2 - x1) * (y2 - y1);
 
     // Calculate union area
-    let area1 = bounds1.width * bounds1.height;
-    let area2 = bounds2.width * bounds2.height;
+    let area1 = bounds1.width() * bounds1.height();
+    let area2 = bounds2.width() * bounds2.height();
     let union_area = area1 + area2 - intersection_area;
 
     // Calculate IoU

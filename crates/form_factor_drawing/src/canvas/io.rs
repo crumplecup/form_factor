@@ -287,11 +287,11 @@ impl DrawingCanvas {
 
             match Rectangle::from_corners(top_left, bottom_right, stroke, fill) {
                 Ok(mut rect) => {
-                    rect.name = format!(
+                    rect.set_name(format!(
                         "Text Region {} ({:.2}%)",
                         i + 1,
                         *region.confidence() * 100.0
-                    );
+                    ));
                     self.detections.push(Shape::Rectangle(rect));
                 }
                 Err(e) => {
@@ -380,9 +380,9 @@ impl DrawingCanvas {
                 (x_min, y_min, width, height)
             }
             Shape::Circle(circle) => {
-                let x = (circle.center.x - circle.radius).max(0.0) as u32;
-                let y = (circle.center.y - circle.radius).max(0.0) as u32;
-                let diameter = (circle.radius * 2.0) as u32;
+                let x = (circle.center().x - circle.radius()).max(0.0) as u32;
+                let y = (circle.center().y - circle.radius()).max(0.0) as u32;
+                let diameter = (circle.radius() * 2.0) as u32;
                 (x, y, diameter, diameter)
             }
             Shape::Polygon(poly) => {
