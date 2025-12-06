@@ -34,6 +34,10 @@ pub enum LayerType {
     Canvas,
     /// The detections layer (automatically detected regions)
     Detections,
+    /// The template layer (field definitions - blueprint for forms)
+    Template,
+    /// The instance layer (filled-in form data)
+    Instance,
     /// The shapes layer (user-drawn annotations)
     Shapes,
     /// The grid layer (alignment grid overlay) - rendered last (top)
@@ -45,6 +49,8 @@ impl fmt::Display for LayerType {
         match self {
             LayerType::Canvas => write!(f, "Canvas"),
             LayerType::Detections => write!(f, "Detections"),
+            LayerType::Template => write!(f, "Template"),
+            LayerType::Instance => write!(f, "Instance"),
             LayerType::Shapes => write!(f, "Shapes"),
             LayerType::Grid => write!(f, "Grid"),
         }
@@ -154,6 +160,8 @@ impl LayerManager {
             layers: enum_map::enum_map! {
                 LayerType::Canvas => Layer::new("Canvas", LayerType::Canvas),
                 LayerType::Detections => Layer::new("Detections", LayerType::Detections),
+                LayerType::Template => Layer::new_hidden("Template", LayerType::Template),
+                LayerType::Instance => Layer::new_hidden("Instance", LayerType::Instance),
                 LayerType::Shapes => Layer::new("Shapes", LayerType::Shapes),
                 LayerType::Grid => Layer::new_hidden("Grid", LayerType::Grid),
             },

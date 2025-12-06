@@ -3,7 +3,7 @@
 use crate::{LayerManager, LayerType, Shape, ToolMode};
 use derive_getters::Getters;
 use egui::{Color32, Pos2, Stroke};
-use form_factor_core::FieldDefinition;
+use form_factor_core::{FieldDefinition, FormTemplate};
 use serde::{Deserialize, Serialize};
 
 /// Default zoom level for new canvases
@@ -126,6 +126,32 @@ pub enum DetectionSubtype {
     Text,
 }
 
+/// Template editing mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum TemplateMode {
+    /// No template editing
+    #[default]
+    None,
+    /// Creating a new template
+    Creating,
+    /// Editing an existing template
+    Editing,
+    /// Viewing template as overlay (read-only)
+    Viewing,
+}
+
+/// Instance data entry mode
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum InstanceMode {
+    /// No instance interaction
+    #[default]
+    None,
+    /// Filling in form data
+    Filling,
+    /// Viewing instance data (read-only)
+    Viewing,
+}
+
 /// Drawing canvas state
 #[derive(Clone, Serialize, Deserialize, Getters)]
 pub struct DrawingCanvas {
@@ -146,6 +172,27 @@ pub struct DrawingCanvas {
     pub(super) form_image_path: Option<String>,
     /// Template ID for this canvas (if associated with a template)
     pub(super) template_id: Option<String>,
+
+    // Template and instance state (not serialized for now - will be handled separately)
+    /// Current template being created or edited
+    #[serde(skip)]
+    pub(super) current_template: Option<crate::DrawingTemplateBuilder>,
+    /// Current template editing mode
+    #[serde(skip)]
+    #[serde(default)]
+    pub(super) template_mode: TemplateMode,
+    
+    /// Current instance being filled or viewed
+    #[serde(skip)]
+    pub(super) current_instance: Option<crate::DrawingInstance>,
+    /// Current instance mode
+    #[serde(skip)]
+    #[serde(default)]
+    pub(super) instance_mode: InstanceMode,
+    
+    /// Selected field index (when Template or Instance layer is active)
+    #[serde(skip)]
+    pub(super) selected_field: Option<usize>,
 
     // Interaction state (not serialized)
     /// Current user interaction state (drawing, rotating, etc.)
@@ -225,6 +272,11 @@ impl Default for DrawingCanvas {
             layer_manager: LayerManager::new(),
             form_image_path: None,
             template_id: None,
+            current_template: None,
+            template_mode: TemplateMode::default(),
+            current_instance: None,
+            instance_mode: InstanceMode::default(),
+            selected_field: None,
             state: CanvasState::default(),
             selected_shape: None,
             selected_layer: None,
@@ -487,5 +539,100 @@ impl DrawingCanvas {
         image_offset: egui::Pos2,
     ) -> Shape {
         self.map_detection_to_canvas(detection, scale, image_offset)
+    }
+
+    // Template and Instance Mode Management
+
+    /// Start creating a new template
+    pub fn start_template_creation(&mut self, template_id: impl Into<String>, template_name: impl Into<String>) {
+        self.current_template = Some(crate::DrawingTemplateBuilder::default()
+            .id(template_id)
+            .name(template_name)
+            .version("1.0.0"));
+        self.template_mode = TemplateMode::Creating;
+        self.selected_layer = Some(LayerType::Template);
+        self.selected_field = None;
+    }
+
+    /// Load a template for editing
+    pub fn load_template_for_editing(&mut self, template: &crate::DrawingTemplate) {
+        // Convert template to builder (we'll need to add a to_builder() method)
+        // For now, create a new builder with the template's data
+        let builder = crate::DrawingTemplateBuilder::default()
+            .id(template.id().to_string())
+            .name(template.name().to_string())
+            .version(template.version().to_string());
+        
+        // TODO: Copy pages and fields from template to builder
+        // This requires adding a to_builder() or similar method on DrawingTemplate
+        
+        self.current_template = Some(builder);
+        self.template_mode = TemplateMode::Editing;
+        self.selected_layer = Some(LayerType::Template);
+        self.selected_field = None;
+    }
+
+    /// Load a template as read-only overlay
+    pub fn load_template_overlay(&mut self, template: &crate::DrawingTemplate) {
+        // Similar to editing but read-only
+        let builder = crate::DrawingTemplateBuilder::default()
+            .id(template.id().to_string())
+            .name(template.name().to_string())
+            .version(template.version().to_string());
+        
+        self.current_template = Some(builder);
+        self.template_mode = TemplateMode::Viewing;
+        self.selected_layer = Some(LayerType::Template);
+        self.selected_field = None;
+    }
+
+    /// Exit template mode
+    pub fn exit_template_mode(&mut self) {
+        self.current_template = None;
+        self.template_mode = TemplateMode::None;
+        self.selected_field = None;
+    }
+
+    /// Start filling an instance from a template
+    pub fn start_instance_filling(&mut self, template: &crate::DrawingTemplate) {
+        let instance = crate::DrawingInstance::from_template(
+            template.id().to_string(),
+            template.page_count(),
+        );
+        
+        self.current_instance = Some(instance);
+        self.instance_mode = InstanceMode::Filling;
+        self.selected_layer = Some(LayerType::Instance);
+        self.selected_field = None;
+    }
+
+    /// Load an instance for viewing
+    pub fn load_instance_for_viewing(&mut self, instance: crate::DrawingInstance) {
+        self.current_instance = Some(instance);
+        self.instance_mode = InstanceMode::Viewing;
+        self.selected_layer = Some(LayerType::Instance);
+        self.selected_field = None;
+    }
+
+    /// Exit instance mode
+    pub fn exit_instance_mode(&mut self) {
+        self.current_instance = None;
+        self.instance_mode = InstanceMode::None;
+        self.selected_field = None;
+    }
+
+    /// Get the current template mutably (if any)
+    pub fn current_template_mut(&mut self) -> Option<&mut crate::DrawingTemplateBuilder> {
+        self.current_template.as_mut()
+    }
+
+    /// Get the current instance mutably (if any)
+    pub fn current_instance_mut(&mut self) -> Option<&mut crate::DrawingInstance> {
+        self.current_instance.as_mut()
+    }
+
+    /// Set the currently selected field
+    pub fn set_selected_field(&mut self, field: Option<usize>) {
+        self.selected_field = field;
     }
 }

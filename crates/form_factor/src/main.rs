@@ -50,12 +50,6 @@ impl FormFactorApp {
                 tracing::info!("Registered OCR plugin");
             }
 
-            #[cfg(feature = "plugin-template")]
-            {
-                manager.register(Box::new(form_factor::template::TemplatePlugin::new()));
-                tracing::info!("Registered template plugin");
-            }
-
             manager
         };
 
@@ -170,6 +164,14 @@ impl App for FormFactorApp {
                                 LayerType::Canvas => {
                                     self.canvas.clear_canvas_image();
                                     tracing::info!("Cleared canvas image");
+                                }
+                                LayerType::Template => {
+                                    // TODO: Implement template layer clearing
+                                    tracing::info!("Template layer clear not yet implemented");
+                                }
+                                LayerType::Instance => {
+                                    // TODO: Implement instance layer clearing
+                                    tracing::info!("Instance layer clear not yet implemented");
                                 }
                                 LayerType::Grid => {
                                     // Grid doesn't need clearing

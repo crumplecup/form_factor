@@ -655,6 +655,10 @@ impl DrawingCanvas {
                     debug!("No shape selected - cannot rotate");
                 }
             }
+            Some(LayerType::Template) | Some(LayerType::Instance) => {
+                debug!("Template/Instance layer selected - rotation not supported");
+                // TODO: Add field rotation support if needed
+            }
             Some(LayerType::Grid) => {
                 debug!("Grid layer selected - rotating grid");
                 // Rotate the grid around the canvas center
@@ -770,6 +774,9 @@ impl DrawingCanvas {
             }
             Some(LayerType::Detections) => {
                 // Detections cannot be rotated
+            }
+            Some(LayerType::Template) | Some(LayerType::Instance) => {
+                // Template/Instance fields cannot be rotated (for now)
             }
             None => {}
         }
