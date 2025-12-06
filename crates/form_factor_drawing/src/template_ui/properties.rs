@@ -1,7 +1,8 @@
 //! Field properties editing panel.
 
+use super::field_type_selector::FieldTypeSelector;
 use super::state::TemplateEditorState;
-use egui::{ComboBox, DragValue, TextEdit, Ui};
+use egui::{DragValue, TextEdit, Ui};
 use form_factor_core::{FieldBounds, FieldType};
 use tracing::{debug, instrument};
 
@@ -24,6 +25,12 @@ pub struct FieldPropertiesPanel {
 
     /// Whether temporary state has been initialized
     temp_initialized: bool,
+
+    /// Field type selector widget
+    field_type_selector: Option<FieldTypeSelector>,
+    
+    /// Whether the field type selector is open
+    show_field_type_selector: bool,
 }
 
 impl Default for FieldPropertiesPanel {
@@ -43,6 +50,8 @@ impl Default for FieldPropertiesPanel {
                 height: 30.0,
             },
             temp_initialized: false,
+            field_type_selector: None,
+            show_field_type_selector: false,
         }
     }
 }
@@ -112,100 +121,40 @@ impl FieldPropertiesPanel {
                     ui.add(TextEdit::singleline(&mut self.temp_label).hint_text("Field 1"));
                 });
 
+                // Field type selection
                 ui.horizontal(|ui| {
                     ui.label("Type:");
-                    ComboBox::from_id_salt("field_type_combo")
-                        .selected_text(format!("{}", self.temp_field_type))
-                        .show_ui(ui, |ui| {
-                            // Common field types
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::FreeText,
-                                "Free Text",
+                    ui.label(self.temp_field_type.display_name());
+                    if ui.button("Change...").clicked() {
+                        self.show_field_type_selector = !self.show_field_type_selector;
+                        if self.show_field_type_selector && self.field_type_selector.is_none() {
+                            self.field_type_selector = Some(
+                                FieldTypeSelector::new().with_selected(self.temp_field_type.clone())
                             );
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::Date, "Date");
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::DateOfBirth,
-                                "Date of Birth",
-                            );
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::Checkbox,
-                                "Checkbox",
-                            );
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::Signature,
-                                "Signature",
-                            );
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::Initials,
-                                "Initials",
-                            );
-
-                            ui.separator();
-                            ui.label("Personal Info");
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::FirstName,
-                                "First Name",
-                            );
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::LastName,
-                                "Last Name",
-                            );
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::FullName,
-                                "Full Name",
-                            );
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::Email,
-                                "Email",
-                            );
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::PhoneNumber,
-                                "Phone",
-                            );
-
-                            ui.separator();
-                            ui.label("Address");
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::StreetAddress,
-                                "Street Address",
-                            );
-                            ui.selectable_value(&mut self.temp_field_type, FieldType::City, "City");
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::State,
-                                "State",
-                            );
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::ZipCode,
-                                "ZIP Code",
-                            );
-
-                            ui.separator();
-                            ui.label("Financial");
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::Currency,
-                                "Currency",
-                            );
-                            ui.selectable_value(
-                                &mut self.temp_field_type,
-                                FieldType::Amount,
-                                "Amount",
-                            );
-                        });
+                        }
+                    }
                 });
+
+                // Show field type selector if open
+                if self.show_field_type_selector {
+                    ui.separator();
+                    ui.group(|ui| {
+                        if let Some(ref mut selector) = self.field_type_selector {
+                            if selector.show(ui) {
+                                if let Some(selected) = selector.selected() {
+                                    self.temp_field_type = selected.clone();
+                                    self.show_field_type_selector = false;
+                                    debug!(field_type = ?self.temp_field_type, "Field type changed");
+                                }
+                            }
+                        }
+                        
+                        if ui.button("Close").clicked() {
+                            self.show_field_type_selector = false;
+                        }
+                    });
+                    ui.separator();
+                }
 
                 ui.separator();
 
@@ -363,6 +312,8 @@ impl FieldPropertiesPanel {
     pub fn reset(&mut self) {
         self.temp_initialized = false;
         self.validation_errors.clear();
+        self.show_field_type_selector = false;
+        self.field_type_selector = None;
     }
 }
 

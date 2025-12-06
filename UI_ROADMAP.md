@@ -354,7 +354,43 @@ Main Window
 - Wire mode changes to show/hide appropriate panels
 - Add keyboard shortcut to switch modes (Ctrl+M)
 
-#### 1.3 Template Manager Integration
+#### 1.3 Field Type Selector ✅
+
+**Status:** Complete
+**Files:**
+- `form_factor_drawing/src/template_ui/field_type_selector.rs` - Field type selector widget
+- `form_factor_drawing/src/template_ui/properties.rs` - Integration into properties panel
+
+**Implementation:**
+- Created searchable, categorized field type selector widget
+- Organized 40+ field types into 9 logical categories:
+  - Personal Information (FirstName, LastName, Email, Phone, etc.)
+  - Address (Street, City, State, ZIP, etc.)
+  - Identification (SSN, Tax ID, Driver's License, etc.)
+  - Dates (Date, DateOfBirth, DateSigned)
+  - Financial (Account Number, Currency, Amount, etc.)
+  - Employment (Employer Name, Job Title, Employee ID)
+  - Company/Organization (Company Name, Logo, etc.)
+  - Form Controls (Checkbox, Radio Button, Signature, Initials)
+  - Generic Fields (Text Region, Numeric, Barcode, QR Code)
+- Live search filtering across field names and categories
+- Auto-expand categories when searching
+- Shows validation pattern for selected field type
+- Integrated into FieldPropertiesPanel with "Change..." button
+- Modal dialog appearance for focused selection
+
+**Benefits:**
+- Eliminates cluttered combo box with 40+ items
+- Searchable interface improves discovery
+- Categorization provides logical grouping
+- Visual pattern display aids understanding
+
+**Next Steps:**
+- Add custom field type creation
+- Add favorites/recently used field types
+- Consider icon indicators for field type categories
+
+#### 1.4 Template Manager Integration
 
 **Entry point:** Add "Templates" button to plugin sidebar or menu bar
 
@@ -381,7 +417,7 @@ match manager_panel.ui(&mut ui, &registry) {
 }
 ```
 
-#### 1.4 Template Editor Integration
+#### 1.5 Template Editor Integration
 
 **Canvas integration:**
 - Use existing TemplateEditorPanel

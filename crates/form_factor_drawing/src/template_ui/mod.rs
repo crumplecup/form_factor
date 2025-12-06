@@ -1,6 +1,7 @@
 //! Template UI module for visual template creation and editing.
 
 mod editor;
+mod field_type_selector;
 mod manager;
 mod manipulation;
 mod properties;
@@ -8,6 +9,7 @@ mod state;
 mod validation;
 
 pub use editor::{EditorAction, TemplateEditorPanel};
+pub use field_type_selector::FieldTypeSelector;
 pub use manager::{ManagerAction, TemplateManagerPanel};
 pub use properties::{FieldPropertiesPanel, PropertiesAction};
 pub use state::{EditorMode, TemplateEditorState, TemplateManagerState, TemplateSnapshot};
