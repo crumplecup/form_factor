@@ -67,6 +67,11 @@ impl DrawingCanvas {
                         zoom_delta = 0.1 * self.zoom_sensitivity;
                     }
                 }
+                
+                // Delete key for shapes and fields
+                if i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace) {
+                    self.handle_delete_key();
+                }
             });
         }
 
@@ -1284,6 +1289,45 @@ impl DrawingCanvas {
                 egui::FontId::proportional(12.0),
                 Color32::from_rgb(20, 80, 20),
             );
+        }
+    }
+
+    /// Handle delete key press for shapes and fields
+    fn handle_delete_key(&mut self) {
+        // Check if we're in template mode - delete field
+        if matches!(
+            self.template_mode(),
+            super::core::TemplateMode::Creating | super::core::TemplateMode::Editing
+        ) {
+            if let Some(field_idx) = *self.selected_field() {
+                let current_page = *self.current_page();
+                if let Some(template) = self.current_template_mut() {
+                    if let Some(page) = template.pages.get_mut(current_page) {
+                        if field_idx < page.fields.len() {
+                            let field_id = page.fields[field_idx].id.clone();
+                            page.fields.remove(field_idx);
+                            self.set_selected_field(None);
+                            self.set_show_properties(false);
+                            debug!(field_id, field_idx, "Deleted field");
+                        }
+                    }
+                }
+            }
+        } else {
+            // Delete shape
+            if let Some(idx) = *self.selected_shape() {
+                if idx < self.shapes().len() {
+                    let shape_name = match &self.shapes()[idx] {
+                        crate::Shape::Rectangle(r) => r.name().to_string(),
+                        crate::Shape::Circle(c) => c.name().to_string(),
+                        crate::Shape::Polygon(p) => p.name().to_string(),
+                    };
+                    self.shapes.remove(idx);
+                    self.set_selected_shape(None);
+                    self.set_show_properties(false);
+                    debug!(shape_name, shape_idx = idx, "Deleted shape");
+                }
+            }
         }
     }
 }

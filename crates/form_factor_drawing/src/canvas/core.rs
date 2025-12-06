@@ -606,6 +606,42 @@ impl DrawingCanvas {
         self.current_template = None;
         self.template_mode = TemplateMode::None;
         self.selected_field = None;
+        self.current_page = 0;
+    }
+
+    /// Save the current template to a registry
+    pub fn save_template_to_registry(
+        &self,
+        registry: &mut crate::TemplateRegistry,
+    ) -> Result<(), String> {
+        let Some(template_builder) = &self.current_template else {
+            return Err("No template to save".to_string());
+        };
+
+        // Build the template
+        let template = template_builder
+            .clone()
+            .build()
+            .map_err(|e| format!("Failed to build template: {}", e))?;
+
+        // Add to registry
+        registry.register(template);
+
+        Ok(())
+    }
+
+    /// Load a template from registry for editing
+    pub fn load_template_from_registry(
+        &mut self,
+        registry: &crate::TemplateRegistry,
+        template_id: &str,
+    ) -> Result<(), String> {
+        let template = registry
+            .get(template_id)
+            .ok_or_else(|| format!("Template '{}' not found in registry", template_id))?;
+
+        self.load_template_for_editing(template);
+        Ok(())
     }
 
     /// Start filling an instance from a template
