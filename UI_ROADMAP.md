@@ -273,6 +273,23 @@ Main Window
 
 **Goal:** Expose existing template UI panels to users
 
+#### 1.0 Property Inspector Plugin ✅
+
+**Status:** Complete
+**Commit:** TBD
+
+**Implementation:**
+- Created `PropertiesPlugin` for editing selected shape/field properties
+- Supports both shape editing (position, size, color, label) and template field editing (name, type, position, size, required)
+- Listens for `ShapeSelected` and `SelectionCleared` events
+- Integrated into plugin system with feature flag `plugin-properties`
+- Added to `all-plugins` feature for easy enablement
+
+**Next Steps:**
+- Enhance with actual shape data fetching from canvas
+- Add property change event emission back to canvas
+- Support multi-selection property editing
+
 #### 1.1 Add Mode Management
 
 **File:** `form_factor/src/app_state.rs` (new file)

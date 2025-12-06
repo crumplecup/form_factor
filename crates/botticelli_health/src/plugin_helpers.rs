@@ -291,8 +291,9 @@ mod tests {
             AppEvent::CanvasZoomChanged { zoom: 2.0 },
         ];
 
-        let zoom_events =
-            filter_events_by_discriminant(&events, |e| matches!(e, AppEvent::CanvasZoomChanged { .. }));
+        let zoom_events = filter_events_by_discriminant(&events, |e| {
+            matches!(e, AppEvent::CanvasZoomChanged { .. })
+        });
         assert_eq!(zoom_events.len(), 2);
     }
 

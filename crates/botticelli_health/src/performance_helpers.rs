@@ -40,5 +40,3 @@ where
         duration_ms: duration.as_secs_f64() * 1000.0,
     }
 }
-
-

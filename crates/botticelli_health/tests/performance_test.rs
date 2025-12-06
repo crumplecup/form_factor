@@ -1,4 +1,4 @@
-use botticelli_health::{create_test_canvas, measure_operation, create_rectangle_shape};
+use botticelli_health::{create_rectangle_shape, create_test_canvas, measure_operation};
 use form_factor_drawing::DrawingCanvas;
 
 #[test]
@@ -74,7 +74,7 @@ fn test_large_canvas_with_layers() {
 #[test]
 fn test_rapid_tool_switching() {
     let mut canvas = create_test_canvas();
-    
+
     use form_factor_drawing::ToolMode;
 
     let result = measure_operation("1000_tool_switches", || {
@@ -147,7 +147,7 @@ fn test_memory_efficiency() {
 
     // Verify DrawingCanvas doesn't grow unexpectedly
     let canvas_size = size_of::<DrawingCanvas>();
-    
+
     // This is a sanity check - adjust threshold based on actual structure
     assert!(
         canvas_size < 10_000,

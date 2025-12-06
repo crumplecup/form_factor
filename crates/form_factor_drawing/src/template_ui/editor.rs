@@ -251,34 +251,36 @@ impl TemplateEditorPanel {
 
             // Save/Cancel buttons with validation
             if ui.button("Validate").clicked()
-                && let Some(template) = self.state.current_template() {
-                    self.validation_errors =
-                        crate::TemplateValidator::validate(template, _registry, self.is_new);
-                    if self.validation_errors.is_empty() {
-                        info!("Template validation passed");
-                    } else {
-                        debug!(
-                            error_count = self.validation_errors.len(),
-                            "Template validation failed"
-                        );
-                    }
+                && let Some(template) = self.state.current_template()
+            {
+                self.validation_errors =
+                    crate::TemplateValidator::validate(template, _registry, self.is_new);
+                if self.validation_errors.is_empty() {
+                    info!("Template validation passed");
+                } else {
+                    debug!(
+                        error_count = self.validation_errors.len(),
+                        "Template validation failed"
+                    );
                 }
+            }
 
             if ui.button("Save Template").clicked()
-                && let Some(template) = self.state.current_template() {
-                    self.validation_errors =
-                        crate::TemplateValidator::validate(template, _registry, self.is_new);
-                    if self.validation_errors.is_empty() {
-                        action = EditorAction::Save {
-                            is_new: self.is_new,
-                        };
-                    } else {
-                        debug!(
-                            error_count = self.validation_errors.len(),
-                            "Cannot save: validation failed"
-                        );
-                    }
+                && let Some(template) = self.state.current_template()
+            {
+                self.validation_errors =
+                    crate::TemplateValidator::validate(template, _registry, self.is_new);
+                if self.validation_errors.is_empty() {
+                    action = EditorAction::Save {
+                        is_new: self.is_new,
+                    };
+                } else {
+                    debug!(
+                        error_count = self.validation_errors.len(),
+                        "Cannot save: validation failed"
+                    );
                 }
+            }
             if ui.button("Cancel").clicked() {
                 action = EditorAction::Cancel;
             }

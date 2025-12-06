@@ -67,7 +67,7 @@ impl DrawingCanvas {
                         zoom_delta = 0.1 * self.zoom_sensitivity;
                     }
                 }
-                
+
                 // Delete key for shapes and fields
                 if i.key_pressed(egui::Key::Delete) || i.key_pressed(egui::Key::Backspace) {
                     self.handle_delete_key();
@@ -969,7 +969,7 @@ impl DrawingCanvas {
         } else {
             Stroke::new(2.0, Color32::from_rgb(100, 100, 255)) // Lighter blue for unselected
         };
-        
+
         let fill = if is_selected {
             Color32::from_rgba_premultiplied(0, 150, 255, 30) // Translucent blue
         } else {
@@ -982,9 +982,12 @@ impl DrawingCanvas {
             fill,
             egui::Stroke::NONE,
         ));
-        
+
         // Draw outline
-        painter.add(egui::Shape::closed_line(transformed_corners.clone(), stroke));
+        painter.add(egui::Shape::closed_line(
+            transformed_corners.clone(),
+            stroke,
+        ));
 
         // Draw field label
         if let Some(center_pos) = transformed_corners.first() {

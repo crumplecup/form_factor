@@ -1,4 +1,4 @@
-use botticelli_health::{create_test_canvas, create_rectangle_shape, create_circle_shape};
+use botticelli_health::{create_circle_shape, create_rectangle_shape, create_test_canvas};
 use form_factor_drawing::ToolMode;
 
 #[test]
@@ -106,7 +106,7 @@ fn test_multi_page_edge_cases() {
 
     // Canvas should start with valid state
     assert_eq!(canvas.shape_count(), 0);
-    
+
     // Multiple canvases should be independent
     let canvas2 = create_test_canvas();
     assert_eq!(canvas2.shape_count(), 0);

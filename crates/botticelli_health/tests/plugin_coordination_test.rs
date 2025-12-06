@@ -3,8 +3,8 @@
 //! Tests plugin lifecycle, event bus mechanics, and plugin communication.
 
 use botticelli_health::{
-    create_test_plugin, create_test_plugin_with_name, CountingPlugin, EventCollectorPlugin,
-    ResponsePlugin,
+    CountingPlugin, EventCollectorPlugin, ResponsePlugin, create_test_plugin,
+    create_test_plugin_with_name,
 };
 use form_factor_plugins::{AppEvent, PluginManager};
 
@@ -214,8 +214,8 @@ fn test_plugin_isolation() {
     // Events to one don't affect others' state
     let sender = manager.event_bus_mut().sender();
     sender.emit(AppEvent::LayerSelected {
-            layer_name: "layer1".to_string(),
-        });
+        layer_name: "layer1".to_string(),
+    });
     manager.process_events();
 
     // No panic = plugins are isolated
@@ -262,9 +262,7 @@ fn test_event_propagation_consistency() {
     // Multiple events
     for i in 0..5 {
         let sender = manager.event_bus_mut().sender();
-    sender.emit(AppEvent::ShapeSelected {
-            index: i,
-        });
+        sender.emit(AppEvent::ShapeSelected { index: i });
     }
 
     manager.process_events();
@@ -302,9 +300,9 @@ fn test_state_sync_through_events() {
     // Simulate state change
     let sender = manager.event_bus_mut().sender();
     sender.emit(AppEvent::LayerVisibilityChanged {
-            layer_name: "annotations".to_string(),
-            visible: false,
-        });
+        layer_name: "annotations".to_string(),
+        visible: false,
+    });
 
     manager.process_events();
 
@@ -321,9 +319,7 @@ fn test_rapid_event_processing() {
     // Rapid-fire events
     for i in 0..100 {
         let sender = manager.event_bus_mut().sender();
-    sender.emit(AppEvent::ShapeSelected {
-            index: i % 10,
-        });
+        sender.emit(AppEvent::ShapeSelected { index: i % 10 });
     }
 
     manager.process_events();
@@ -391,9 +387,7 @@ fn test_single_plugin_many_events() {
     // Send 50 different events
     for i in 0..50 {
         let sender = manager.event_bus_mut().sender();
-    sender.emit(AppEvent::ShapeSelected {
-            index: i,
-        });
+        sender.emit(AppEvent::ShapeSelected { index: i });
     }
 
     manager.process_events();

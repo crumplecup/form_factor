@@ -50,6 +50,12 @@ impl FormFactorApp {
                 tracing::info!("Registered OCR plugin");
             }
 
+            #[cfg(feature = "plugin-properties")]
+            {
+                manager.register(Box::new(form_factor::properties::PropertiesPlugin::new()));
+                tracing::info!("Registered properties plugin");
+            }
+
             manager
         };
 

@@ -191,11 +191,11 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     #[serde(default)]
     pub(super) template_mode: TemplateMode,
-    
+
     /// Current page index when editing templates (0-based)
     #[serde(skip)]
     pub(super) current_page: usize,
-    
+
     /// Current instance being filled or viewed
     #[serde(skip)]
     pub(super) current_instance: Option<crate::DrawingInstance>,
@@ -203,7 +203,7 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     #[serde(default)]
     pub(super) instance_mode: InstanceMode,
-    
+
     /// Selected field index (when Template or Instance layer is active)
     #[serde(skip)]
     pub(super) selected_field: Option<usize>,
@@ -565,11 +565,17 @@ impl DrawingCanvas {
     // Template and Instance Mode Management
 
     /// Start creating a new template
-    pub fn start_template_creation(&mut self, template_id: impl Into<String>, template_name: impl Into<String>) {
-        self.current_template = Some(crate::DrawingTemplateBuilder::default()
-            .id(template_id)
-            .name(template_name)
-            .version("1.0.0"));
+    pub fn start_template_creation(
+        &mut self,
+        template_id: impl Into<String>,
+        template_name: impl Into<String>,
+    ) {
+        self.current_template = Some(
+            crate::DrawingTemplateBuilder::default()
+                .id(template_id)
+                .name(template_name)
+                .version("1.0.0"),
+        );
         self.template_mode = TemplateMode::Creating;
         self.selected_layer = Some(LayerType::Template);
         self.selected_field = None;
@@ -583,10 +589,10 @@ impl DrawingCanvas {
             .id(template.id().to_string())
             .name(template.name().to_string())
             .version(template.version().to_string());
-        
+
         // TODO: Copy pages and fields from template to builder
         // This requires adding a to_builder() or similar method on DrawingTemplate
-        
+
         self.current_template = Some(builder);
         self.template_mode = TemplateMode::Editing;
         self.selected_layer = Some(LayerType::Template);
@@ -600,7 +606,7 @@ impl DrawingCanvas {
             .id(template.id().to_string())
             .name(template.name().to_string())
             .version(template.version().to_string());
-        
+
         self.current_template = Some(builder);
         self.template_mode = TemplateMode::Viewing;
         self.selected_layer = Some(LayerType::Template);
@@ -652,11 +658,9 @@ impl DrawingCanvas {
 
     /// Start filling an instance from a template
     pub fn start_instance_filling(&mut self, template: &crate::DrawingTemplate) {
-        let instance = crate::DrawingInstance::from_template(
-            template.id().to_string(),
-            template.page_count(),
-        );
-        
+        let instance =
+            crate::DrawingInstance::from_template(template.id().to_string(), template.page_count());
+
         self.current_instance = Some(instance);
         self.instance_mode = InstanceMode::Filling;
         self.selected_layer = Some(LayerType::Instance);
@@ -709,7 +713,7 @@ impl DrawingCanvas {
         let new_page_index = template.pages.len();
         let page = crate::TemplatePage::new(new_page_index);
         template.pages.push(page);
-        
+
         debug!(page_index = new_page_index, "Added new template page");
         Ok(new_page_index)
     }
@@ -748,7 +752,10 @@ impl DrawingCanvas {
             self.current_page = new_page_count.saturating_sub(1);
         }
 
-        debug!(removed_page = page_index, new_page_count, "Removed template page");
+        debug!(
+            removed_page = page_index,
+            new_page_count, "Removed template page"
+        );
         Ok(())
     }
 

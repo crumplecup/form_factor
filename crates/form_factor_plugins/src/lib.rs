@@ -79,3 +79,6 @@ pub mod detection;
 
 #[cfg(feature = "plugin-ocr")]
 pub mod ocr;
+
+#[cfg(feature = "plugin-properties")]
+pub mod properties;

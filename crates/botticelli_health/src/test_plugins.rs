@@ -68,8 +68,6 @@ impl CountingPlugin {
             event_count: 0,
         }
     }
-
-
 }
 
 impl Plugin for CountingPlugin {
@@ -115,8 +113,6 @@ impl EventCollectorPlugin {
             events: Vec::new(),
         }
     }
-
-
 }
 
 impl Plugin for EventCollectorPlugin {

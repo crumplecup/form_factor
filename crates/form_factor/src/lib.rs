@@ -230,6 +230,9 @@ pub use form_factor_plugins::detection;
 #[cfg(feature = "plugin-ocr")]
 pub use form_factor_plugins::ocr;
 
+#[cfg(feature = "plugin-properties")]
+pub use form_factor_plugins::properties;
+
 // ============================================================================
 // Advanced: Direct module access for backend implementations
 // ============================================================================

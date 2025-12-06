@@ -82,7 +82,7 @@ impl DrawingCanvas {
                         debug!("No position available for click");
                     }
                 }
-                
+
                 // Handle field dragging in template mode
                 if matches!(
                     self.template_mode(),
@@ -104,10 +104,7 @@ impl DrawingCanvas {
 
                     // Check if drag ended
                     if response.drag_stopped()
-                        && matches!(
-                            self.state(),
-                            super::core::CanvasState::DraggingField { .. }
-                        )
+                        && matches!(self.state(), super::core::CanvasState::DraggingField { .. })
                     {
                         self.finish_field_drag();
                     }
@@ -681,15 +678,15 @@ impl DrawingCanvas {
                     let page = crate::TemplatePage::new(0);
                     template.pages.push(page);
                 }
-                
+
                 if let Some(page) = template.pages.first_mut() {
                     page.fields.push(field.clone());
                     let field_idx = page.fields.len() - 1;
-                    
+
                     // Select the newly created field
                     self.set_selected_field(Some(field_idx));
                     self.set_show_properties(true);
-                    
+
                     debug!(
                         field_id = %field.id,
                         field_index = field_idx,

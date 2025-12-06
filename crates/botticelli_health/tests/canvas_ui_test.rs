@@ -106,7 +106,7 @@ fn test_canvas_with_many_shapes_renders() {
 #[test]
 fn test_canvas_with_shapes_and_tool_change_renders() {
     let mut canvas = create_canvas_with_shapes(5);
-    
+
     // Change tools while shapes present
     for tool in [
         ToolMode::Select,
@@ -182,11 +182,11 @@ fn test_template_mode_with_rectangle_tool_renders() {
 fn test_template_mode_with_multiple_pages_renders() {
     let mut canvas = create_test_canvas();
     canvas.start_template_creation("test_template", "Test Template");
-    
+
     // Add multiple pages
     let _ = canvas.add_template_page();
     let _ = canvas.add_template_page();
-    
+
     assert_ui_renders_without_panic(&mut canvas);
 }
 
@@ -194,18 +194,18 @@ fn test_template_mode_with_multiple_pages_renders() {
 fn test_template_mode_page_navigation_renders() {
     let mut canvas = create_test_canvas();
     canvas.start_template_creation("test_template", "Test Template");
-    
+
     // Add pages
     let _ = canvas.add_template_page();
     let _ = canvas.add_template_page();
-    
+
     // Navigate between pages
     canvas.set_current_page(0);
     assert_ui_renders_without_panic(&mut canvas);
-    
+
     canvas.set_current_page(1);
     assert_ui_renders_without_panic(&mut canvas);
-    
+
     canvas.set_current_page(2);
     assert_ui_renders_without_panic(&mut canvas);
 }
@@ -217,25 +217,31 @@ fn test_template_mode_page_navigation_renders() {
 #[test]
 fn test_canvas_with_hidden_layers_renders() {
     use form_factor_drawing::LayerType;
-    
+
     let mut canvas = create_canvas_with_shapes(5);
-    
+
     // Hide shapes layer
-    canvas.layer_manager_mut().set_visible(LayerType::Shapes, false);
+    canvas
+        .layer_manager_mut()
+        .set_visible(LayerType::Shapes, false);
     assert_ui_renders_without_panic(&mut canvas);
-    
+
     // Show shapes, hide grid
-    canvas.layer_manager_mut().set_visible(LayerType::Shapes, true);
-    canvas.layer_manager_mut().set_visible(LayerType::Grid, false);
+    canvas
+        .layer_manager_mut()
+        .set_visible(LayerType::Shapes, true);
+    canvas
+        .layer_manager_mut()
+        .set_visible(LayerType::Grid, false);
     assert_ui_renders_without_panic(&mut canvas);
 }
 
 #[test]
 fn test_canvas_with_all_layers_hidden_renders() {
     use form_factor_drawing::LayerType;
-    
+
     let mut canvas = create_test_canvas();
-    
+
     // Hide all layers
     for layer in [
         LayerType::Canvas,
@@ -245,7 +251,7 @@ fn test_canvas_with_all_layers_hidden_renders() {
     ] {
         canvas.layer_manager_mut().set_visible(layer, false);
     }
-    
+
     assert_ui_renders_without_panic(&mut canvas);
 }
 
@@ -256,7 +262,7 @@ fn test_canvas_with_all_layers_hidden_renders() {
 #[test]
 fn test_rapid_tool_switching_renders() {
     let mut canvas = create_test_canvas();
-    
+
     // Rapidly switch tools 100 times
     for i in 0..100 {
         let tool = match i % 6 {
@@ -269,7 +275,7 @@ fn test_rapid_tool_switching_renders() {
         };
         canvas.set_tool(tool);
     }
-    
+
     // Should still render fine
     assert_ui_renders_without_panic(&mut canvas);
 }
@@ -277,7 +283,7 @@ fn test_rapid_tool_switching_renders() {
 #[test]
 fn test_extreme_zoom_levels_render() {
     let mut canvas = create_canvas_with_shapes(3);
-    
+
     // Test various extreme zoom levels
     for zoom in [0.1, 0.5, 1.0, 2.0, 5.0, 10.0] {
         canvas.set_zoom(zoom);
@@ -288,7 +294,7 @@ fn test_extreme_zoom_levels_render() {
 #[test]
 fn test_extreme_pan_offsets_render() {
     let mut canvas = create_canvas_with_shapes(3);
-    
+
     // Test various extreme pan offsets
     for offset in [(-1000.0, -1000.0), (1000.0, 1000.0), (-500.0, 500.0)] {
         canvas.set_pan_offset(offset.0, offset.1);

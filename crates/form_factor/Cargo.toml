@@ -46,7 +46,8 @@ plugin-layers = ["plugins", "form_factor_plugins/plugin-layers"]
 plugin-file = ["plugins", "form_factor_plugins/plugin-file"]
 plugin-detection = ["plugins", "form_factor_plugins/plugin-detection", "text-detection", "logo-detection"]
 plugin-ocr = ["plugins", "form_factor_plugins/plugin-ocr", "ocr"]
-all-plugins = ["plugin-canvas", "plugin-layers", "plugin-file", "plugin-detection", "plugin-ocr"]
+plugin-properties = ["plugins", "form_factor_plugins/plugin-properties"]
+all-plugins = ["plugin-canvas", "plugin-layers", "plugin-file", "plugin-detection", "plugin-ocr", "plugin-properties"]
 
 dev = ["text-detection", "logo-detection", "ocr", "all-plugins"]
 

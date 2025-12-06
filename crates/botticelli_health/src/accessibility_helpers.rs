@@ -40,7 +40,7 @@ pub fn render_canvas_ui(canvas: &mut DrawingCanvas) {
             canvas.ui(ui);
         });
     });
-    
+
     // If we get here, rendering succeeded
 }
 
@@ -67,7 +67,6 @@ pub fn assert_ui_renders_without_panic(canvas: &mut DrawingCanvas) {
 ///
 /// Cycles through all tool modes and verifies each one renders without panic.
 pub fn assert_all_tools_render(canvas: &mut DrawingCanvas) {
-    
     for tool in [
         ToolMode::Select,
         ToolMode::Rectangle,
@@ -89,16 +88,16 @@ mod tests {
     #[test]
     fn test_render_ui_smoke_test() {
         let mut canvas = DrawingCanvas::default();
-        
+
         // Should not panic
         render_canvas_ui(&mut canvas);
     }
-    
+
     /// Test rendering with different tool modes
     #[test]
     fn test_render_all_tools() {
         let mut canvas = DrawingCanvas::default();
-        
+
         // Should not panic for any tool
         assert_all_tools_render(&mut canvas);
     }

@@ -1,7 +1,7 @@
 //! Canvas test helpers for simulating user interactions
 
-use form_factor_drawing::{DrawingCanvas, LayerType, Shape, ToolMode};
 use egui::Pos2;
+use form_factor_drawing::{DrawingCanvas, LayerType, Shape, ToolMode};
 
 /// Creates a canvas with default test settings
 pub fn create_test_canvas() -> DrawingCanvas {
@@ -39,7 +39,7 @@ pub fn create_canvas_with_shapes(count: usize) -> DrawingCanvas {
 pub fn create_rectangle_shape(x: f32, y: f32, width: f32, height: f32) -> Shape {
     use egui::{Color32, Pos2, Stroke};
     use form_factor_drawing::Rectangle;
-    
+
     let rect = Rectangle::from_corners(
         Pos2::new(x, y),
         Pos2::new(x + width, y + height),
@@ -47,7 +47,7 @@ pub fn create_rectangle_shape(x: f32, y: f32, width: f32, height: f32) -> Shape 
         Color32::from_rgba_premultiplied(0, 0, 255, 50),
     )
     .expect("Valid rectangle");
-    
+
     Shape::Rectangle(rect)
 }
 
@@ -55,7 +55,7 @@ pub fn create_rectangle_shape(x: f32, y: f32, width: f32, height: f32) -> Shape 
 pub fn create_circle_shape(center_x: f32, center_y: f32, radius: f32) -> Shape {
     use egui::{Color32, Pos2, Stroke};
     use form_factor_drawing::Circle;
-    
+
     let circle = Circle::new(
         Pos2::new(center_x, center_y),
         radius,
@@ -63,7 +63,7 @@ pub fn create_circle_shape(center_x: f32, center_y: f32, radius: f32) -> Shape {
         Color32::from_rgba_premultiplied(0, 255, 0, 50),
     )
     .expect("Valid circle");
-    
+
     Shape::Circle(circle)
 }
 
@@ -71,7 +71,7 @@ pub fn create_circle_shape(center_x: f32, center_y: f32, radius: f32) -> Shape {
 pub fn create_freehand_shape(points: Vec<(f32, f32)>) -> Shape {
     use egui::{Color32, Pos2, Stroke};
     use form_factor_drawing::PolygonShape;
-    
+
     let pos_points: Vec<Pos2> = points.iter().map(|(x, y)| Pos2::new(*x, *y)).collect();
     let polygon = PolygonShape::from_points(
         pos_points,
@@ -79,10 +79,9 @@ pub fn create_freehand_shape(points: Vec<(f32, f32)>) -> Shape {
         Color32::from_rgba_premultiplied(255, 255, 0, 50),
     )
     .expect("Valid polygon");
-    
+
     Shape::Polygon(polygon)
 }
-
 
 #[allow(dead_code)]
 pub fn simulate_click(_canvas: &mut DrawingCanvas, _position: Pos2) {
@@ -108,8 +107,6 @@ pub fn assert_shape_count(canvas: &DrawingCanvas, expected: usize) {
         expected, actual
     );
 }
-
-
 
 /// Asserts the currently active tool mode
 pub fn assert_active_tool(canvas: &DrawingCanvas, expected: ToolMode) {
