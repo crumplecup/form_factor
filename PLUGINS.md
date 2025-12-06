@@ -156,6 +156,17 @@ dev = ["text-detection", "logo-detection", "ocr", "all-plugins"]
    - Emits `OcrExtractionRequested` events
    - Receives custom `text_extracted` events
 
+6. **Template Plugin** (`plugin-template`): ✨ NEW
+   - Template browser/manager UI
+   - Create new templates
+   - Edit existing templates visually
+   - Delete templates with confirmation
+   - Visual field placement with drag-and-drop
+   - Field property editing (type, validation, bounds)
+   - Template validation before save
+   - Automatic persistence to registry
+   - Two modes: Manager (browse) and Editor (visual editing)
+
 #### Logo Detection Improvements (Nov 8, 2025)
 
 Switched from template matching to feature matching for more robust logo detection:
@@ -191,16 +202,16 @@ Successfully refactored the monolithic crate into a workspace with 7 specialized
 
 ### Build Status
 - ✅ `cargo check --workspace --all-features`: Clean
-- ✅ `cargo check --features dev`: Clean (plugins enabled)
-- ✅ `cargo test -p form_factor_plugins --all-features`: 20 tests passing
-- ✅ `cargo test --workspace --features dev`: 129 tests passing (101 unit + 18 doc)
+- ✅ `cargo check --features dev`: Clean (all plugins enabled)
+- ✅ `cargo test -p form_factor_plugins --all-features`: 22 tests passing
+- ✅ `cargo test --workspace --features dev`: 131 tests passing (103 unit + 18 doc)
 - ✅ `cargo clippy --features dev`: Zero warnings
 - ✅ **System is fully functional and ready to use**
 
 ### Testing
-- **Plugin tests**: 20 unit tests + 1 doctest
-- **Previous tests**: 107 unit tests + 17 doctests (workspace)
-- **Total**: 129 tests (101 unit + 18 doc)
+- **Plugin tests**: 22 unit tests + 1 doctest
+- **Previous tests**: 109 unit tests + 17 doctests (workspace)
+- **Total**: 131 tests (103 unit + 18 doc)
 - **All passing** ✅
 
 ## How to Run
@@ -319,12 +330,13 @@ cargo run --features dev
 ## Recent Commits
 
 ```
-1ec575d (HEAD -> plugins) Remove duplicate tool selection toolbar from canvas
+23c8891 (HEAD -> dev) feat(plugins): Add template management plugin ✨ LATEST
+502e443 feat(template_ui): Complete template save functionality
+1d9cd28 feat(template_ui): Implement template validation system
+d4d764e feat(template_ui): Implement undo/redo system with keyboard shortcuts
+1ec575d Remove duplicate tool selection toolbar from canvas
 ef9177e Add layer clear functionality to layers plugin
 570a43b Remove legacy mode UI to streamline main crate
-2886a78 refactor: CONTINUATION_CONTEXT renamed to PLUGINS
-2886a78 Fix critical bug: logo detection not working due to unimplemented feature matching
-7f08db2 Fix logo detection tests and document size difference issues
 ```
 
 ## Success Metrics ✅
