@@ -16,11 +16,7 @@ This index tracks all planning documents in the workspace. When documents are co
   - Template manager panel, drag-and-drop field placement, property editor
   - Supersedes Priority 5 from TEMPLATE_SYSTEM_PLAN
 
-### Testing Strategy
-- **INTEGRATION_TESTING_PLAN.md** - `current` (2025-12-05)
-  - Comprehensive integration testing implementation plan
-  - 4 phases: Foundation, User Workflows, Domain Features, Optional Features
-  - Covers canvas workflows, plugin coordination, template/instance integration
+
 
 ### UI/UX Development
 - **UI_ROADMAP.md** - `current` (2025-12-05)
@@ -66,17 +62,23 @@ This index tracks all planning documents in the workspace. When documents are co
   - Priorities 1-4 completed: Template builder, field extraction, canvas integration, legacy migration
   - Priority 5 (Template UI) expanded into separate planning document
 
+### Testing Strategy (Completed)
+- **INTEGRATION_TESTING_PLAN.md** - `da60861` (2025-12-06)
+  - Comprehensive integration testing implementation plan
+  - 4 phases: Foundation, User Workflows, Domain Features, Optional Features
+  - botticelli_health crate created for test helpers and integration tests
+
 ## Document Categories Summary
 
-- **Active Planning**: 3 documents
+- **Active Planning**: 2 documents
 - **Development Guidelines**: 1 document
 - **Build & Workspace**: 2 documents
 - **Feature Guides**: 4 documents
-- **Archived**: 1 document
+- **Archived**: 2 documents
 
-**Total**: 11 markdown documents tracked (10 active, 1 archived)
+**Total**: 11 markdown documents tracked (9 active, 2 archived)
 
 ---
 
-*Last Updated: 2025-12-05*
+*Last Updated: 2025-12-06*
 *Generated automatically - see git log for detailed history*
