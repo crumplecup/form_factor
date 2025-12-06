@@ -11,7 +11,7 @@ use form_factor_plugins::{AppEvent, EventBus, Plugin, PluginManager};
 ///
 /// # Example
 /// ```
-/// use botticelli_health::create_empty_plugin_manager;
+/// use form_factor_health::create_empty_plugin_manager;
 ///
 /// let manager = create_empty_plugin_manager();
 /// assert_eq!(manager.plugin_count(), 0);
@@ -29,7 +29,7 @@ pub fn create_empty_plugin_manager() -> PluginManager {
 ///
 /// # Example
 /// ```
-/// use botticelli_health::create_test_plugin_manager;
+/// use form_factor_health::create_test_plugin_manager;
 ///
 /// let manager = create_test_plugin_manager();
 /// // Would have plugins registered in full implementation
@@ -47,7 +47,7 @@ pub fn create_test_plugin_manager() -> PluginManager {
 ///
 /// # Example
 /// ```
-/// use botticelli_health::create_plugin_manager_with;
+/// use form_factor_health::create_plugin_manager_with;
 /// use form_factor_plugins::Plugin;
 ///
 /// let plugins: Vec<Box<dyn Plugin>> = vec![]; // Add test plugins
@@ -73,7 +73,7 @@ pub fn create_plugin_manager_with(plugins: Vec<Box<dyn Plugin>>) -> PluginManage
 ///
 /// # Example
 /// ```
-/// use botticelli_health::collect_events;
+/// use form_factor_health::collect_events;
 /// use form_factor_plugins::{EventBus, AppEvent};
 ///
 /// let mut bus = EventBus::new();
@@ -97,7 +97,7 @@ pub fn collect_events(event_bus: &mut EventBus) -> Vec<AppEvent> {
 ///
 /// # Example
 /// ```
-/// use botticelli_health::{create_test_plugin_manager, emit_and_process};
+/// use form_factor_health::{create_test_plugin_manager, emit_and_process};
 /// use form_factor_plugins::AppEvent;
 ///
 /// let mut manager = create_test_plugin_manager();
@@ -135,7 +135,7 @@ pub fn emit_and_process_all(manager: &mut PluginManager, events: Vec<AppEvent>) 
 ///
 /// # Example
 /// ```
-/// use botticelli_health::{collect_events, assert_event_emitted};
+/// use form_factor_health::{collect_events, assert_event_emitted};
 /// use form_factor_plugins::{EventBus, AppEvent};
 ///
 /// let mut bus = EventBus::new();
@@ -187,7 +187,7 @@ pub fn assert_event_count(events: &[AppEvent], expected: usize) {
 ///
 /// # Example
 /// ```
-/// use botticelli_health::filter_events_by_discriminant;
+/// use form_factor_health::filter_events_by_discriminant;
 /// use form_factor_plugins::AppEvent;
 ///
 /// let events = vec![
@@ -212,7 +212,7 @@ where
 ///
 /// # Example
 /// ```
-/// use botticelli_health::count_events_matching;
+/// use form_factor_health::count_events_matching;
 /// use form_factor_plugins::AppEvent;
 ///
 /// let events = vec![

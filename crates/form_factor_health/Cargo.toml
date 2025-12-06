@@ -1,5 +1,5 @@
 [package]
-name = "botticelli_health"
+name = "form_factor_health"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true

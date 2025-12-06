@@ -2,7 +2,7 @@
 //!
 //! Tests plugin lifecycle, event bus mechanics, and plugin communication.
 
-use botticelli_health::{
+use form_factor_health::{
     CountingPlugin, EventCollectorPlugin, ResponsePlugin, create_test_plugin,
     create_test_plugin_with_name,
 };

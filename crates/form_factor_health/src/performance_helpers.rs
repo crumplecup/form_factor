@@ -18,7 +18,7 @@ pub struct BenchmarkResult {
 /// # Examples
 ///
 /// ```
-/// use botticelli_health::measure_operation;
+/// use form_factor_health::measure_operation;
 ///
 /// let result = measure_operation("test_op", || {
 ///     // Some operation

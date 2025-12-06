@@ -16,7 +16,7 @@
 //! - Rotate tool workflow (rotation state)
 //! - State machine transitions (Idle, Drawing, DraggingVertex, Rotating)
 
-use botticelli_health::{
+use form_factor_health::{
     assert_active_tool, assert_shape_count, create_canvas_with_shapes, create_circle_shape,
     create_freehand_shape, create_rectangle_shape, create_test_canvas, deselect_all, select_shape,
 };

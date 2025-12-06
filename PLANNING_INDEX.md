@@ -66,7 +66,7 @@ This index tracks all planning documents in the workspace. When documents are co
 - **INTEGRATION_TESTING_PLAN.md** - `da60861` (2025-12-06)
   - Comprehensive integration testing implementation plan
   - 4 phases: Foundation, User Workflows, Domain Features, Optional Features
-  - botticelli_health crate created for test helpers and integration tests
+  - form_factor_health crate created for test helpers and integration tests
 
 ## Document Categories Summary
 

@@ -1,4 +1,4 @@
-use botticelli_health::{create_circle_shape, create_rectangle_shape, create_test_canvas};
+use form_factor_health::{create_circle_shape, create_rectangle_shape, create_test_canvas};
 use form_factor_drawing::ToolMode;
 
 #[test]

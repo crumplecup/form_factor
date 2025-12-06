@@ -24,8 +24,8 @@ use form_factor_drawing::{DrawingCanvas, ToolMode};
 ///
 /// # Example
 /// ```no_run
-/// use botticelli_health::render_canvas_ui;
-/// use botticelli_health::create_test_canvas;
+/// use form_factor_health::render_canvas_ui;
+/// use form_factor_health::create_test_canvas;
 /// let mut canvas = create_test_canvas();
 /// render_canvas_ui(&mut canvas); // Should not panic
 /// ```
@@ -52,7 +52,7 @@ pub fn render_canvas_ui(canvas: &mut DrawingCanvas) {
 ///
 /// # Example
 /// ```no_run
-/// use botticelli_health::{create_test_canvas, assert_ui_renders_without_panic};
+/// use form_factor_health::{create_test_canvas, assert_ui_renders_without_panic};
 /// use form_factor_drawing::ToolMode;
 /// let mut canvas = create_test_canvas();
 /// canvas.set_tool(ToolMode::Rectangle);

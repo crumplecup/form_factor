@@ -6,7 +6,7 @@
 //! - Zoom and pan integration
 //! - Layer integration with drawing
 
-use botticelli_health::{
+use form_factor_health::{
     assert_active_tool, assert_pan_offset, assert_shape_count, assert_zoom_level,
     create_canvas_with_shapes, create_test_canvas, get_shapes_on_layer,
 };

@@ -12,7 +12,7 @@
 //! - UI rendering in template and instance modes
 //! - Multi-page template UI rendering
 
-use botticelli_health::{
+use form_factor_health::{
     assert_all_tools_render, assert_ui_renders_without_panic, create_canvas_with_shapes,
     create_test_canvas,
 };
