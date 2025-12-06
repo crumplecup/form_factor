@@ -77,6 +77,9 @@ pub use error::{AccessKitError, AppError, BackendError, ConfigError, EguiError};
 // Drawing Tools
 // ============================================================================
 
+/// Application mode management
+pub use form_factor_drawing::{AppMode, AppState};
+
 /// Drawing canvas for form annotations
 pub use form_factor_drawing::{CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas};
 

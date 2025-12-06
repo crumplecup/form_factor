@@ -13,6 +13,7 @@
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
 
+mod app_mode;
 mod canvas;
 mod error;
 pub mod instance;
@@ -23,6 +24,7 @@ pub mod template;
 pub mod template_ui;
 mod tool;
 
+pub use app_mode::{AppMode, AppState};
 pub use canvas::{CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DrawingCanvas};
 pub use error::{FormError, FormErrorKind};
 pub use instance::{

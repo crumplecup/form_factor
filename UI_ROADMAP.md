@@ -276,7 +276,7 @@ Main Window
 #### 1.0 Property Inspector Plugin ✅
 
 **Status:** Complete
-**Commit:** TBD
+**Commit:** 3999308
 
 **Implementation:**
 - Created `PropertiesPlugin` for editing selected shape/field properties

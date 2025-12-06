@@ -30,21 +30,6 @@ enum SelectedItem {
         /// Label text
         label: String,
     },
-    /// A template field
-    TemplateField {
-        /// Field ID
-        id: usize,
-        /// Field name
-        name: String,
-        /// Field type (text, checkbox, etc.)
-        field_type: String,
-        /// Position (x, y)
-        position: (f32, f32),
-        /// Size (width, height)
-        size: (f32, f32),
-        /// Required field flag
-        required: bool,
-    },
 }
 
 impl PropertiesPlugin {
@@ -123,77 +108,7 @@ impl PropertiesPlugin {
         }
     }
 
-    /// Renders property editor for a template field.
-    fn render_field_properties(
-        ui: &mut Ui,
-        id: usize,
-        name: &mut String,
-        field_type: &mut String,
-        position: &mut (f32, f32),
-        size: &mut (f32, f32),
-        required: &mut bool,
-    ) {
-        {
-            ui.heading("Field Properties");
-            ui.separator();
 
-            ui.label(format!("ID: {}", id));
-            ui.separator();
-
-            // Name editor
-            ui.horizontal(|ui| {
-                ui.label("Name:");
-                ui.text_edit_singleline(name);
-            });
-
-            // Type selector
-            ui.horizontal(|ui| {
-                ui.label("Type:");
-                egui::ComboBox::from_id_salt("field_type")
-                    .selected_text(field_type.as_str())
-                    .show_ui(ui, |ui| {
-                        ui.selectable_value(field_type, "text".to_string(), "Text");
-                        ui.selectable_value(field_type, "checkbox".to_string(), "Checkbox");
-                        ui.selectable_value(field_type, "date".to_string(), "Date");
-                        ui.selectable_value(field_type, "signature".to_string(), "Signature");
-                    });
-            });
-
-            // Position editor
-            ui.separator();
-            ui.horizontal(|ui| {
-                ui.label("X:");
-                ui.add(egui::DragValue::new(&mut position.0).speed(1.0));
-            });
-            ui.horizontal(|ui| {
-                ui.label("Y:");
-                ui.add(egui::DragValue::new(&mut position.1).speed(1.0));
-            });
-
-            // Size editor
-            ui.separator();
-            ui.horizontal(|ui| {
-                ui.label("Width:");
-                ui.add(
-                    egui::DragValue::new(&mut size.0)
-                        .speed(1.0)
-                        .range(10.0..=10000.0),
-                );
-            });
-            ui.horizontal(|ui| {
-                ui.label("Height:");
-                ui.add(
-                    egui::DragValue::new(&mut size.1)
-                        .speed(1.0)
-                        .range(10.0..=10000.0),
-                );
-            });
-
-            // Required checkbox
-            ui.separator();
-            ui.checkbox(required, "Required field");
-        }
-    }
 }
 
 impl Default for PropertiesPlugin {
@@ -227,20 +142,10 @@ impl Plugin for PropertiesPlugin {
             }) => {
                 Self::render_shape_properties(ui, *id, shape_type, position, size, color, label);
             }
-            Some(SelectedItem::TemplateField {
-                id,
-                name,
-                field_type,
-                position,
-                size,
-                required,
-            }) => {
-                Self::render_field_properties(ui, *id, name, field_type, position, size, required);
-            }
             None => {
                 ui.label("No selection");
                 ui.separator();
-                ui.label("Select a shape or field to edit its properties.");
+                ui.label("Select a shape to edit its properties.");
             }
         }
     }
