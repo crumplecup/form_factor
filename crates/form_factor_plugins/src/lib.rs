@@ -66,25 +66,50 @@ pub use plugin::{Plugin, PluginBuilder, PluginContext};
 
 // Feature-gated plugin modules
 #[cfg(feature = "plugin-canvas")]
-pub mod canvas;
+mod canvas;
+
+#[cfg(feature = "plugin-canvas")]
+mod canvas_field_interaction;
 
 #[cfg(feature = "plugin-layers")]
-pub mod layers;
+mod layers;
 
 #[cfg(feature = "plugin-file")]
-pub mod file;
+mod file;
 
 #[cfg(feature = "plugin-detection")]
-pub mod detection;
+mod detection;
 
 #[cfg(feature = "plugin-ocr")]
-pub mod ocr;
+mod ocr;
 
 #[cfg(feature = "plugin-properties")]
-pub mod properties;
+mod properties;
 
 mod template_browser_plugin;
-/// UI components for template management.
-pub mod template_ui;
+mod template_ui;
+
+// Re-export plugin types
+#[cfg(feature = "plugin-canvas")]
+pub use canvas::CanvasPlugin;
+
+#[cfg(feature = "plugin-canvas")]
+pub use canvas_field_interaction::CanvasFieldInteractionPlugin;
+
+#[cfg(feature = "plugin-layers")]
+pub use layers::LayersPlugin;
+
+#[cfg(feature = "plugin-file")]
+pub use file::FilePlugin;
+
+#[cfg(feature = "plugin-detection")]
+pub use detection::DetectionPlugin;
+
+#[cfg(feature = "plugin-ocr")]
+pub use ocr::OcrPlugin;
+
+#[cfg(feature = "plugin-properties")]
+pub use properties::PropertiesPlugin;
 
 pub use template_browser_plugin::TemplateBrowserPlugin;
+pub use template_ui::{render_page_navigation, render_page_thumbnails};
