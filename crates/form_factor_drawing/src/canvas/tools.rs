@@ -82,6 +82,36 @@ impl DrawingCanvas {
                         debug!("No position available for click");
                     }
                 }
+                
+                // Handle field dragging in template mode
+                if matches!(
+                    self.template_mode(),
+                    super::core::TemplateMode::Creating | super::core::TemplateMode::Editing
+                ) {
+                    if let Some(pos) = response.interact_pointer_pos() {
+                        let canvas_pos = transform_pos(pos);
+                        if response.drag_started() {
+                            self.start_field_drag(canvas_pos);
+                        } else if response.dragged()
+                            && matches!(
+                                self.state(),
+                                super::core::CanvasState::DraggingField { .. }
+                            )
+                        {
+                            self.continue_field_drag(canvas_pos);
+                        }
+                    }
+
+                    // Check if drag ended
+                    if response.drag_stopped()
+                        && matches!(
+                            self.state(),
+                            super::core::CanvasState::DraggingField { .. }
+                        )
+                    {
+                        self.finish_field_drag();
+                    }
+                }
             }
             ToolMode::Edit => {
                 let _span = tracing::debug_span!("edit_vertices").entered();
@@ -1009,5 +1039,66 @@ impl DrawingCanvas {
                 Pos2::new(sum_x / count, sum_y / count)
             }
         }
+    }
+
+    /// Start dragging a template field
+    fn start_field_drag(&mut self, pos: Pos2) {
+        let Some(field_idx) = *self.selected_field() else {
+            return;
+        };
+
+        let Some(template) = self.current_template() else {
+            return;
+        };
+
+        // Find the field (currently only supporting first page)
+        let Some(page) = template.pages.first() else {
+            return;
+        };
+
+        let Some(field) = page.fields.get(field_idx) else {
+            return;
+        };
+
+        // Store original bounds for drag operation
+        self.set_state(super::core::CanvasState::DraggingField {
+            field_index: field_idx,
+            drag_start: pos,
+            original_bounds: field.bounds.clone(),
+        });
+
+        debug!(field_idx, ?pos, "Started dragging field");
+    }
+
+    /// Continue dragging a template field
+    fn continue_field_drag(&mut self, pos: Pos2) {
+        let super::core::CanvasState::DraggingField {
+            field_index,
+            drag_start,
+            original_bounds,
+        } = self.state().clone()
+        else {
+            return;
+        };
+
+        // Calculate drag delta
+        let delta_x = pos.x - drag_start.x;
+        let delta_y = pos.y - drag_start.y;
+
+        // Update field position
+        if let Some(template) = self.current_template_mut() {
+            if let Some(page) = template.pages.first_mut() {
+                if let Some(field) = page.fields.get_mut(field_index) {
+                    field.bounds.x = original_bounds.x + delta_x;
+                    field.bounds.y = original_bounds.y + delta_y;
+                }
+            }
+        }
+    }
+
+    /// Finish dragging a template field
+    fn finish_field_drag(&mut self) {
+        debug!("Finished dragging field");
+        self.set_state(super::core::CanvasState::Idle);
     }
 }

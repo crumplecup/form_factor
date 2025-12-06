@@ -108,6 +108,15 @@ pub(super) enum CanvasState {
         /// Index of the vertex being dragged
         vertex_index: usize,
     },
+    /// User is dragging a template field to reposition it
+    DraggingField {
+        /// Index of the field being dragged
+        field_index: usize,
+        /// Starting position of the drag
+        drag_start: Pos2,
+        /// Original field position
+        original_bounds: form_factor_core::FieldBounds,
+    },
     /// User is rotating a shape in Rotate mode
     Rotating {
         /// Starting angle of rotation in radians
