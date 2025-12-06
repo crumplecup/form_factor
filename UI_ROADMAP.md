@@ -290,57 +290,69 @@ Main Window
 - Add property change event emission back to canvas
 - Support multi-selection property editing
 
-#### 1.1 Add Mode Management
+#### 1.1 Add Mode Management ✅
 
-**File:** `form_factor/src/app_state.rs` (new file)
+**Status:** Complete
+**Commit:** 89f83eb
 
-```rust
-pub enum AppMode {
-    Canvas,           // Default: drawing canvas with plugins
-    TemplateManager,  // Template library browser
-    TemplateEditor,   // Editing a template
-    InstanceFilling,  // Filling an instance (Phase 2)
-    InstanceViewing,  // Viewing completed instance (Phase 2)
-}
+**Implementation:**
+- Created `AppMode` enum with 5 states: Canvas, TemplateManager, TemplateEditor, InstanceFilling, InstanceViewing
+- Created `AppState` struct managing current mode, navigation history, and associated data
+- Mode transition validation prevents data loss (blocks when unsaved changes exist)
+- Back navigation with previous mode tracking
+- Comprehensive test coverage (6 unit tests)
 
-pub struct AppState {
-    mode: AppMode,
-    current_template: Option<DrawingTemplate>,
-    current_instance: Option<DrawingInstance>,
-    // ... other state
-}
-```
+**Files:**
+- `form_factor_drawing/src/app_mode.rs` - Mode management implementation
+- Exported through `form_factor` facade crate
 
-**Features:**
-- State machine for mode transitions
-- Validation before mode changes (save unsaved work)
-- Mode history for back navigation
+**Next Steps:**
+- Integrate AppState into FormFactorApp in main.rs
+- Wire mode changes to UI events
+- Add mode indicator UI component
 
-#### 1.2 Main Window Layout Switcher
+#### 1.2 Template/Instance Mode Switcher ✅
 
-**File:** `form_factor/src/main.rs` updates
+**Status:** Complete
+**Files:** 
+- `form_factor_drawing/src/mode_switcher.rs` - ModeSwitcher UI component
+- `form_factor/src/main.rs` - Integration into main app
+
+**Implementation:**
+- Created `ModeSwitcher` component providing toolbar for mode transitions
+- Integrated with `AppState` for validated transitions
+- Top toolbar showing current mode with selectable buttons:
+  - Canvas mode (always available)
+  - Template Manager (📋 Templates)
+  - Template Editor (✏ Edit Template - shown when template loaded)
+  - Instance Filling (📝 Fill Form - shown when instance loaded)
+  - Instance Viewing (👁 View Form - shown when instance loaded)
+- Unsaved changes indicator (⚠)
+- Back button for navigation history
+- Confirmation dialog for mode changes with unsaved changes
+- Support for Save & Continue, Discard & Continue, Cancel
 
 **Layout variations:**
 
 1. **Canvas Mode** (current):
    ```
-   [Right Sidebar: Plugins] | [Central: Canvas]
+   [Top: Mode Switcher] | [Right Sidebar: Plugins] | [Central: Canvas]
    ```
 
-2. **Template Manager Mode**:
+2. **Template Manager Mode** (future):
    ```
-   [Full Width: TemplateManagerPanel]
-   ```
-
-3. **Template Editor Mode**:
-   ```
-   [Left: Field Properties 30%] | [Center: Editor Canvas 70%]
+   [Top: Mode Switcher] | [Full Width: TemplateManagerPanel]
    ```
 
-**Features:**
-- Mode indicator banner at top (small, non-intrusive)
-- "Back" button to return to previous mode
-- Keyboard shortcut to switch modes (Ctrl+M)
+3. **Template Editor Mode** (future):
+   ```
+   [Top: Mode Switcher] | [Left: Field Properties 30%] | [Center: Editor Canvas 70%]
+   ```
+
+**Next Steps:**
+- Implement actual layout switching based on AppMode
+- Wire mode changes to show/hide appropriate panels
+- Add keyboard shortcut to switch modes (Ctrl+M)
 
 #### 1.3 Template Manager Integration
 

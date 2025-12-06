@@ -10,6 +10,8 @@ use form_factor::{Backend, BackendConfig, EframeBackend};
 struct FormFactorApp {
     name: String,
     canvas: DrawingCanvas,
+    app_state: form_factor::AppState,
+    mode_switcher: form_factor::ModeSwitcher,
     #[cfg(feature = "plugins")]
     plugin_manager: form_factor::PluginManager,
 }
@@ -62,6 +64,8 @@ impl FormFactorApp {
         Self {
             name: String::from("Form Factor"),
             canvas: DrawingCanvas::new(),
+            app_state: form_factor::AppState::new(),
+            mode_switcher: form_factor::ModeSwitcher::new(),
             #[cfg(feature = "plugins")]
             plugin_manager,
         }
@@ -332,6 +336,13 @@ impl App for FormFactorApp {
             // Process plugin events (which now includes the re-emitted events)
             self.plugin_manager.process_events();
         }
+
+        // Top panel with mode switcher
+        egui::TopBottomPanel::top("mode_switcher_panel").show(ctx.egui_ctx, |ui| {
+            ui.add_space(4.0);
+            self.mode_switcher.ui(ui, &mut self.app_state);
+            ui.add_space(4.0);
+        });
 
         // Plugin sidebar (if plugins feature is enabled)
         #[cfg(feature = "plugins")]

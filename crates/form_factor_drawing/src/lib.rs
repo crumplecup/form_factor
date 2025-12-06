@@ -18,6 +18,7 @@ mod canvas;
 mod error;
 pub mod instance;
 mod layer;
+mod mode_switcher;
 mod recent_projects;
 mod shape;
 pub mod template;
@@ -32,6 +33,7 @@ pub use instance::{
     migrate_canvas_to_instance,
 };
 pub use layer::{Layer, LayerError, LayerManager, LayerType};
+pub use mode_switcher::ModeSwitcher;
 pub use recent_projects::RecentProjects;
 pub use shape::{
     Circle, CircleBuilder, PolygonShape, Rectangle, Shape, ShapeError, ShapeErrorKind,

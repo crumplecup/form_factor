@@ -9,9 +9,10 @@ use serde::{Deserialize, Serialize};
 use std::fmt;
 
 /// Application modes defining the current UI state and available operations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub enum AppMode {
     /// Default canvas mode with drawing tools and plugins
+    #[default]
     Canvas,
     /// Template library browser and management
     TemplateManager,
@@ -32,12 +33,6 @@ impl fmt::Display for AppMode {
             AppMode::InstanceFilling => write!(f, "Fill Form"),
             AppMode::InstanceViewing => write!(f, "View Form"),
         }
-    }
-}
-
-impl Default for AppMode {
-    fn default() -> Self {
-        Self::Canvas
     }
 }
 
@@ -120,7 +115,9 @@ impl AppState {
     pub fn validate_transition(&self, new_mode: AppMode) -> Result<(), String> {
         // Check for unsaved changes
         if self.has_unsaved_changes && new_mode != self.mode {
-            return Err("Cannot switch modes with unsaved changes. Save or discard first.".to_string());
+            return Err(
+                "Cannot switch modes with unsaved changes. Save or discard first.".to_string(),
+            );
         }
 
         // Validate state requirements for target mode
@@ -179,7 +176,7 @@ mod tests {
     #[test]
     fn test_mode_transition() {
         let mut state = AppState::new();
-        
+
         state.set_mode(AppMode::TemplateManager);
         assert_eq!(*state.mode(), AppMode::TemplateManager);
         assert_eq!(*state.previous_mode(), Some(AppMode::Canvas));
@@ -188,10 +185,10 @@ mod tests {
     #[test]
     fn test_go_back() {
         let mut state = AppState::new();
-        
+
         state.set_mode(AppMode::TemplateManager);
         let prev = state.go_back();
-        
+
         assert_eq!(prev, Some(AppMode::Canvas));
         assert_eq!(*state.mode(), AppMode::Canvas);
         assert_eq!(*state.previous_mode(), None);
@@ -201,7 +198,7 @@ mod tests {
     fn test_unsaved_changes_blocking() {
         let mut state = AppState::new();
         state.mark_dirty();
-        
+
         let result = state.transition_to(AppMode::TemplateManager);
         assert!(result.is_err());
         assert_eq!(*state.mode(), AppMode::Canvas); // Mode unchanged

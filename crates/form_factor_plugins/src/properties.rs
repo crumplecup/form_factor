@@ -107,8 +107,6 @@ impl PropertiesPlugin {
             });
         }
     }
-
-
 }
 
 impl Default for PropertiesPlugin {
