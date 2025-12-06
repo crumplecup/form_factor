@@ -5,6 +5,7 @@ use derive_getters::Getters;
 use egui::{Color32, Pos2, Stroke};
 use form_factor_core::{FieldDefinition, FormTemplate};
 use serde::{Deserialize, Serialize};
+use tracing::debug;
 
 /// Default zoom level for new canvases
 pub(super) fn default_zoom_level() -> f32 {
@@ -191,6 +192,10 @@ pub struct DrawingCanvas {
     #[serde(default)]
     pub(super) template_mode: TemplateMode,
     
+    /// Current page index when editing templates (0-based)
+    #[serde(skip)]
+    pub(super) current_page: usize,
+    
     /// Current instance being filled or viewed
     #[serde(skip)]
     pub(super) current_instance: Option<crate::DrawingInstance>,
@@ -283,6 +288,7 @@ impl Default for DrawingCanvas {
             template_id: None,
             current_template: None,
             template_mode: TemplateMode::default(),
+            current_page: 0,
             current_instance: None,
             instance_mode: InstanceMode::default(),
             selected_field: None,
@@ -643,5 +649,72 @@ impl DrawingCanvas {
     /// Set the currently selected field
     pub fn set_selected_field(&mut self, field: Option<usize>) {
         self.selected_field = field;
+    }
+
+    /// Set the current page index
+    pub fn set_current_page(&mut self, page: usize) {
+        self.current_page = page;
+        // Clear field selection when changing pages
+        self.selected_field = None;
+    }
+
+    /// Add a new page to the current template
+    pub fn add_template_page(&mut self) -> Result<usize, String> {
+        let Some(template) = self.current_template_mut() else {
+            return Err("No active template".to_string());
+        };
+
+        let new_page_index = template.pages.len();
+        let page = crate::TemplatePage::new(new_page_index);
+        template.pages.push(page);
+        
+        debug!(page_index = new_page_index, "Added new template page");
+        Ok(new_page_index)
+    }
+
+    /// Remove a page from the current template
+    pub fn remove_template_page(&mut self, page_index: usize) -> Result<(), String> {
+        let page_count = {
+            let Some(template) = self.current_template() else {
+                return Err("No active template".to_string());
+            };
+
+            if template.pages.len() <= 1 {
+                return Err("Cannot remove the last page".to_string());
+            }
+
+            if page_index >= template.pages.len() {
+                return Err(format!("Page index {} out of bounds", page_index));
+            }
+
+            template.pages.len()
+        };
+
+        // Now mutably borrow to make changes
+        if let Some(template) = self.current_template_mut() {
+            template.pages.remove(page_index);
+
+            // Re-index remaining pages
+            for (idx, page) in template.pages.iter_mut().enumerate() {
+                page.page_index = idx;
+            }
+        }
+
+        // Adjust current page if needed
+        let new_page_count = page_count - 1;
+        if self.current_page >= new_page_count {
+            self.current_page = new_page_count.saturating_sub(1);
+        }
+
+        debug!(removed_page = page_index, new_page_count, "Removed template page");
+        Ok(())
+    }
+
+    /// Get the number of pages in the current template
+    pub fn template_page_count(&self) -> usize {
+        self.current_template
+            .as_ref()
+            .map(|t| t.pages.len())
+            .unwrap_or(0)
     }
 }
