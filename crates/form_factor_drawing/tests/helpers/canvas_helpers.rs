@@ -35,6 +35,54 @@ pub fn create_canvas_with_shapes(count: usize) -> DrawingCanvas {
     canvas
 }
 
+/// Helper to create a rectangle shape
+pub fn create_rectangle_shape(x: f32, y: f32, width: f32, height: f32) -> Shape {
+    use egui::{Color32, Pos2, Stroke};
+    use form_factor_drawing::Rectangle;
+    
+    let rect = Rectangle::from_corners(
+        Pos2::new(x, y),
+        Pos2::new(x + width, y + height),
+        Stroke::new(2.0, Color32::BLUE),
+        Color32::from_rgba_premultiplied(0, 0, 255, 50),
+    )
+    .expect("Valid rectangle");
+    
+    Shape::Rectangle(rect)
+}
+
+/// Helper to create a circle shape
+pub fn create_circle_shape(center_x: f32, center_y: f32, radius: f32) -> Shape {
+    use egui::{Color32, Pos2, Stroke};
+    use form_factor_drawing::Circle;
+    
+    let circle = Circle::new(
+        Pos2::new(center_x, center_y),
+        radius,
+        Stroke::new(2.0, Color32::GREEN),
+        Color32::from_rgba_premultiplied(0, 255, 0, 50),
+    )
+    .expect("Valid circle");
+    
+    Shape::Circle(circle)
+}
+
+/// Helper to create a freehand/polygon shape
+pub fn create_freehand_shape(points: Vec<(f32, f32)>) -> Shape {
+    use egui::{Color32, Pos2, Stroke};
+    use form_factor_drawing::PolygonShape;
+    
+    let pos_points: Vec<Pos2> = points.iter().map(|(x, y)| Pos2::new(*x, *y)).collect();
+    let polygon = PolygonShape::from_points(
+        pos_points,
+        Stroke::new(2.0, Color32::YELLOW),
+        Color32::from_rgba_premultiplied(255, 255, 0, 50),
+    )
+    .expect("Valid polygon");
+    
+    Shape::Polygon(polygon)
+}
+
 
 #[allow(dead_code)]
 pub fn simulate_click(_canvas: &mut DrawingCanvas, _position: Pos2) {
@@ -103,4 +151,14 @@ pub fn assert_pan_offset(canvas: &DrawingCanvas, expected_x: f32, expected_y: f3
         offset.x,
         offset.y
     );
+}
+
+/// Helper to select a shape by index
+pub fn select_shape(canvas: &mut DrawingCanvas, index: usize) {
+    canvas.test_set_selected_shape(Some(index));
+}
+
+/// Helper to deselect all shapes
+pub fn deselect_all(canvas: &mut DrawingCanvas) {
+    canvas.test_set_selected_shape(None);
 }

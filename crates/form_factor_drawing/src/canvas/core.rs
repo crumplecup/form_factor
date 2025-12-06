@@ -556,6 +556,12 @@ impl DrawingCanvas {
         self.map_detection_to_canvas(detection, scale, image_offset)
     }
 
+    /// Set the selected shape index (for testing)
+    #[doc(hidden)]
+    pub fn test_set_selected_shape(&mut self, index: Option<usize>) {
+        self.set_selected_shape(index);
+    }
+
     // Template and Instance Mode Management
 
     /// Start creating a new template

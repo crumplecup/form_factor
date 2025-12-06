@@ -37,5 +37,7 @@ pub use accessibility_helpers::{
 };
 pub use canvas_helpers::{
     assert_active_tool, assert_pan_offset, assert_shape_count, assert_zoom_level,
-    create_canvas_with_shapes, create_test_canvas, get_shapes_on_layer,
+    create_canvas_with_shapes, create_circle_shape, create_freehand_shape,
+    create_rectangle_shape, create_test_canvas, deselect_all, get_shapes_on_layer,
+    select_shape,
 };
