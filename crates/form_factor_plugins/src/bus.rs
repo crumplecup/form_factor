@@ -63,6 +63,46 @@ impl EventBus {
         // We'd need to track this separately if needed
         0
     }
+
+    /// Returns a copy of pending events without draining the queue
+    ///
+    /// This method is only available in test builds to allow tests to
+    /// inspect events without consuming them.
+    ///
+    /// Note: This drains and re-sends events, which means event ordering
+    /// is preserved but this should only be used in single-threaded test
+    /// contexts.
+    #[cfg(test)]
+    pub fn pending_events(&mut self) -> Vec<AppEvent> {
+        let events = self.drain_events();
+        // Re-send all events so they're still in the queue
+        let sender = self.sender();
+        for event in &events {
+            let _ = sender.send(event.clone());
+        }
+        events
+    }
+
+    /// Checks if a specific event is in the pending queue
+    ///
+    /// This is a test-only helper that checks for an event without draining.
+    #[cfg(test)]
+    pub fn has_event(&mut self, target: &AppEvent) -> bool {
+        let events = self.pending_events();
+        events.contains(target)
+    }
+
+    /// Counts events matching a predicate in the pending queue
+    ///
+    /// This is a test-only helper.
+    #[cfg(test)]
+    pub fn count_events<F>(&mut self, predicate: F) -> usize
+    where
+        F: Fn(&AppEvent) -> bool,
+    {
+        let events = self.pending_events();
+        events.iter().filter(|e| predicate(e)).count()
+    }
 }
 
 impl Default for EventBus {

@@ -1,10 +1,12 @@
 //! Test helpers for integration tests
 //!
 //! This module provides utilities for creating test fixtures, simulating
-//! user interactions, and asserting expected behaviors in integration tests.
+//! user interactions, testing UI rendering via accessibility, and asserting
+//! expected behaviors in integration tests.
 //!
 //! # Modules
 //!
+//! - `accessibility_helpers` - UI rendering tests via AccessKit
 //! - `canvas_helpers` - Canvas creation and interaction simulation
 //!
 //! Note: Plugin helpers are in the form_factor crate tests, not here,
@@ -16,8 +18,13 @@
 //! // Create a test canvas
 //! use helpers::create_test_canvas;
 //! let canvas = create_test_canvas();
+//!
+//! // Test UI rendering
+//! use helpers::render_canvas_ui_with_accessibility;
+//! let tree = render_canvas_ui_with_accessibility(&mut canvas);
 //! ```
 
+pub mod accessibility_helpers;
 pub mod canvas_helpers;
 
 // Note: plugin_helpers module is not included here because it requires
@@ -25,6 +32,9 @@ pub mod canvas_helpers;
 // Plugin coordination tests should be in the form_factor crate.
 
 // Re-export commonly used functions for convenience
+pub use accessibility_helpers::{
+    assert_all_tools_render, assert_ui_renders_without_panic, render_canvas_ui,
+};
 pub use canvas_helpers::{
     assert_active_tool, assert_pan_offset, assert_shape_count, assert_zoom_level,
     create_canvas_with_shapes, create_test_canvas, get_shapes_on_layer,

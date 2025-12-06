@@ -16,6 +16,18 @@ This index tracks all planning documents in the workspace. When documents are co
   - Template manager panel, drag-and-drop field placement, property editor
   - Supersedes Priority 5 from TEMPLATE_SYSTEM_PLAN
 
+### Testing Strategy
+- **INTEGRATION_TESTING_PLAN.md** - `current` (2025-12-05)
+  - Comprehensive integration testing implementation plan
+  - 4 phases: Foundation, User Workflows, Domain Features, Optional Features
+  - Covers canvas workflows, plugin coordination, template/instance integration
+
+### UI/UX Development
+- **UI_ROADMAP.md** - `current` (2025-12-05)
+  - UI assessment and roadmap from current state to awesome UI
+  - 4 phases: Template UI Integration, Instance Data Entry, Workflow Enhancements, Advanced Features
+  - Addresses plugin architecture transition gaps and missing user workflows
+
 ## Development Guidelines
 
 - **CLAUDE.md** - `380adc7` (2025-12-04)
@@ -56,13 +68,13 @@ This index tracks all planning documents in the workspace. When documents are co
 
 ## Document Categories Summary
 
-- **Active Planning**: 1 document
+- **Active Planning**: 3 documents
 - **Development Guidelines**: 1 document
 - **Build & Workspace**: 2 documents
 - **Feature Guides**: 4 documents
 - **Archived**: 1 document
 
-**Total**: 9 markdown documents tracked (8 active, 1 archived)
+**Total**: 11 markdown documents tracked (10 active, 1 archived)
 
 ---
 
