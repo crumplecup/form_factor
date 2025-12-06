@@ -141,7 +141,12 @@ pub enum ValidationError {
     DuplicateFieldId(String),
 
     /// Field has invalid bounds (non-positive width or height)
-    #[display("Field '{}' has invalid bounds: width={}, height={}", field_id, width, height)]
+    #[display(
+        "Field '{}' has invalid bounds: width={}, height={}",
+        field_id,
+        width,
+        height
+    )]
     InvalidFieldBounds {
         /// Field ID with invalid bounds
         field_id: String,
@@ -161,7 +166,12 @@ pub enum ValidationError {
     },
 
     /// Field references invalid page index
-    #[display("Field '{}' references invalid page {} (template has {} pages)", field_id, page_index, page_count)]
+    #[display(
+        "Field '{}' references invalid page {} (template has {} pages)",
+        field_id,
+        page_index,
+        page_count
+    )]
     InvalidPageIndex {
         /// Field ID with invalid page reference
         field_id: String,
@@ -177,8 +187,7 @@ impl std::error::Error for ValidationError {}
 /// Removed redundant ValidationError implementation below
 #[derive(Debug, Clone, PartialEq)]
 #[doc(hidden)]
-enum _OldValidationError {
-}
+enum _OldValidationError {}
 impl ValidationError {
     /// Returns the field ID associated with this error, if any.
     pub fn field_id(&self) -> Option<&str> {

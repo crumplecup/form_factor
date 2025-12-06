@@ -180,10 +180,7 @@ impl FieldTypeSelector {
                     FieldType::PassportNumber,
                 ],
             ),
-            (
-                "Dates",
-                vec![FieldType::Date, FieldType::DateSigned],
-            ),
+            ("Dates", vec![FieldType::Date, FieldType::DateSigned]),
             (
                 "Financial",
                 vec![

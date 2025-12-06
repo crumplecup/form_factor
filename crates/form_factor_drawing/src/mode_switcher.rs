@@ -48,10 +48,7 @@ impl ModeSwitcher {
 
             // Template Manager button
             if ui
-                .selectable_label(
-                    *state.mode() == AppMode::TemplateManager,
-                    "📋 Templates",
-                )
+                .selectable_label(*state.mode() == AppMode::TemplateManager, "📋 Templates")
                 .on_hover_text("Browse and manage form templates")
                 .clicked()
                 && *state.mode() != AppMode::TemplateManager
@@ -63,17 +60,14 @@ impl ModeSwitcher {
             // Template Editor button (only show if template is loaded)
             if state.current_template().is_some()
                 && ui
-                    .selectable_label(
-                        *state.mode() == AppMode::TemplateEditor,
-                        "✏ Edit Template",
-                    )
+                    .selectable_label(*state.mode() == AppMode::TemplateEditor, "✏ Edit Template")
                     .on_hover_text("Edit the current template")
                     .clicked()
-                    && *state.mode() != AppMode::TemplateEditor
-                {
-                    self.request_mode_change(state, AppMode::TemplateEditor);
-                    changed = true;
-                }
+                && *state.mode() != AppMode::TemplateEditor
+            {
+                self.request_mode_change(state, AppMode::TemplateEditor);
+                changed = true;
+            }
 
             ui.separator();
 

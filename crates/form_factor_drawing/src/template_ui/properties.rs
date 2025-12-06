@@ -28,7 +28,7 @@ pub struct FieldPropertiesPanel {
 
     /// Field type selector widget
     field_type_selector: Option<FieldTypeSelector>,
-    
+
     /// Whether the field type selector is open
     show_field_type_selector: bool,
 }
@@ -129,7 +129,8 @@ impl FieldPropertiesPanel {
                         self.show_field_type_selector = !self.show_field_type_selector;
                         if self.show_field_type_selector && self.field_type_selector.is_none() {
                             self.field_type_selector = Some(
-                                FieldTypeSelector::new().with_selected(self.temp_field_type.clone())
+                                FieldTypeSelector::new()
+                                    .with_selected(self.temp_field_type.clone()),
                             );
                         }
                     }
@@ -147,7 +148,7 @@ impl FieldPropertiesPanel {
                             self.show_field_type_selector = false;
                             debug!(field_type = ?self.temp_field_type, "Field type changed");
                         }
-                        
+
                         if ui.button("Close").clicked() {
                             self.show_field_type_selector = false;
                         }

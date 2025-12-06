@@ -93,7 +93,8 @@ impl TemplateManagerPanel {
                     ui.group(|ui| {
                         // Template info
                         ui.horizontal(|ui| {
-                            let is_selected = self.state.selected_template_str() == Some(template.id());
+                            let is_selected =
+                                self.state.selected_template_str() == Some(template.id());
                             let radio = ui.selectable_label(is_selected, template.name());
 
                             if radio.clicked() {
@@ -126,7 +127,8 @@ impl TemplateManagerPanel {
 
                             if ui.button("Delete").clicked() {
                                 debug!(template_id = %template.id(), "Delete button clicked");
-                                self.state.show_delete_confirmation(template.id().to_string());
+                                self.state
+                                    .show_delete_confirmation(template.id().to_string());
                             }
                         });
                     });
@@ -170,7 +172,6 @@ impl TemplateManagerPanel {
         action
     }
 }
-
 
 /// Action to perform based on user interaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
