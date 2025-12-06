@@ -139,14 +139,13 @@ impl FieldPropertiesPanel {
                 if self.show_field_type_selector {
                     ui.separator();
                     ui.group(|ui| {
-                        if let Some(ref mut selector) = self.field_type_selector {
-                            if selector.show(ui) {
-                                if let Some(selected) = selector.selected() {
-                                    self.temp_field_type = selected.clone();
-                                    self.show_field_type_selector = false;
-                                    debug!(field_type = ?self.temp_field_type, "Field type changed");
-                                }
-                            }
+                        if let Some(ref mut selector) = self.field_type_selector
+                            && selector.show(ui)
+                            && let Some(selected) = selector.selected()
+                        {
+                            self.temp_field_type = selected.clone();
+                            self.show_field_type_selector = false;
+                            debug!(field_type = ?self.temp_field_type, "Field type changed");
                         }
                         
                         if ui.button("Close").clicked() {

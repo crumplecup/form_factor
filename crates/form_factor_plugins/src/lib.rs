@@ -82,3 +82,7 @@ pub mod ocr;
 
 #[cfg(feature = "plugin-properties")]
 pub mod properties;
+
+mod template_browser_plugin;
+
+pub use template_browser_plugin::TemplateBrowserPlugin;

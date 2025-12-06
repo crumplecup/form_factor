@@ -1,10 +1,7 @@
 //! Mode switcher UI component for template/instance workflow.
-//!
-//! Provides toolbar buttons for switching between application modes
-//! and handles state transitions with validation.
 
 use crate::{AppMode, AppState};
-use tracing::instrument;
+use tracing::{debug, info, instrument, warn};
 
 /// UI component for mode switching toolbar.
 #[derive(Debug, Clone)]
@@ -17,7 +14,9 @@ pub struct ModeSwitcher {
 
 impl ModeSwitcher {
     /// Creates a new mode switcher.
+    #[instrument]
     pub fn new() -> Self {
+        debug!("Creating mode switcher");
         Self {
             confirm_mode_changes: true,
             pending_mode_change: None,
@@ -113,10 +112,11 @@ impl ModeSwitcher {
             if state.previous_mode().is_some() {
                 ui.separator();
                 if ui.button("⬅ Back").clicked()
-                    && let Some(prev_mode) = state.go_back() {
-                        tracing::info!("Returned to {:?} mode", prev_mode);
-                        changed = true;
-                    }
+                    && let Some(prev_mode) = state.go_back()
+                {
+                    info!("Returned to {:?} mode", prev_mode);
+                    changed = true;
+                }
             }
         });
 
@@ -129,27 +129,27 @@ impl ModeSwitcher {
     }
 
     /// Requests a mode change, showing confirmation if needed.
-    #[instrument(skip(self, state))]
+    #[instrument(skip(self, state), fields(new_mode = ?new_mode, has_unsaved = *state.has_unsaved_changes()))]
     fn request_mode_change(&mut self, state: &mut AppState, new_mode: AppMode) {
         // Check if we can change without confirmation
         if !*state.has_unsaved_changes() || !self.confirm_mode_changes {
             match state.transition_to(new_mode) {
                 Ok(()) => {
-                    tracing::info!("Switched to {:?} mode", new_mode);
+                    info!("Switched to {:?} mode", new_mode);
                 }
                 Err(e) => {
-                    tracing::warn!("Cannot switch to {:?} mode: {}", new_mode, e);
+                    warn!("Cannot switch to {:?} mode: {}", new_mode, e);
                 }
             }
         } else {
             // Store pending change for confirmation dialog
             self.pending_mode_change = Some(new_mode);
-            tracing::debug!("Mode change pending confirmation: {:?}", new_mode);
+            debug!("Mode change pending confirmation: {:?}", new_mode);
         }
     }
 
     /// Shows confirmation dialog for mode changes with unsaved changes.
-    #[instrument(skip(self, ui, state))]
+    #[instrument(skip(self, ui, state), fields(pending = ?pending))]
     fn show_confirmation_dialog(
         &mut self,
         ui: &mut egui::Ui,
@@ -166,10 +166,9 @@ impl ModeSwitcher {
 
                 ui.horizontal(|ui| {
                     if ui.button("Save & Continue").clicked() {
-                        // TODO: Trigger save operation
                         state.mark_clean();
                         if let Ok(()) = state.transition_to(pending) {
-                            tracing::info!("Saved and switched to {:?} mode", pending);
+                            info!("Saved and switched to {:?} mode", pending);
                         }
                         self.pending_mode_change = None;
                     }
@@ -177,13 +176,13 @@ impl ModeSwitcher {
                     if ui.button("Discard & Continue").clicked() {
                         state.mark_clean();
                         if let Ok(()) = state.transition_to(pending) {
-                            tracing::info!("Discarded changes and switched to {:?} mode", pending);
+                            info!("Discarded changes and switched to {:?} mode", pending);
                         }
                         self.pending_mode_change = None;
                     }
 
                     if ui.button("Cancel").clicked() {
-                        tracing::debug!("Mode change cancelled");
+                        debug!("Mode change cancelled");
                         self.pending_mode_change = None;
                     }
                 });

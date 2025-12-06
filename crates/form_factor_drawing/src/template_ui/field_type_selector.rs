@@ -1,22 +1,17 @@
-//! Field type selector UI component
-//!
-//! Provides a searchable, categorized selector for choosing field types
-//! when creating or editing template fields.
+//! Field type selector UI component.
 
 use egui::{Color32, Ui};
 use form_factor_core::template::FieldType;
+use tracing::{debug, instrument};
 
-/// Field type selector widget
-///
-/// Displays a searchable list of field types organized by category.
-/// Used when creating new fields or changing the type of existing fields.
+/// Field type selector widget.
 #[derive(Debug, Clone)]
 pub struct FieldTypeSelector {
-    /// Current search filter text
+    /// Current search filter text.
     search_text: String,
-    /// Currently selected field type (if any)
+    /// Currently selected field type.
     selected: Option<FieldType>,
-    /// Whether to show all categories expanded
+    /// Whether to show all categories expanded.
     show_all: bool,
 }
 
@@ -27,8 +22,10 @@ impl Default for FieldTypeSelector {
 }
 
 impl FieldTypeSelector {
-    /// Create a new field type selector
+    /// Creates a new field type selector.
+    #[instrument]
     pub fn new() -> Self {
+        debug!("Creating field type selector");
         Self {
             search_text: String::new(),
             selected: None,
@@ -36,20 +33,23 @@ impl FieldTypeSelector {
         }
     }
 
-    /// Set the initially selected field type
+    /// Sets the initially selected field type.
+    #[instrument(skip(self), fields(field_type = ?field_type))]
     pub fn with_selected(mut self, field_type: FieldType) -> Self {
+        debug!("Setting initial selection");
         self.selected = Some(field_type);
         self
     }
 
-    /// Get the currently selected field type
+    /// Gets the currently selected field type.
     pub fn selected(&self) -> Option<&FieldType> {
         self.selected.as_ref()
     }
 
-    /// Show the selector UI
+    /// Shows the selector UI.
     ///
     /// Returns true if the selection changed.
+    #[instrument(skip(self, ui), fields(has_selection = self.selected.is_some()))]
     pub fn show(&mut self, ui: &mut Ui) -> bool {
         let mut changed = false;
 
@@ -101,6 +101,7 @@ impl FieldTypeSelector {
                     .body(|ui| {
                         for field_type in filtered {
                             if self.show_field_type_button(ui, field_type) {
+                                debug!(field_type = ?field_type, "Field type selected");
                                 self.selected = Some(field_type.clone());
                                 changed = true;
                             }
@@ -129,7 +130,7 @@ impl FieldTypeSelector {
         changed
     }
 
-    /// Show a single field type as a selectable button
+    /// Shows a single field type as a selectable button.
     fn show_field_type_button(&self, ui: &mut Ui, field_type: &FieldType) -> bool {
         let is_selected = self.selected.as_ref() == Some(field_type);
 
@@ -144,7 +145,7 @@ impl FieldTypeSelector {
         ui.add(button).clicked()
     }
 
-    /// Get field types organized by category
+    /// Gets field types organized by category.
     fn field_type_categories() -> Vec<(&'static str, Vec<FieldType>)> {
         vec![
             (

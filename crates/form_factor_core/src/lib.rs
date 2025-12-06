@@ -21,6 +21,8 @@ mod backend;
 mod error;
 pub mod instance;
 pub mod template;
+mod template_browser;
+mod template_browser_error;
 
 pub use app::{App, AppContext};
 pub use backend::{Backend, BackendConfig};
@@ -33,4 +35,10 @@ pub use template::{FieldBounds, FieldDefinition, FieldDefinitionBuilder, FieldTy
 pub use instance::{
     FieldContent, FieldValidationError, FieldValue, FormInstance, ValidationErrorType,
     ValidationResult,
+};
+
+// Re-export template browser types at crate root
+pub use template_browser::{SortOrder, TemplateBrowser, TemplateEntry, TemplateMetadata};
+pub use template_browser_error::{
+    TemplateBrowserError, TemplateBrowserErrorKind, TemplateBrowserResult,
 };
