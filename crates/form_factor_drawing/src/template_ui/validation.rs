@@ -74,8 +74,8 @@ impl TemplateValidator {
 
         // Check regex patterns
         for field in &all_fields {
-            if let Some(pattern) = &field.validation_pattern {
-                if Regex::new(pattern).is_err() {
+            if let Some(pattern) = &field.validation_pattern
+                && Regex::new(pattern).is_err() {
                     errors.push(ValidationError::InvalidRegexPattern {
                         field_id: field.id.clone(),
                         pattern: pattern.clone(),
@@ -86,7 +86,6 @@ impl TemplateValidator {
                         "Validation error: Invalid regex pattern"
                     );
                 }
-            }
         }
 
         // Check that each field's page_index is valid
@@ -342,12 +341,9 @@ mod tests {
         });
 
         let errors = TemplateValidator::validate(&builder, &registry, true);
-        assert!(matches!(
-            errors
+        assert!(errors
                 .iter()
-                .find(|e| matches!(e, ValidationError::InvalidFieldBounds { .. })),
-            Some(_)
-        ));
+                .any(|e| matches!(e, ValidationError::InvalidFieldBounds { .. })));
     }
 
     #[test]
@@ -376,11 +372,8 @@ mod tests {
         });
 
         let errors = TemplateValidator::validate(&builder, &registry, true);
-        assert!(matches!(
-            errors
+        assert!(errors
                 .iter()
-                .find(|e| matches!(e, ValidationError::InvalidRegexPattern { .. })),
-            Some(_)
-        ));
+                .any(|e| matches!(e, ValidationError::InvalidRegexPattern { .. })));
     }
 }

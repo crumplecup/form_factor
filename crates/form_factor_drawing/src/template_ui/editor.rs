@@ -3,7 +3,7 @@
 use super::{EditorMode, FieldPropertiesPanel, PropertiesAction, TemplateEditorState};
 use crate::TemplateRegistry;
 use egui::{Color32, Pos2, Rect, Sense, Stroke, Ui, Vec2};
-use form_factor_core::FieldDefinition;
+use form_factor_core::{FieldDefinition, FormTemplate};
 use tracing::{debug, info, instrument};
 
 /// Template editor panel.
@@ -75,6 +75,51 @@ impl TemplateEditorPanel {
     /// Gets the editor state mutably.
     pub fn state_mut(&mut self) -> &mut TemplateEditorState {
         &mut self.state
+    }
+
+    /// Attempts to build and save the current template.
+    ///
+    /// Returns the built template on success, or validation errors on failure.
+    #[instrument(skip(self, registry))]
+    pub fn save_template(
+        &mut self,
+        registry: &mut TemplateRegistry,
+    ) -> Result<crate::DrawingTemplate, Vec<crate::ValidationError>> {
+        if let Some(builder) = self.state.current_template() {
+            // Validate first
+            let errors = crate::TemplateValidator::validate(builder, registry, self.is_new);
+            if !errors.is_empty() {
+                self.validation_errors = errors.clone();
+                debug!(error_count = errors.len(), "Validation failed during save");
+                return Err(errors);
+            }
+
+            // Build the template
+            match builder.clone().build() {
+                Ok(template) => {
+                    // Register in registry
+                    registry.register(template.clone());
+                    info!(template_id = %template.id(), "Template saved successfully");
+
+                    // After successful save, mark as no longer new
+                    self.is_new = false;
+                    self.validation_errors.clear();
+
+                    Ok(template)
+                }
+                Err(e) => {
+                    // Build error - convert to validation error
+                    let error = crate::ValidationError::EmptyTemplateId;
+                    self.validation_errors = vec![error.clone()];
+                    debug!(error = ?e, "Template build failed");
+                    Err(vec![error])
+                }
+            }
+        } else {
+            let error = crate::ValidationError::NoFields;
+            self.validation_errors = vec![error.clone()];
+            Err(vec![error])
+        }
     }
 
     /// Loads a template into the editor.
@@ -205,8 +250,8 @@ impl TemplateEditorPanel {
             ui.separator();
 
             // Save/Cancel buttons with validation
-            if ui.button("Validate").clicked() {
-                if let Some(template) = self.state.current_template() {
+            if ui.button("Validate").clicked()
+                && let Some(template) = self.state.current_template() {
                     self.validation_errors =
                         crate::TemplateValidator::validate(template, _registry, self.is_new);
                     if self.validation_errors.is_empty() {
@@ -218,10 +263,9 @@ impl TemplateEditorPanel {
                         );
                     }
                 }
-            }
 
-            if ui.button("Save Template").clicked() {
-                if let Some(template) = self.state.current_template() {
+            if ui.button("Save Template").clicked()
+                && let Some(template) = self.state.current_template() {
                     self.validation_errors =
                         crate::TemplateValidator::validate(template, _registry, self.is_new);
                     if self.validation_errors.is_empty() {
@@ -235,7 +279,6 @@ impl TemplateEditorPanel {
                         );
                     }
                 }
-            }
             if ui.button("Cancel").clicked() {
                 action = EditorAction::Cancel;
             }
