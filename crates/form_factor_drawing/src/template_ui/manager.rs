@@ -93,7 +93,7 @@ impl TemplateManagerPanel {
                     ui.group(|ui| {
                         // Template info
                         ui.horizontal(|ui| {
-                            let is_selected = self.state.selected_template() == Some(template.id());
+                            let is_selected = self.state.selected_template_str() == Some(template.id());
                             let radio = ui.selectable_label(is_selected, template.name());
 
                             if radio.clicked() {
@@ -126,7 +126,7 @@ impl TemplateManagerPanel {
 
                             if ui.button("Delete").clicked() {
                                 debug!(template_id = %template.id(), "Delete button clicked");
-                                self.state.show_delete_confirm(template.id().to_string());
+                                self.state.show_delete_confirmation(template.id().to_string());
                             }
                         });
                     });
@@ -137,8 +137,8 @@ impl TemplateManagerPanel {
         });
 
         // Delete confirmation dialog
-        if self.state.is_showing_delete_confirm()
-            && let Some(template_id) = self.state.pending_delete()
+        if *self.state.show_delete_confirm()
+            && let Some(template_id) = self.state.pending_delete_str()
         {
             let template_id = template_id.to_string();
 
@@ -156,12 +156,12 @@ impl TemplateManagerPanel {
                         if ui.button("Delete").clicked() {
                             info!(template_id = %template_id, "Deleting template");
                             action = ManagerAction::Delete(template_id.clone());
-                            self.state.hide_delete_confirm();
+                            self.state.hide_delete_confirmation();
                         }
 
                         if ui.button("Cancel").clicked() {
                             debug!("Delete cancelled");
-                            self.state.hide_delete_confirm();
+                            self.state.hide_delete_confirmation();
                         }
                     });
                 });
@@ -171,12 +171,6 @@ impl TemplateManagerPanel {
     }
 }
 
-impl TemplateManagerState {
-    /// Gets the search query mutably (for UI binding).
-    pub fn search_query_mut(&mut self) -> &mut String {
-        &mut self.search_query
-    }
-}
 
 /// Action to perform based on user interaction.
 #[derive(Debug, Clone, PartialEq, Eq)]

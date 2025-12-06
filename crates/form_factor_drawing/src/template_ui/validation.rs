@@ -118,24 +118,30 @@ impl TemplateValidator {
 }
 
 /// Validation errors that can occur during template validation.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, derive_more::Display)]
 pub enum ValidationError {
     /// Template ID is empty
+    #[display("Template ID cannot be empty")]
     EmptyTemplateId,
 
     /// Template ID already exists in registry (for new templates)
+    #[display("Template ID '{}' already exists in registry", _0)]
     DuplicateTemplateId(String),
 
     /// Template name is empty
+    #[display("Template name cannot be empty")]
     EmptyTemplateName,
 
     /// Template has no fields
+    #[display("Template must have at least one field")]
     NoFields,
 
     /// Duplicate field ID within template
+    #[display("Duplicate field ID: '{}'", _0)]
     DuplicateFieldId(String),
 
     /// Field has invalid bounds (non-positive width or height)
+    #[display("Field '{}' has invalid bounds: width={}, height={}", field_id, width, height)]
     InvalidFieldBounds {
         /// Field ID with invalid bounds
         field_id: String,
@@ -146,6 +152,7 @@ pub enum ValidationError {
     },
 
     /// Field has invalid regex pattern
+    #[display("Field '{}' has invalid regex pattern: '{}'", field_id, pattern)]
     InvalidRegexPattern {
         /// Field ID with invalid pattern
         field_id: String,
@@ -154,6 +161,7 @@ pub enum ValidationError {
     },
 
     /// Field references invalid page index
+    #[display("Field '{}' references invalid page {} (template has {} pages)", field_id, page_index, page_count)]
     InvalidPageIndex {
         /// Field ID with invalid page reference
         field_id: String,
@@ -164,46 +172,14 @@ pub enum ValidationError {
     },
 }
 
-impl ValidationError {
-    /// Returns a user-friendly error message.
-    pub fn message(&self) -> String {
-        match self {
-            Self::EmptyTemplateId => "Template ID cannot be empty".to_string(),
-            Self::DuplicateTemplateId(id) => {
-                format!("Template ID '{}' already exists in registry", id)
-            }
-            Self::EmptyTemplateName => "Template name cannot be empty".to_string(),
-            Self::NoFields => "Template must have at least one field".to_string(),
-            Self::DuplicateFieldId(id) => format!("Duplicate field ID: '{}'", id),
-            Self::InvalidFieldBounds {
-                field_id,
-                width,
-                height,
-            } => {
-                format!(
-                    "Field '{}' has invalid bounds: width={}, height={}",
-                    field_id, width, height
-                )
-            }
-            Self::InvalidRegexPattern { field_id, pattern } => {
-                format!(
-                    "Field '{}' has invalid regex pattern: '{}'",
-                    field_id, pattern
-                )
-            }
-            Self::InvalidPageIndex {
-                field_id,
-                page_index,
-                page_count,
-            } => {
-                format!(
-                    "Field '{}' references invalid page {} (template has {} pages)",
-                    field_id, page_index, page_count
-                )
-            }
-        }
-    }
+impl std::error::Error for ValidationError {}
 
+/// Removed redundant ValidationError implementation below
+#[derive(Debug, Clone, PartialEq)]
+#[doc(hidden)]
+enum _OldValidationError {
+}
+impl ValidationError {
     /// Returns the field ID associated with this error, if any.
     pub fn field_id(&self) -> Option<&str> {
         match self {

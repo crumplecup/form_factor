@@ -3,10 +3,10 @@
 use crate::DrawingTemplateBuilder;
 
 /// State for the template manager panel.
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, derive_getters::Getters)]
 pub struct TemplateManagerState {
     /// Search query for filtering templates
-    pub(crate) search_query: String,
+    search_query: String,
 
     /// Currently selected template ID
     selected_template: Option<String>,
@@ -24,9 +24,9 @@ impl TemplateManagerState {
         Self::default()
     }
 
-    /// Gets the search query.
-    pub fn search_query(&self) -> &str {
-        &self.search_query
+    /// Gets a mutable reference to the search query for editing.
+    pub fn search_query_mut(&mut self) -> &mut String {
+        &mut self.search_query
     }
 
     /// Sets the search query.
@@ -35,7 +35,7 @@ impl TemplateManagerState {
     }
 
     /// Gets the selected template ID.
-    pub fn selected_template(&self) -> Option<&str> {
+    pub fn selected_template_str(&self) -> Option<&str> {
         self.selected_template.as_deref()
     }
 
@@ -44,25 +44,20 @@ impl TemplateManagerState {
         self.selected_template = id;
     }
 
-    /// Checks if delete confirmation is showing.
-    pub fn is_showing_delete_confirm(&self) -> bool {
-        self.show_delete_confirm
-    }
-
     /// Shows delete confirmation dialog.
-    pub fn show_delete_confirm(&mut self, template_id: String) {
+    pub fn show_delete_confirmation(&mut self, template_id: String) {
         self.pending_delete = Some(template_id);
         self.show_delete_confirm = true;
     }
 
     /// Hides delete confirmation dialog.
-    pub fn hide_delete_confirm(&mut self) {
+    pub fn hide_delete_confirmation(&mut self) {
         self.show_delete_confirm = false;
         self.pending_delete = None;
     }
 
-    /// Gets the template pending deletion.
-    pub fn pending_delete(&self) -> Option<&str> {
+    /// Gets the template ID pending deletion.
+    pub fn pending_delete_str(&self) -> Option<&str> {
         self.pending_delete.as_deref()
     }
 }

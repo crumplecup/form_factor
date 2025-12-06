@@ -295,7 +295,7 @@ impl TemplateEditorPanel {
             });
             ui.indent("validation_errors", |ui| {
                 for error in &self.validation_errors {
-                    ui.colored_label(egui::Color32::RED, format!("• {}", error.message()));
+                    ui.colored_label(egui::Color32::RED, format!("• {}", error));
                 }
             });
             ui.separator();
