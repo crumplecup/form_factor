@@ -16,9 +16,15 @@
 **Current Status:** 15/15 tests passing, 0 clippy warnings
 
 **Remaining in Phase 1:**
-- ⏳ Phase 1.2: Tool workflow tests (requires egui interaction simulation)
+- ⚡ Phase 1.5: AccessKit UI test infrastructure (NEW - breakthrough solution!)
+- ⏳ Phase 1.2: Tool workflow tests (unblocked by accesskit approach)
 - ⏳ Phase 1.3: Plugin coordination tests (requires form_factor crate)
-- ⏳ Phase 1.2: Complex state machine tests (requires interaction simulation)
+- ⏳ Phase 1.2: Complex state machine tests (unblocked by accesskit approach)
+
+**Latest Development:**
+- ⚡ **AccessKit Testing Strategy** discovered - solves egui interaction problem!
+- Uses accessibility framework as test oracle (dual benefit: testing + accessibility)
+- See "AccessKit Testing Strategy" section below for full details
 
 ## Phase 1 Implementation Notes
 
@@ -110,10 +116,11 @@ crates/form_factor_drawing/tests/
    - `#[cfg(test)]` only applies within the same crate
    - Test-only APIs must be always-public or use `pub(crate)` + unit tests
 
-2. **egui Interaction Simulation is Complex**
+2. **egui Interaction Simulation is Complex** ⚡ BREAKTHROUGH SOLUTION
    - Tool workflows require `egui::Response` with pointer events
-   - May need mock responses or test-only interaction APIs
-   - Consider: Add `test_handle_input()` that takes position + event type
+   - ~~May need mock responses or test-only interaction APIs~~
+   - **SOLUTION:** Use accesskit (egui's accessibility framework) for UI testing!
+   - See "AccessKit Testing Strategy" section below for details
 
 3. **Plugin Tests Need Different Location**
    - PluginManager is in `form_factor` crate
@@ -124,6 +131,288 @@ crates/form_factor_drawing/tests/
    - `Rectangle` uses `Rectangle::from_corners()`, not builder
    - `Circle` uses either `Circle::new()` or `CircleBuilder`
    - Tests revealed inconsistency in shape construction APIs
+
+## AccessKit Testing Strategy ⚡ NEW APPROACH
+
+### The Problem
+
+Tool workflow tests and state machine tests require egui interaction simulation:
+- Mouse clicks, drag gestures, keyboard input
+- `egui::Response` with pointer events
+- Complex mocking of egui's input system
+
+Traditional solutions:
+- ❌ Mock `egui::Response` - fragile, doesn't test real rendering
+- ❌ Headless browser automation - slow, heavyweight
+- ❌ Direct state manipulation - bypasses UI code entirely
+
+### The Solution: Accessibility as Testing Infrastructure
+
+**Key Insight:** egui integrates `accesskit` for screen reader support. We can leverage this accessibility tree as a **structured test oracle** for UI state.
+
+### How It Works
+
+```rust
+// In UI rendering code (canvas/rendering.rs)
+pub fn render_tool_panel(&mut self, ui: &mut egui::Ui) {
+    for tool in &[ToolMode::Rectangle, ToolMode::Circle, /*...*/] {
+        let is_active = self.current_tool == *tool;
+        let response = ui.selectable_label(is_active, tool.name());
+
+        // Accessibility annotation (helps tests AND screen readers!)
+        response.widget_info(|info| {
+            info.label = Some(format!("tool-{}", tool.name().to_lowercase()));
+            info.current_value = Some(if is_active { "active" } else { "inactive" });
+            info.description = Some(format!("Drawing tool: {}", tool.description()));
+        });
+    }
+}
+
+// In integration test
+#[test]
+fn test_rectangle_tool_renders_active() {
+    let mut canvas = create_test_canvas();
+    canvas.set_tool(ToolMode::Rectangle);
+
+    // Render UI and extract accessibility tree
+    let tree = render_canvas_ui_with_accessibility(&canvas);
+
+    // Assert on accessibility tree
+    let rect_tool = tree.find_widget_by_label("tool-rectangle")
+        .expect("Rectangle tool not found in UI");
+
+    assert_eq!(rect_tool.current_value(), Some("active"));
+}
+```
+
+### What Can Be Tested
+
+Using accessibility annotations, we can verify:
+
+✅ **Tool Activation**
+- Widget label: `"tool-rectangle"`
+- Current value: `"active"` or `"inactive"`
+- Tests that tool selection updates UI
+
+✅ **Canvas State Display**
+- Widget label: `"canvas-state"`
+- Current value: `"idle"`, `"drawing"`, `"dragging-vertex"`
+- Tests that state machine changes are reflected in UI
+
+✅ **Shape Count Display**
+- Widget label: `"shape-count"`
+- Current value: `"5 shapes"`
+- Tests that shape additions update UI
+
+✅ **Field Properties**
+- Widget label: `"field-email"`
+- Properties: `"required: true, type: email"`
+- Tests template field rendering
+
+✅ **Layer Visibility**
+- Widget label: `"layer-shapes"`
+- Current value: `"visible"` or `"hidden"`
+- Tests layer visibility toggles
+
+✅ **Zoom/Pan Display**
+- Widget label: `"zoom-level"`
+- Current value: `"150%"`
+- Tests that zoom changes update UI
+
+### Advantages
+
+**Testing Benefits:**
+1. ✅ Tests **actual UI rendering code** (not mocked)
+2. ✅ Verifies state is **visible to users** (not just internal)
+3. ✅ Catches bugs where state exists but UI doesn't show it
+4. ✅ No complex egui mocking required
+5. ✅ Can verify entire UI tree structure
+6. ✅ Tests closer to user experience
+
+**Accessibility Benefits:**
+1. ✅ Forces proper semantic annotations (screen reader friendly)
+2. ✅ Every test annotation improves accessibility
+3. ✅ Accessibility becomes first-class concern
+4. ✅ Compliance with accessibility standards (Section 508, WCAG)
+5. ✅ Benefits users with disabilities
+
+**Architectural Benefits:**
+1. ✅ UI annotations serve dual purpose (tests + accessibility)
+2. ✅ Encourages meaningful widget labeling
+3. ✅ Self-documenting UI (labels explain widgets)
+4. ✅ Natural fit for declarative UI (egui)
+
+### Implementation Plan
+
+**Phase 1.5: AccessKit Test Infrastructure** (New phase)
+
+#### Files to Create
+
+```
+crates/form_factor_drawing/tests/
+├── helpers/
+│   ├── accessibility_helpers.rs   # NEW: AccessKit test utilities
+│   └── mod.rs                     # UPDATE: Export accessibility helpers
+└── canvas_ui_test.rs              # NEW: UI rendering tests
+```
+
+#### Helper Functions Needed
+
+**`tests/helpers/accessibility_helpers.rs`:**
+
+```rust
+use accesskit::{Tree, Node, NodeId};
+
+/// Render canvas UI in headless context and extract accessibility tree
+pub fn render_canvas_ui_with_accessibility(
+    canvas: &mut DrawingCanvas
+) -> accesskit::Tree {
+    let ctx = egui::Context::default();
+
+    ctx.run(egui::RawInput::default(), |ctx| {
+        egui::CentralPanel::default().show(ctx, |ui| {
+            canvas.render(ui);
+        });
+    });
+
+    ctx.accesskit_tree()
+}
+
+/// Find widget in accessibility tree by label
+pub fn find_widget_by_label<'a>(
+    tree: &'a accesskit::Tree,
+    label: &str
+) -> Option<&'a accesskit::Node> {
+    tree.nodes().find(|node| node.label() == Some(label))
+}
+
+/// Assert widget exists with expected value
+pub fn assert_widget_value(
+    tree: &accesskit::Tree,
+    label: &str,
+    expected_value: &str
+) {
+    let node = find_widget_by_label(tree, label)
+        .expect(&format!("Widget '{}' not found in UI", label));
+
+    assert_eq!(
+        node.current_value(),
+        Some(expected_value),
+        "Widget '{}' has incorrect value",
+        label
+    );
+}
+
+/// Assert widget exists with expected description
+pub fn assert_widget_description(
+    tree: &accesskit::Tree,
+    label: &str,
+    expected_desc: &str
+) {
+    let node = find_widget_by_label(tree, label)
+        .expect(&format!("Widget '{}' not found in UI", label));
+
+    assert!(
+        node.description().unwrap_or("").contains(expected_desc),
+        "Widget '{}' description doesn't contain '{}'",
+        label, expected_desc
+    );
+}
+```
+
+#### Tests to Implement
+
+**`tests/canvas_ui_test.rs`:**
+
+1. **Tool Panel Rendering (6 tests)**
+   - ✅ `test_tool_panel_shows_all_tools()` - All tools rendered
+   - ✅ `test_rectangle_tool_renders_active()` - Active state shown
+   - ✅ `test_tool_switch_updates_ui()` - UI updates on tool change
+   - ✅ `test_inactive_tools_accessible()` - Inactive tools still accessible
+   - ✅ `test_tool_descriptions_present()` - Tools have descriptions
+   - ✅ `test_tool_roles_correct()` - Semantic roles (Button/Toggle)
+
+2. **Canvas State Display (4 tests)**
+   - ✅ `test_idle_state_displayed()` - "Idle" shown in UI
+   - ✅ `test_drawing_state_displayed()` - "Drawing" shown when active
+   - ✅ `test_state_description_updated()` - State description changes
+   - ✅ `test_state_accessible_to_screen_readers()` - Proper ARIA role
+
+3. **Shape Count Display (3 tests)**
+   - ✅ `test_shape_count_shows_zero()` - "0 shapes" initially
+   - ✅ `test_shape_count_updates()` - Count updates on add
+   - ✅ `test_shape_count_decrements()` - Count updates on delete
+
+4. **Layer Panel Rendering (4 tests)**
+   - ✅ `test_all_layers_rendered()` - All layers in UI
+   - ✅ `test_visible_layer_indicated()` - Visibility state shown
+   - ✅ `test_active_layer_highlighted()` - Active layer indicated
+   - ✅ `test_layer_toggle_updates_ui()` - Toggle updates accessibility
+
+5. **Zoom/Pan Display (2 tests)**
+   - ✅ `test_zoom_level_displayed()` - Zoom percentage shown
+   - ✅ `test_zoom_updates_ui()` - UI updates on zoom change
+
+### Integration with Existing Tests
+
+**Complementary Testing Strategy:**
+
+```
+State Tests (current)          UI Tests (accesskit)
+├─ Internal state verification ├─ UI rendering verification
+├─ Fast (<1 second)            ├─ Moderate (~2-3 seconds)
+├─ No rendering required       ├─ Tests actual UI code
+├─ Test logic/algorithms       ├─ Test user-visible behavior
+└─ Example: assert zoom == 5.0 └─ Example: UI shows "Zoom: 500%"
+```
+
+**Use State Tests For:**
+- ✅ Shape geometry calculations
+- ✅ Validation logic
+- ✅ Data structure integrity
+- ✅ Algorithm correctness
+
+**Use AccessKit UI Tests For:**
+- ✅ Tool panel rendering
+- ✅ State display in UI
+- ✅ User-visible feedback
+- ✅ Accessibility verification
+
+### Risks and Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| **AccessKit API changes** | Encapsulate in helpers, easy to update |
+| **Headless rendering performance** | egui is fast, expect <3s for full suite |
+| **Coupling to UI structure** | Test semantic meaning, not layout |
+| **Widget label changes** | Use constants: `const TOOL_RECT: &str = "tool-rectangle"` |
+| **Accessibility tree incomplete** | Annotate all widgets progressively |
+
+### Success Criteria
+
+**Phase 1.5 Complete When:**
+- ✅ Accessibility helpers implemented and tested
+- ✅ 10+ UI rendering tests passing
+- ✅ Tool workflow tests unblocked
+- ✅ All widgets have accessibility annotations
+- ✅ Tests run in < 5 seconds total
+- ✅ Screen reader testing possible (bonus)
+
+### Next Steps
+
+1. **Prototype** - Create single test to validate approach
+2. **Implement helpers** - Build accessibility test infrastructure
+3. **Annotate UI** - Add accessibility labels to all widgets
+4. **Write tests** - Implement deferred tool workflow tests
+5. **Document** - Update UI code with accessibility best practices
+
+### References
+
+- [egui accessibility docs](https://docs.rs/egui/latest/egui/struct.Response.html#method.widget_info)
+- [accesskit crate](https://docs.rs/accesskit/)
+- [WCAG 2.1 Guidelines](https://www.w3.org/WAI/WCAG21/quickref/)
+
+---
 
 ### Commit: fdde4da
 
@@ -393,33 +682,46 @@ impl EventBus {
 
 ### Phase 1 Deliverables (Revised)
 
+**Completed (Phase 1.1-1.4):**
 - ✅ Test helper infrastructure (helpers/) - **COMPLETE**
 - ✅ 15 canvas integration tests (basic workflows) - **COMPLETE**
-- ⏸️ 10+ tool workflow tests - **DEFERRED** (egui interaction needed)
-- ⏸️ 12+ plugin coordination tests - **DEFERRED** (form_factor crate)
 - ✅ Test introspection APIs - **COMPLETE** (always-public)
 - ✅ All implemented tests passing - **COMPLETE** (15/15)
 - ✅ Documentation in test files - **COMPLETE**
 
+**New Phase 1.5 (AccessKit UI Testing):**
+- ⚡ AccessKit testing strategy documented - **COMPLETE**
+- ⏳ Accessibility helpers (render UI, query tree) - **PLANNED**
+- ⏳ 10+ UI rendering tests - **PLANNED** (unblocked)
+- ⏳ Widget accessibility annotations - **PLANNED**
+
+**Deferred to Other Phases:**
+- ⏸️ 12+ plugin coordination tests - **DEFERRED** (form_factor crate, Phase 1.3)
+
 ### Phase 1 Success Metrics (Revised)
 
+**Current Achievements:**
 - ✅ Zero test failures (15/15 passing)
-- ⏸️ Test coverage for canvas state machine > 80% (Idle state covered, Drawing/Dragging deferred)
-- ⏸️ Test coverage for plugin event handling > 75% (deferred to form_factor crate)
 - ✅ All helper functions documented
 - ✅ Tests run in < 5 seconds (15 tests in <1 second)
+- ✅ Canvas state, zoom/pan, layers validated
+- ✅ Foundation for future test expansion
+- ⚡ **Breakthrough solution for UI testing discovered**
 
-**Achieved:**
-- 15 integration tests passing
-- Test helper infrastructure working
-- Zero clippy warnings
-- Canvas state, zoom/pan, layers validated
-- Foundation for future test expansion
+**In Progress (Phase 1.5):**
+- ⏳ Test coverage for canvas state machine > 80% (achievable with accesskit)
+- ⏳ UI rendering tests (10+ planned with accesskit approach)
+- ⏳ Accessibility compliance (first-class concern with new approach)
 
 **Deferred:**
-- Tool interaction workflows (need egui simulation)
-- Plugin coordination (different crate)
-- Complex state transitions (need interaction)
+- ⏸️ Test coverage for plugin event handling > 75% (form_factor crate)
+
+**Impact of AccessKit Strategy:**
+- ⚡ **Unblocks** 10+ deferred tool workflow tests
+- ⚡ **Unblocks** 4+ state machine transition tests
+- ⚡ **Adds** accessibility as verified feature (not just tested)
+- ⚡ **Improves** test quality (tests actual rendering, not just state)
+- ⚡ **Benefits** users with disabilities (screen reader support)
 
 ---
 
