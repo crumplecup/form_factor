@@ -406,6 +406,15 @@ impl DrawingCanvas {
     /// the canvas. Automatically selects the newly created shape and
     /// focuses the name field for easy naming.
     pub(super) fn finalize_shape(&mut self) {
+        // Check if we're in template creation/editing mode
+        if matches!(
+            self.template_mode(),
+            super::core::TemplateMode::Creating | super::core::TemplateMode::Editing
+        ) {
+            self.finalize_template_field();
+            return;
+        }
+
         let shape = if let super::core::CanvasState::Drawing {
             start,
             current_end,
@@ -482,6 +491,129 @@ impl DrawingCanvas {
         }
 
         // Reset to idle state
+        self.set_state(super::core::CanvasState::Idle);
+    }
+
+    /// Finalize a template field (when in template mode)
+    fn finalize_template_field(&mut self) {
+        use form_factor_core::{FieldDefinition, FieldType};
+
+        let field_def = if let super::core::CanvasState::Drawing {
+            start,
+            current_end,
+            points,
+        } = self.state()
+        {
+            match self.current_tool() {
+                ToolMode::Rectangle | ToolMode::Circle => {
+                    // Both rectangle and circle create rectangular field bounds
+                    if let Some(end) = current_end {
+                        let min_x = start.x.min(end.x);
+                        let min_y = start.y.min(end.y);
+                        let max_x = start.x.max(end.x);
+                        let max_y = start.y.max(end.y);
+                        let width = max_x - min_x;
+                        let height = max_y - min_y;
+
+                        // Generate a unique field ID
+                        let field_count = if let Some(template) = self.current_template() {
+                            template.pages.iter().map(|p| p.fields.len()).sum::<usize>()
+                        } else {
+                            0
+                        };
+                        let field_id = format!("field_{}", field_count + 1);
+
+                        Some(FieldDefinition {
+                            id: field_id.clone(),
+                            label: format!("Field {}", field_count + 1),
+                            field_type: FieldType::FreeText,
+                            page_index: 0, // TODO: Use current page
+                            bounds: form_factor_core::FieldBounds {
+                                x: min_x,
+                                y: min_y,
+                                width,
+                                height,
+                            },
+                            required: false,
+                            validation_pattern: None,
+                            help_text: None,
+                            metadata: std::collections::HashMap::new(),
+                        })
+                    } else {
+                        None
+                    }
+                }
+                ToolMode::Freehand => {
+                    // Freehand creates field from bounding box of polygon
+                    if points.len() >= 3 {
+                        let min_x = points.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
+                        let min_y = points.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
+                        let max_x = points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
+                        let max_y = points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
+                        let width = max_x - min_x;
+                        let height = max_y - min_y;
+
+                        let field_count = if let Some(template) = self.current_template() {
+                            template.pages.iter().map(|p| p.fields.len()).sum::<usize>()
+                        } else {
+                            0
+                        };
+                        let field_id = format!("field_{}", field_count + 1);
+
+                        Some(FieldDefinition {
+                            id: field_id.clone(),
+                            label: format!("Field {}", field_count + 1),
+                            field_type: FieldType::FreeText,
+                            page_index: 0, // TODO: Use current page
+                            bounds: form_factor_core::FieldBounds {
+                                x: min_x,
+                                y: min_y,
+                                width,
+                                height,
+                            },
+                            required: false,
+                            validation_pattern: None,
+                            help_text: None,
+                            metadata: std::collections::HashMap::new(),
+                        })
+                    } else {
+                        None
+                    }
+                }
+                ToolMode::Select => None,
+                ToolMode::Edit => None,
+                ToolMode::Rotate => None,
+            }
+        } else {
+            None
+        };
+
+        if let Some(field) = field_def {
+            // Add field to current template
+            if let Some(template) = self.current_template_mut() {
+                // Add to first page (TODO: support multiple pages)
+                if template.pages.is_empty() {
+                    let page = crate::TemplatePage::new(0);
+                    template.pages.push(page);
+                }
+                
+                if let Some(page) = template.pages.first_mut() {
+                    page.fields.push(field.clone());
+                    let field_idx = page.fields.len() - 1;
+                    
+                    // Select the newly created field
+                    self.set_selected_field(Some(field_idx));
+                    self.set_show_properties(true);
+                    
+                    debug!(
+                        field_id = %field.id,
+                        field_index = field_idx,
+                        "Created template field"
+                    );
+                }
+            }
+        }
+
         self.set_state(super::core::CanvasState::Idle);
     }
 
