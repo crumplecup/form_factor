@@ -6,7 +6,7 @@ use form_factor_drawing::{DrawingCanvas, LayerType, Shape, ToolMode};
 /// Creates a canvas with default test settings
 pub fn create_test_canvas() -> DrawingCanvas {
     let mut canvas = DrawingCanvas::default();
-    canvas.set_project_name("Test Canvas");
+    canvas.with_project_name("Test Canvas".to_string());
     canvas
 }
 

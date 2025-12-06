@@ -5,8 +5,10 @@
 //! - `io`: File I/O, serialization, and image loading
 //! - `tools`: Tool interaction and state management
 //! - `rendering`: UI rendering and painting logic
+//! - `field_creator`: Convert shapes to template fields
 
 mod core;
+mod field_creator;
 mod io;
 mod rendering;
 mod tools;

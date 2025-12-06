@@ -1328,7 +1328,7 @@ impl DrawingCanvas {
                 {
                     let field_id = page.fields[field_idx].id().clone();
                     page.fields.remove(field_idx);
-                    self.set_selected_field(None);
+                    self.with_selected_field(None);
                     self.set_show_properties(false);
                     debug!(field_id, field_idx, "Deleted field");
                 }

@@ -150,7 +150,7 @@ impl App for FormFactorApp {
                             "Grid" => Some(LayerType::Grid),
                             _ => None,
                         };
-                        self.canvas.set_selected_layer(layer_type);
+                        self.canvas.with_selected_layer(layer_type);
                     }
                     AppEvent::LayerClearRequested { layer_name } => {
                         use form_factor::LayerType;

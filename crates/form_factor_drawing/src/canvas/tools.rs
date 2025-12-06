@@ -316,7 +316,7 @@ impl DrawingCanvas {
         // When a shape is selected, also select the Shapes layer for rotation
         if selected.is_some() {
             debug!("Shape selected - setting selected_layer to Shapes");
-            self.set_selected_layer(Some(LayerType::Shapes));
+            self.with_selected_layer(Some(LayerType::Shapes));
         }
     }
 
@@ -362,7 +362,7 @@ impl DrawingCanvas {
             "Field selection result"
         );
 
-        self.set_selected_field(selected_field);
+        self.with_selected_field(selected_field);
         self.set_show_properties(selected_field.is_some());
     }
 
@@ -677,7 +677,7 @@ impl DrawingCanvas {
                     let field_idx = page.fields.len() - 1;
 
                     // Select the newly created field
-                    self.set_selected_field(Some(field_idx));
+                    self.with_selected_field(Some(field_idx));
                     self.set_show_properties(true);
 
                     debug!(

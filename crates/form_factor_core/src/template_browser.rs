@@ -112,6 +112,13 @@ impl TemplateBrowser {
         }
     }
 
+    /// Sets the filter text for searching templates.
+    #[instrument(skip(self, filter))]
+    pub fn set_filter_text(&mut self, filter: impl Into<String>) {
+        self.filter_text = filter.into();
+        debug!(filter_text = %self.filter_text, "Set filter text");
+    }
+
     /// Sets the sort order and re-sorts templates (requires special logic for sorting).
     #[instrument(skip(self), fields(order = ?order))]
     pub fn set_sort_order(&mut self, order: SortOrder) {

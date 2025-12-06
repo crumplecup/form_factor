@@ -163,7 +163,8 @@ pub enum InstanceMode {
 }
 
 /// Drawing canvas state
-#[derive(Clone, Serialize, Deserialize, Getters)]
+#[derive(Clone, Serialize, Deserialize, Getters, derive_setters::Setters)]
+#[setters(prefix = "with_", borrow_self)]
 pub struct DrawingCanvas {
     /// File format version (for migration compatibility)
     #[serde(default)]
@@ -341,26 +342,8 @@ impl DrawingCanvas {
     }
 
     // Setter methods for externally mutated fields
-
-    /// Set the currently selected layer
-    pub fn set_selected_layer(&mut self, layer: Option<LayerType>) {
-        self.selected_layer = layer;
-    }
-
-    /// Set whether the project name is being edited
-    pub fn set_editing_project_name(&mut self, editing: bool) {
-        self.editing_project_name = editing;
-    }
-
-    /// Set the project name
-    pub fn set_project_name(&mut self, name: impl Into<String>) {
-        self.project_name = name.into();
-    }
-
-    /// Set the template ID for this canvas
-    pub fn set_template_id(&mut self, template_id: Option<String>) {
-        self.template_id = template_id;
-    }
+    // Note: Simple setters are provided by derive_setters with with_ prefix
+    // Only methods with special logic are defined here
 
     /// Get a mutable reference to the layer manager
     pub fn layer_manager_mut(&mut self) -> &mut LayerManager {
@@ -454,11 +437,6 @@ impl DrawingCanvas {
     /// Check if the detections layer dropdown is expanded
     pub fn is_detections_expanded(&self) -> bool {
         self.detections_expanded
-    }
-
-    /// Set the selected detection sub-type
-    pub fn set_selected_detection_subtype(&mut self, subtype: Option<DetectionSubtype>) {
-        self.selected_detection_subtype = subtype;
     }
 
     /// Set the zoom level
@@ -690,11 +668,6 @@ impl DrawingCanvas {
     /// Get the current instance mutably (if any)
     pub fn current_instance_mut(&mut self) -> Option<&mut crate::DrawingInstance> {
         self.current_instance.as_mut()
-    }
-
-    /// Set the currently selected field
-    pub fn set_selected_field(&mut self, field: Option<usize>) {
-        self.selected_field = field;
     }
 
     /// Set the current page index
