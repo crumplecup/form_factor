@@ -195,7 +195,7 @@ mod tests {
     fn test_layers_plugin_creation() {
         let plugin = LayersPlugin::new();
         assert_eq!(plugin.name(), "layers");
-        assert_eq!(plugin.layers.len(), 4); // Canvas, Detections, Shapes, Grid
+        assert_eq!(plugin.layers.len(), 6); // Canvas, Detections, Shapes, Template, Instance, Grid
         assert!(plugin.selected_layer.is_none());
     }
 

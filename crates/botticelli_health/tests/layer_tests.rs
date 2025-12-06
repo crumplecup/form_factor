@@ -85,6 +85,18 @@ fn deserialization_handles_extra_fields() {
                 "visible": true,
                 "locked": false
             },
+            "Template": {
+                "name": "Template",
+                "layer_type": "Template",
+                "visible": true,
+                "locked": false
+            },
+            "Instance": {
+                "name": "Instance",
+                "layer_type": "Instance",
+                "visible": true,
+                "locked": false
+            },
             "Shapes": {
                 "name": "Shapes",
                 "layer_type": "Shapes",
@@ -102,7 +114,7 @@ fn deserialization_handles_extra_fields() {
     }"#;
 
     let manager: LayerManager = serde_json::from_str(json).expect("Should handle extra fields");
-    assert_eq!(manager.len(), 4);
+    assert_eq!(manager.len(), 6);
 }
 
 #[test]
@@ -304,7 +316,7 @@ fn default_trait_matches_new() {
 #[test]
 fn len_returns_correct_count() {
     let manager = LayerManager::new();
-    assert_eq!(manager.len(), 4);
+    assert_eq!(manager.len(), 6);
 }
 
 #[test]
@@ -317,7 +329,7 @@ fn is_empty_always_returns_false() {
 fn layers_in_order_iteration_count() {
     let manager = LayerManager::new();
     let count = manager.layers_in_order().count();
-    assert_eq!(count, 4);
+    assert_eq!(count, 6);
 }
 
 #[test]
@@ -330,6 +342,8 @@ fn layers_in_order_preserves_render_sequence() {
         vec![
             LayerType::Canvas,
             LayerType::Detections,
+            LayerType::Template,
+            LayerType::Instance,
             LayerType::Shapes,
             LayerType::Grid,
         ]
@@ -383,6 +397,8 @@ fn validation_succeeds_after_deserialization() {
         "layers": {
             "Canvas": {"name": "Canvas", "layer_type": "Canvas", "visible": true, "locked": false},
             "Detections": {"name": "Detections", "layer_type": "Detections", "visible": true, "locked": false},
+            "Template": {"name": "Template", "layer_type": "Template", "visible": true, "locked": false},
+            "Instance": {"name": "Instance", "layer_type": "Instance", "visible": true, "locked": false},
             "Shapes": {"name": "Shapes", "layer_type": "Shapes", "visible": true, "locked": false},
             "Grid": {"name": "Grid", "layer_type": "Grid", "visible": false, "locked": false}
         }

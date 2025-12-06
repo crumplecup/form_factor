@@ -12,10 +12,11 @@
 //! - UI rendering in template and instance modes
 //! - Multi-page template UI rendering
 
-use form_factor_drawing::{DrawingCanvas, Shape, ToolMode};
-use helpers::{assert_all_tools_render, assert_ui_renders_without_panic, create_test_canvas, create_canvas_with_shapes};
-
-mod helpers;
+use botticelli_health::{
+    assert_all_tools_render, assert_ui_renders_without_panic, create_canvas_with_shapes,
+    create_test_canvas,
+};
+use form_factor_drawing::{DrawingCanvas, ToolMode};
 
 // ============================================================================
 // Basic UI Rendering Tests

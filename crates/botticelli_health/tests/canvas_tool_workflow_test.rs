@@ -16,13 +16,11 @@
 //! - Rotate tool workflow (rotation state)
 //! - State machine transitions (Idle, Drawing, DraggingVertex, Rotating)
 
-use form_factor_drawing::{DrawingCanvas, ToolMode, CanvasState};
-use helpers::{
+use botticelli_health::{
     assert_active_tool, assert_shape_count, create_canvas_with_shapes, create_circle_shape,
     create_freehand_shape, create_rectangle_shape, create_test_canvas, deselect_all, select_shape,
 };
-
-mod helpers;
+use form_factor_drawing::{CanvasState, DrawingCanvas, ToolMode};
 
 // ============================================================================
 // Rectangle Tool Workflow Tests

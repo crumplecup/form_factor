@@ -10,7 +10,7 @@
 //! 1. Tests actual UI rendering code (not just internal state)
 //! 2. Improves accessibility for screen reader users
 
-use egui::accesskit::{Node, NodeId, Role, Tree, TreeUpdate};
+use form_factor_drawing::{DrawingCanvas, ToolMode};
 
 /// Render canvas UI in headless context
 ///
@@ -24,11 +24,12 @@ use egui::accesskit::{Node, NodeId, Role, Tree, TreeUpdate};
 ///
 /// # Example
 /// ```no_run
-/// use helpers::accessibility_helpers::*;
+/// use botticelli_health::render_canvas_ui;
+/// use botticelli_health::create_test_canvas;
 /// let mut canvas = create_test_canvas();
 /// render_canvas_ui(&mut canvas); // Should not panic
 /// ```
-pub fn render_canvas_ui(canvas: &mut crate::DrawingCanvas) {
+pub fn render_canvas_ui(canvas: &mut DrawingCanvas) {
     use egui::Context;
 
     let ctx = Context::default();
@@ -51,11 +52,13 @@ pub fn render_canvas_ui(canvas: &mut crate::DrawingCanvas) {
 ///
 /// # Example
 /// ```no_run
+/// use botticelli_health::{create_test_canvas, assert_ui_renders_without_panic};
+/// use form_factor_drawing::ToolMode;
 /// let mut canvas = create_test_canvas();
 /// canvas.set_tool(ToolMode::Rectangle);
 /// assert_ui_renders_without_panic(&mut canvas);
 /// ```
-pub fn assert_ui_renders_without_panic(canvas: &mut crate::DrawingCanvas) {
+pub fn assert_ui_renders_without_panic(canvas: &mut DrawingCanvas) {
     render_canvas_ui(canvas);
     // If we get here without panicking, test passes
 }
@@ -63,8 +66,7 @@ pub fn assert_ui_renders_without_panic(canvas: &mut crate::DrawingCanvas) {
 /// Test that UI renders for multiple tool modes
 ///
 /// Cycles through all tool modes and verifies each one renders without panic.
-pub fn assert_all_tools_render(canvas: &mut crate::DrawingCanvas) {
-    use crate::ToolMode;
+pub fn assert_all_tools_render(canvas: &mut DrawingCanvas) {
     
     for tool in [
         ToolMode::Select,
@@ -86,8 +88,6 @@ mod tests {
     /// Test that we can render UI without panic (smoke test)
     #[test]
     fn test_render_ui_smoke_test() {
-        use crate::DrawingCanvas;
-        
         let mut canvas = DrawingCanvas::default();
         
         // Should not panic
@@ -97,8 +97,6 @@ mod tests {
     /// Test rendering with different tool modes
     #[test]
     fn test_render_all_tools() {
-        use crate::DrawingCanvas;
-        
         let mut canvas = DrawingCanvas::default();
         
         // Should not panic for any tool

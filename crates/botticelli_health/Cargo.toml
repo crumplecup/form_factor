@@ -1,0 +1,25 @@
+[package]
+name = "botticelli_health"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Health check, testing helpers, and integration tests for Form Factor"
+
+[dependencies]
+# Main facade crate
+form_factor = { path = "../form_factor", features = ["dev"] }
+
+# Direct crate dependencies for helpers
+form_factor_drawing = { path = "../form_factor_drawing" }
+form_factor_plugins = { path = "../form_factor_plugins" }
+form_factor_core = { path = "../form_factor_core" }
+
+# UI and testing dependencies
+egui = { workspace = true }
+accesskit = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+strum = { workspace = true }
+serde_json = { workspace = true }

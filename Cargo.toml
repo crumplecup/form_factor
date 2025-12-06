@@ -7,7 +7,7 @@ members = [
   "crates/form_factor_ocr",
   "crates/form_factor_backends",
   "crates/form_factor_plugins",
-  "crates/form_factor",
+  "crates/form_factor", "crates/botticelli_health",
 ]
 
 [workspace.package]

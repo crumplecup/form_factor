@@ -94,15 +94,12 @@ pub fn simulate_drag(_canvas: &mut DrawingCanvas, _from: Pos2, _to: Pos2) {
     // TODO: Implement
 }
 
+/// Gets all shapes on a specific layer
 pub fn get_shapes_on_layer(canvas: &DrawingCanvas, layer: LayerType) -> Vec<&Shape> {
     canvas.shapes_on_layer(layer)
 }
 
-#[allow(dead_code)]
-pub fn count_shapes_on_layer(canvas: &DrawingCanvas, layer: LayerType) -> usize {
-    get_shapes_on_layer(canvas, layer).len()
-}
-
+/// Asserts the total number of shapes on the canvas
 pub fn assert_shape_count(canvas: &DrawingCanvas, expected: usize) {
     let actual = canvas.shapes().len();
     assert_eq!(
@@ -112,16 +109,9 @@ pub fn assert_shape_count(canvas: &DrawingCanvas, expected: usize) {
     );
 }
 
-#[allow(dead_code)]
-pub fn assert_detection_count(canvas: &DrawingCanvas, expected: usize) {
-    let actual = canvas.detections().len();
-    assert_eq!(
-        actual, expected,
-        "Expected {} detections, but found {}",
-        expected, actual
-    );
-}
 
+
+/// Asserts the currently active tool mode
 pub fn assert_active_tool(canvas: &DrawingCanvas, expected: ToolMode) {
     let actual = canvas.current_tool();
     assert_eq!(
@@ -131,6 +121,7 @@ pub fn assert_active_tool(canvas: &DrawingCanvas, expected: ToolMode) {
     );
 }
 
+/// Asserts the canvas zoom level
 pub fn assert_zoom_level(canvas: &DrawingCanvas, expected: f32) {
     let actual = canvas.zoom_level();
     assert!(
@@ -141,6 +132,7 @@ pub fn assert_zoom_level(canvas: &DrawingCanvas, expected: f32) {
     );
 }
 
+/// Asserts the canvas pan offset
 pub fn assert_pan_offset(canvas: &DrawingCanvas, expected_x: f32, expected_y: f32) {
     let offset = canvas.pan_offset();
     assert!(

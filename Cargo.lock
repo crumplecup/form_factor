@@ -563,6 +563,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "botticelli_health"
+version = "0.1.0"
+dependencies = [
+ "accesskit",
+ "egui",
+ "form_factor",
+ "form_factor_core",
+ "form_factor_drawing",
+ "form_factor_plugins",
+ "serde_json",
+ "strum",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "bumpalo"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
