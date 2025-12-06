@@ -29,9 +29,9 @@ pub const LEGACY_TEMPLATE_ID: &str = "legacy";
 #[derive(Debug)]
 pub enum ProjectFormat {
     /// Legacy single-page format (DrawingCanvas)
-    Legacy(DrawingCanvas),
+    Legacy(Box<DrawingCanvas>),
     /// Multi-page instance format (DrawingInstance)
-    Instance(DrawingInstance),
+    Instance(Box<DrawingInstance>),
 }
 
 impl ProjectFormat {
@@ -92,7 +92,7 @@ impl ProjectFormat {
                     "Loaded legacy canvas"
                 );
 
-                Ok(ProjectFormat::Legacy(canvas))
+                Ok(ProjectFormat::Legacy(Box::new(canvas)))
             }
             2 => {
                 // New format - parse as DrawingInstance
@@ -114,7 +114,7 @@ impl ProjectFormat {
                     "Loaded DrawingInstance"
                 );
 
-                Ok(ProjectFormat::Instance(instance))
+                Ok(ProjectFormat::Instance(Box::new(instance)))
             }
             _ => {
                 // Unknown version
@@ -136,11 +136,11 @@ impl ProjectFormat {
         match self {
             ProjectFormat::Instance(instance) => {
                 debug!("Already DrawingInstance format");
-                instance
+                *instance
             }
             ProjectFormat::Legacy(canvas) => {
                 info!("Migrating legacy canvas to DrawingInstance");
-                migrate_canvas_to_instance(canvas)
+                migrate_canvas_to_instance(*canvas)
             }
         }
     }

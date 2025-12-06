@@ -90,8 +90,8 @@ impl std::error::Error for CanvasError {}
 ///
 /// Represents the current user interaction mode with the canvas.
 /// This state machine prevents invalid state combinations (e.g., drawing while rotating).
-#[derive(Debug, Clone, Default)]
-pub(super) enum CanvasState {
+#[derive(Debug, Clone, Default, PartialEq)]
+pub enum CanvasState {
     /// No active interaction
     #[default]
     Idle,
@@ -752,5 +752,54 @@ impl DrawingCanvas {
             .as_ref()
             .map(|t| t.pages.len())
             .unwrap_or(0)
+    }
+
+    // Introspection APIs for testing
+    // Note: These are always public to support integration tests in tests/ directory
+
+    /// Returns the current canvas interaction state
+    ///
+    /// Used by integration tests to verify state machine transitions.
+    pub fn current_state(&self) -> &CanvasState {
+        &self.state
+    }
+
+    /// Returns shapes on a specific layer
+    ///
+    /// Used by integration tests to inspect layer-specific shapes.
+    pub fn shapes_on_layer(&self, layer: LayerType) -> Vec<&Shape> {
+        match layer {
+            LayerType::Shapes => self.shapes.iter().collect(),
+            LayerType::Detections => self.detections.iter().collect(),
+            _ => Vec::new(),
+        }
+    }
+
+    /// Returns the index of the currently selected shape, if any
+    ///
+    /// Used by integration tests.
+    pub fn selected_shape_index(&self) -> Option<usize> {
+        self.selected_shape
+    }
+
+    /// Returns the current template editing mode
+    ///
+    /// Used by integration tests.
+    pub fn current_template_mode(&self) -> &TemplateMode {
+        &self.template_mode
+    }
+
+    /// Returns the current instance editing mode
+    ///
+    /// Used by integration tests.
+    pub fn current_instance_mode(&self) -> &InstanceMode {
+        &self.instance_mode
+    }
+
+    /// Returns the currently selected field index (for template/instance editing)
+    ///
+    /// Used by integration tests.
+    pub fn selected_field_index(&self) -> Option<usize> {
+        self.selected_field
     }
 }

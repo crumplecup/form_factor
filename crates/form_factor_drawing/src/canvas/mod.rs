@@ -12,6 +12,4 @@ mod rendering;
 mod tools;
 
 // Re-export public types
-pub use core::{
-    CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas, InstanceMode, TemplateMode,
-};
+pub use core::{CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DrawingCanvas};

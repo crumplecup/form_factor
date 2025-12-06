@@ -23,7 +23,7 @@ pub mod template;
 pub mod template_ui;
 mod tool;
 
-pub use canvas::{CanvasError, CanvasErrorKind, DetectionSubtype, DrawingCanvas};
+pub use canvas::{CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DrawingCanvas};
 pub use error::{FormError, FormErrorKind};
 pub use instance::{
     DrawingInstance, FormPage, InstanceError, InstanceErrorKind, LEGACY_TEMPLATE_ID, ProjectFormat,

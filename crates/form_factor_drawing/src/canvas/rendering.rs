@@ -335,7 +335,7 @@ impl DrawingCanvas {
             let image_offset = response.rect.min + egui::vec2(offset_x, offset_y);
 
             // Render all fields from all pages
-            for (_page_idx, page) in template.pages.iter().enumerate() {
+            for page in template.pages.iter() {
                 for (idx, field) in page.fields.iter().enumerate() {
                     self.render_template_field(
                         field,
@@ -957,7 +957,7 @@ impl DrawingCanvas {
         let bottom_left = Pos2::new(x, y + height);
 
         // Apply zoom/pan transform
-        let transformed_corners: Vec<Pos2> = vec![top_left, top_right, bottom_right, bottom_left]
+        let transformed_corners: Vec<Pos2> = [top_left, top_right, bottom_right, bottom_left]
             .iter()
             .map(|p| transform.mul_pos(*p))
             .collect();
@@ -987,7 +987,7 @@ impl DrawingCanvas {
         painter.add(egui::Shape::closed_line(transformed_corners.clone(), stroke));
 
         // Draw field label
-        if let Some(center_pos) = transformed_corners.get(0) {
+        if let Some(center_pos) = transformed_corners.first() {
             let label_pos = Pos2::new(center_pos.x + 5.0, center_pos.y + 5.0);
             painter.text(
                 label_pos,
@@ -1301,32 +1301,31 @@ impl DrawingCanvas {
         ) {
             if let Some(field_idx) = *self.selected_field() {
                 let current_page = *self.current_page();
-                if let Some(template) = self.current_template_mut() {
-                    if let Some(page) = template.pages.get_mut(current_page) {
-                        if field_idx < page.fields.len() {
-                            let field_id = page.fields[field_idx].id.clone();
-                            page.fields.remove(field_idx);
-                            self.set_selected_field(None);
-                            self.set_show_properties(false);
-                            debug!(field_id, field_idx, "Deleted field");
-                        }
-                    }
+                if let Some(template) = self.current_template_mut()
+                    && let Some(page) = template.pages.get_mut(current_page)
+                    && field_idx < page.fields.len()
+                {
+                    let field_id = page.fields[field_idx].id.clone();
+                    page.fields.remove(field_idx);
+                    self.set_selected_field(None);
+                    self.set_show_properties(false);
+                    debug!(field_id, field_idx, "Deleted field");
                 }
             }
         } else {
             // Delete shape
-            if let Some(idx) = *self.selected_shape() {
-                if idx < self.shapes().len() {
-                    let shape_name = match &self.shapes()[idx] {
-                        crate::Shape::Rectangle(r) => r.name().to_string(),
-                        crate::Shape::Circle(c) => c.name().to_string(),
-                        crate::Shape::Polygon(p) => p.name().to_string(),
-                    };
-                    self.shapes.remove(idx);
-                    self.set_selected_shape(None);
-                    self.set_show_properties(false);
-                    debug!(shape_name, shape_idx = idx, "Deleted shape");
-                }
+            if let Some(idx) = *self.selected_shape()
+                && idx < self.shapes().len()
+            {
+                let shape_name = match &self.shapes()[idx] {
+                    crate::Shape::Rectangle(r) => r.name().to_string(),
+                    crate::Shape::Circle(c) => c.name().to_string(),
+                    crate::Shape::Polygon(p) => p.name().to_string(),
+                };
+                self.shapes.remove(idx);
+                self.set_selected_shape(None);
+                self.set_show_properties(false);
+                debug!(shape_name, shape_idx = idx, "Deleted shape");
             }
         }
     }

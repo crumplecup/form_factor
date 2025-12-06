@@ -1064,7 +1064,7 @@ impl DrawingCanvas {
         self.set_state(super::core::CanvasState::DraggingField {
             field_index: field_idx,
             drag_start: pos,
-            original_bounds: field.bounds.clone(),
+            original_bounds: field.bounds,
         });
 
         debug!(field_idx, ?pos, "Started dragging field");
@@ -1086,13 +1086,12 @@ impl DrawingCanvas {
         let delta_y = pos.y - drag_start.y;
 
         // Update field position
-        if let Some(template) = self.current_template_mut() {
-            if let Some(page) = template.pages.first_mut() {
-                if let Some(field) = page.fields.get_mut(field_index) {
-                    field.bounds.x = original_bounds.x + delta_x;
-                    field.bounds.y = original_bounds.y + delta_y;
-                }
-            }
+        if let Some(template) = self.current_template_mut()
+            && let Some(page) = template.pages.first_mut()
+            && let Some(field) = page.fields.get_mut(field_index)
+        {
+            field.bounds.x = original_bounds.x + delta_x;
+            field.bounds.y = original_bounds.y + delta_y;
         }
     }
 
