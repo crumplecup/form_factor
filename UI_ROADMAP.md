@@ -1,21 +1,28 @@
 # UI Roadmap: From Current State to Awesome UI
 
-**Status:** Phase 1 Complete ✅
+**Status:** Phase 2 In Progress 🚧
 **Created:** 2024-12-05
-**Updated:** 2024-12-06
+**Updated:** 2024-12-07
+**Last Commit:** 4f88de3
 **Goal:** Transform Form Factor from a partially-integrated application into a polished, user-friendly form processing tool with complete template creation and instance filling workflows
 
 ## Executive Summary
 
-Form Factor has **excellent foundation but incomplete integration**. The plugin architecture successfully modularized auxiliary functions (tools, layers, files, detection), and comprehensive template/instance UI panels exist in the codebase. However, these panels are **not integrated into the main application**, leaving users with no way to access core functionality through the UI.
+Form Factor now has **integrated UI with template management exposed**! Users can switch between Canvas and Template Manager modes, browse/create templates, and edit shape/detection properties through the UI.
 
-**Current State:** 60% complete
+**Current State:** 75% complete
 - ✅ Plugin UI working (canvas, layers, files, detection, OCR)
 - ✅ Template backend fully implemented
-- ✅ Template UI panels fully built (TemplateManagerPanel, TemplateEditorPanel, FieldPropertiesPanel)
-- ❌ Template panels not shown anywhere in application
-- ❌ Instance data entry UI completely missing
-- ❌ No mode management or workflow guidance
+- ✅ Template browser exposed in Template Manager mode
+- ✅ Mode switcher visible in top panel
+- ✅ Property inspector for shapes and detections
+- ✅ Selection highlighting and controls
+- ✅ OCR integrated into detections system
+- ✅ Image layer management (hide/show/delete)
+- ⚠️ Field type selector built but not yet exposed
+- ⚠️ Page navigation built but not yet shown
+- ❌ Instance data entry UI needs completion
+- ❌ Template-to-instance workflow needs wiring
 
 **Goal State:** Professional form processing application
 - Users can create templates from scratch or imported forms
