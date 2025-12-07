@@ -121,6 +121,41 @@ pub enum AppEvent {
         visible: bool,
     },
 
+    /// Request to toggle visibility of an OCR detection
+    #[cfg(feature = "plugin-layers")]
+    OcrObjectVisibilityToggled {
+        /// Index of the OCR detection
+        index: usize,
+    },
+
+    /// Request to toggle lock state of an OCR detection
+    #[cfg(feature = "plugin-layers")]
+    OcrObjectLockToggled {
+        /// Index of the OCR detection
+        index: usize,
+    },
+
+    /// Request to toggle visibility of a detection object
+    #[cfg(feature = "plugin-layers")]
+    DetectionObjectVisibilityToggled {
+        /// Index of the detection
+        index: usize,
+    },
+
+    /// Request to toggle lock state of a detection object
+    #[cfg(feature = "plugin-layers")]
+    DetectionObjectLockToggled {
+        /// Index of the detection
+        index: usize,
+    },
+
+    /// Request to delete a detection object
+    #[cfg(feature = "plugin-layers")]
+    DetectionObjectDeleteRequested {
+        /// Index of the detection
+        index: usize,
+    },
+
     /// Request to clear the canvas image
     CanvasImageClearRequested,
 
