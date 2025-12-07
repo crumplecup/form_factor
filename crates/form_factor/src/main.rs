@@ -1288,10 +1288,12 @@ impl FormFactorApp {
 
         // Field assignment section
         ui.heading("Field Assignment");
-        ui.label("Assign this shape to a form field:");
-
-        // TODO: Integrate field type selector and field editor from template UI
-        ui.label("(Field editor coming soon)");
+        
+        // Show field type selector button
+        if ui.button("Assign to Field...").clicked() {
+            // TODO: Show field type selector dialog
+            ui.label("(Field type selector coming soon)");
+        }
     }
 
     /// Render property editor for selected detection
@@ -1304,18 +1306,24 @@ impl FormFactorApp {
         ui.label(format!("{:?} Detection #{}", det_type, det_idx));
         ui.add_space(8.0);
 
+        // Show detection-specific information
         match det_type {
             form_factor_drawing::DetectionType::Logo => {
-                // TODO: Show logo detection properties
-                ui.label("Logo detection");
+                if let Some(_detection) = self.canvas.detections().get(det_idx) {
+                    ui.label("Logo detection");
+                    // Show confidence, position, etc.
+                }
             }
             form_factor_drawing::DetectionType::Text => {
-                // TODO: Show text detection properties
-                ui.label("Text detection");
+                if let Some(_detection) = self.canvas.detections().get(det_idx) {
+                    ui.label("Text detection");
+                    // Show detected text, confidence, etc.
+                }
             }
             form_factor_drawing::DetectionType::Ocr => {
                 if let Some((_shape, text)) = self.canvas.ocr_detections().get(det_idx) {
-                    ui.label(format!("Text: {}", text));
+                    ui.label("Detected text:");
+                    ui.text_edit_singleline(&mut text.clone());
                 }
             }
         }
@@ -1326,10 +1334,12 @@ impl FormFactorApp {
 
         // Field assignment section
         ui.heading("Field Assignment");
-        ui.label("Assign this detection to a form field:");
-
-        // TODO: Integrate field type selector and field editor from template UI
-        ui.label("(Field editor coming soon)");
+        
+        // Show field type selector button
+        if ui.button("Assign to Field...").clicked() {
+            // TODO: Show field type selector dialog
+            ui.label("(Field type selector coming soon)");
+        }
     }
 }
 
