@@ -47,6 +47,10 @@ struct FormFactorApp {
     prev_selected_shape: Option<usize>,
     /// Previous selected detection for change detection
     prev_selected_detection: Option<(form_factor_drawing::DetectionType, usize)>,
+    /// Field type selector for assigning fields to shapes/detections
+    field_type_selector: Option<form_factor_drawing::FieldTypeSelector>,
+    /// Whether field type selector dialog is open
+    show_field_selector: bool,
 }
 
 impl FormFactorApp {
@@ -102,6 +106,8 @@ impl FormFactorApp {
             plugin_manager,
             prev_selected_shape: None,
             prev_selected_detection: None,
+            field_type_selector: None,
+            show_field_selector: false,
         }
     }
 
@@ -1125,6 +1131,37 @@ impl App for FormFactorApp {
         #[cfg(feature = "plugins")]
         self.handle_selection_changes();
 
+        // Show field type selector dialog if open
+        if self.show_field_selector {
+            if let Some(selector) = &mut self.field_type_selector {
+                let mut should_close = false;
+                egui::Window::new("Select Field Type")
+                    .collapsible(false)
+                    .resizable(true)
+                    .default_width(400.0)
+                    .show(ctx.egui_ctx(), |ui| {
+                        selector.show(ui);
+                        
+                        ui.separator();
+                        ui.horizontal(|ui| {
+                            if ui.button("Cancel").clicked() {
+                                should_close = true;
+                            }
+                            
+                            if ui.button("Assign").clicked() && selector.selected().is_some() {
+                                // TODO: Actually assign the field to the selected shape/detection
+                                tracing::info!("Assigned field type: {:?}", selector.selected());
+                                should_close = true;
+                            }
+                        });
+                    });
+                    
+                if should_close {
+                    self.show_field_selector = false;
+                }
+            }
+        }
+
         // Render toast notifications (shown on top of everything)
         self.toasts.show(ctx.egui_ctx());
     }
@@ -1250,8 +1287,10 @@ impl FormFactorApp {
         
         // Show field type selector button
         if ui.button("Assign to Field...").clicked() {
-            // TODO: Show field type selector dialog
-            ui.label("(Field type selector coming soon)");
+            self.show_field_selector = true;
+            if self.field_type_selector.is_none() {
+                self.field_type_selector = Some(form_factor_drawing::FieldTypeSelector::new());
+            }
         }
     }
 
@@ -1296,8 +1335,10 @@ impl FormFactorApp {
         
         // Show field type selector button
         if ui.button("Assign to Field...").clicked() {
-            // TODO: Show field type selector dialog
-            ui.label("(Field type selector coming soon)");
+            self.show_field_selector = true;
+            if self.field_type_selector.is_none() {
+                self.field_type_selector = Some(form_factor_drawing::FieldTypeSelector::new());
+            }
         }
     }
 }
