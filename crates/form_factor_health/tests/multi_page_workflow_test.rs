@@ -8,12 +8,11 @@
 
 use form_factor_core::{
     FieldBounds, FieldDefinition, FieldType, FieldValue, FormInstance, FormTemplate,
-    instance::{FieldValueBuilder, FieldValueBuilderError},
 };
-use form_factor_drawing::{DrawingInstance, DrawingTemplate, TemplatePage};
+use form_factor_drawing::{DrawingInstance, DrawingTemplate, FormError, TemplatePage};
 
 #[test]
-fn test_multi_page_workflow() -> Result<(), FieldValueBuilderError> {
+fn test_multi_page_workflow() -> Result<(), FormError> {
     // Step 1: Create a multi-page template (3 pages)
     let page1_field1 = FieldDefinition::builder()
         .id("employee_name")
@@ -188,7 +187,7 @@ fn test_multi_page_workflow() -> Result<(), FieldValueBuilderError> {
     // Step 5: Fill out page 3 (Signature)
     use form_factor_core::FieldContent;
 
-    let signature_value = FieldValueBuilder::default()
+    let signature_value = FieldValue::builder()
         .field_id("signature")
         .content(FieldContent::Signature {
             present: true,
@@ -198,7 +197,12 @@ fn test_multi_page_workflow() -> Result<(), FieldValueBuilderError> {
         .page_index(2_usize)
         .confidence(None)
         .verified(true)
-        .build()?;
+        .build()
+        .map_err(|e| {
+            FormError::new(form_factor_drawing::FormErrorKind::BuilderFailed(
+                e.to_string(),
+            ))
+        })?;
 
     let date_value = FieldValue::new_text(
         "date_signed",

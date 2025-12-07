@@ -6,8 +6,8 @@
 use derive_getters::Getters;
 use derive_setters::Setters;
 use form_factor_drawing::{
-    template_ui::{FieldPropertiesPanel, FieldTypeSelector},
-    DetectionMetadata, FormFieldType, MetadataDetectionType,
+    DetectionMetadata, FieldPropertiesPanel, FieldTypeSelector, FormFieldType,
+    MetadataDetectionType,
 };
 use tracing::{debug, instrument};
 
@@ -97,7 +97,7 @@ impl DetectionPropertiesPanel {
                             .as_ref()
                             .map(|ft| format!("{:?}", ft))
                             .unwrap_or_else(|| "None".to_string());
-                        
+
                         if ui.button(current_text).clicked() {
                             self.show_field_selector = !self.show_field_selector;
                             if self.show_field_selector && self.field_type_selector.is_none() {
@@ -124,28 +124,84 @@ impl DetectionPropertiesPanel {
                                     let mut selected = metadata.form_field_type().clone();
                                     let current = selected.clone();
 
-                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Text), "Text").clicked() {
+                                    if ui
+                                        .selectable_value(
+                                            &mut selected,
+                                            Some(FormFieldType::Text),
+                                            "Text",
+                                        )
+                                        .clicked()
+                                    {
                                         metadata.with_form_field_type(selected.clone());
                                     }
-                                    if ui.selectable_value(&mut selected, Some(FormFieldType::TextArea), "Text Area").clicked() {
+                                    if ui
+                                        .selectable_value(
+                                            &mut selected,
+                                            Some(FormFieldType::TextArea),
+                                            "Text Area",
+                                        )
+                                        .clicked()
+                                    {
                                         metadata.with_form_field_type(selected.clone());
                                     }
-                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Date), "Date").clicked() {
+                                    if ui
+                                        .selectable_value(
+                                            &mut selected,
+                                            Some(FormFieldType::Date),
+                                            "Date",
+                                        )
+                                        .clicked()
+                                    {
                                         metadata.with_form_field_type(selected.clone());
                                     }
-                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Number), "Number").clicked() {
+                                    if ui
+                                        .selectable_value(
+                                            &mut selected,
+                                            Some(FormFieldType::Number),
+                                            "Number",
+                                        )
+                                        .clicked()
+                                    {
                                         metadata.with_form_field_type(selected.clone());
                                     }
-                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Checkbox), "Checkbox").clicked() {
+                                    if ui
+                                        .selectable_value(
+                                            &mut selected,
+                                            Some(FormFieldType::Checkbox),
+                                            "Checkbox",
+                                        )
+                                        .clicked()
+                                    {
                                         metadata.with_form_field_type(selected.clone());
                                     }
-                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Radio), "Radio").clicked() {
+                                    if ui
+                                        .selectable_value(
+                                            &mut selected,
+                                            Some(FormFieldType::Radio),
+                                            "Radio",
+                                        )
+                                        .clicked()
+                                    {
                                         metadata.with_form_field_type(selected.clone());
                                     }
-                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Dropdown), "Dropdown").clicked() {
+                                    if ui
+                                        .selectable_value(
+                                            &mut selected,
+                                            Some(FormFieldType::Dropdown),
+                                            "Dropdown",
+                                        )
+                                        .clicked()
+                                    {
                                         metadata.with_form_field_type(selected.clone());
                                     }
-                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Signature), "Signature").clicked() {
+                                    if ui
+                                        .selectable_value(
+                                            &mut selected,
+                                            Some(FormFieldType::Signature),
+                                            "Signature",
+                                        )
+                                        .clicked()
+                                    {
                                         metadata.with_form_field_type(selected.clone());
                                     }
                                     if ui.selectable_value(&mut selected, None, "None").clicked() {
@@ -163,11 +219,12 @@ impl DetectionPropertiesPanel {
                     // Field configuration when type is selected
                     if metadata.form_field_type().is_some() {
                         ui.separator();
-                        
+
                         // Field name
                         ui.horizontal(|ui| {
                             ui.label("Field Name:");
-                            let mut field_name = metadata.form_field_name().clone().unwrap_or_default();
+                            let mut field_name =
+                                metadata.form_field_name().clone().unwrap_or_default();
                             if ui.text_edit_singleline(&mut field_name).changed() {
                                 metadata.with_form_field_name(Some(field_name));
                                 debug!("Updated form field name");
@@ -186,7 +243,10 @@ impl DetectionPropertiesPanel {
                         // Default value
                         ui.horizontal(|ui| {
                             ui.label("Default Value:");
-                            let mut default_value = metadata.form_field_default_value().clone().unwrap_or_default();
+                            let mut default_value = metadata
+                                .form_field_default_value()
+                                .clone()
+                                .unwrap_or_default();
                             if ui.text_edit_singleline(&mut default_value).changed() {
                                 metadata.with_form_field_default_value(Some(default_value));
                                 debug!("Updated default value");
@@ -196,7 +256,8 @@ impl DetectionPropertiesPanel {
                         // Help text
                         ui.horizontal(|ui| {
                             ui.label("Help Text:");
-                            let mut help_text = metadata.form_field_help_text().clone().unwrap_or_default();
+                            let mut help_text =
+                                metadata.form_field_help_text().clone().unwrap_or_default();
                             if ui.text_edit_singleline(&mut help_text).changed() {
                                 metadata.with_form_field_help_text(Some(help_text));
                                 debug!("Updated help text");
@@ -306,11 +367,8 @@ mod tests {
     #[test]
     fn test_set_metadata() {
         let mut panel = DetectionPropertiesPanel::new();
-        let metadata = DetectionMetadata::new(
-            "det_001".to_string(),
-            MetadataDetectionType::Logo,
-            0.95,
-        );
+        let metadata =
+            DetectionMetadata::new("det_001".to_string(), MetadataDetectionType::Logo, 0.95);
 
         panel.set_metadata(Some(metadata.clone()));
         assert!(panel.metadata().is_some());

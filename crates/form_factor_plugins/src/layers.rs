@@ -101,7 +101,10 @@ impl LayersPlugin {
         let layer_type = self.layers[index].layer_type;
 
         // Check if this layer supports expansion
-        let is_expandable = matches!(layer_type, LayerType::Shapes | LayerType::Detections | LayerType::Canvas);
+        let is_expandable = matches!(
+            layer_type,
+            LayerType::Shapes | LayerType::Detections | LayerType::Canvas
+        );
         let is_expanded = match layer_type {
             LayerType::Shapes => self.shapes_expanded,
             LayerType::Detections => self.detections_expanded,
@@ -290,24 +293,35 @@ impl LayersPlugin {
 
             // Group label with count
             ui.label(format!("{} ({})", label, items.len()));
-            
+
             // Bulk action buttons for subgroup
-            if ui.button("👁").on_hover_text("Toggle visibility for all").clicked() {
+            if ui
+                .button("👁")
+                .on_hover_text("Toggle visibility for all")
+                .clicked()
+            {
                 for &(index, _) in items {
-                    ctx.events.emit(AppEvent::DetectionObjectVisibilityToggled { index });
+                    ctx.events
+                        .emit(AppEvent::DetectionObjectVisibilityToggled { index });
                 }
             }
-            
-            if ui.button("🔒").on_hover_text("Toggle lock for all").clicked() {
+
+            if ui
+                .button("🔒")
+                .on_hover_text("Toggle lock for all")
+                .clicked()
+            {
                 for &(index, _) in items {
-                    ctx.events.emit(AppEvent::DetectionObjectLockToggled { index });
+                    ctx.events
+                        .emit(AppEvent::DetectionObjectLockToggled { index });
                 }
             }
-            
+
             if ui.button("🗑").on_hover_text("Delete all").clicked() {
                 // Delete in reverse order to maintain indices
                 for &(index, _) in items.iter().rev() {
-                    ctx.events.emit(AppEvent::DetectionObjectDeleteRequested { index });
+                    ctx.events
+                        .emit(AppEvent::DetectionObjectDeleteRequested { index });
                 }
             }
         });
@@ -339,24 +353,34 @@ impl LayersPlugin {
 
             // Group label with count
             ui.label(format!("{} ({})", label, items.len()));
-            
+
             // Bulk action buttons for OCR subgroup
-            if ui.button("👁").on_hover_text("Toggle visibility for all").clicked() {
+            if ui
+                .button("👁")
+                .on_hover_text("Toggle visibility for all")
+                .clicked()
+            {
                 for (index, _) in items.iter().enumerate() {
-                    ctx.events.emit(AppEvent::OcrObjectVisibilityToggled { index });
+                    ctx.events
+                        .emit(AppEvent::OcrObjectVisibilityToggled { index });
                 }
             }
-            
-            if ui.button("🔒").on_hover_text("Toggle lock for all").clicked() {
+
+            if ui
+                .button("🔒")
+                .on_hover_text("Toggle lock for all")
+                .clicked()
+            {
                 for (index, _) in items.iter().enumerate() {
                     ctx.events.emit(AppEvent::OcrObjectLockToggled { index });
                 }
             }
-            
+
             if ui.button("🗑").on_hover_text("Delete all").clicked() {
                 // Delete in reverse order to maintain indices
                 for index in (0..items.len()).rev() {
-                    ctx.events.emit(AppEvent::OcrObjectDeleteRequested { index });
+                    ctx.events
+                        .emit(AppEvent::OcrObjectDeleteRequested { index });
                 }
             }
         });

@@ -17,21 +17,21 @@ mod app_mode;
 mod canvas;
 mod detection_metadata;
 mod error;
-pub mod instance;
-pub mod instance_ui;
+mod instance;
+mod instance_ui;
 mod layer;
 mod mode_switcher;
 mod recent_projects;
 mod shape;
-pub mod template;
-pub mod template_ui;
+mod template;
+mod template_ui;
 mod tool;
 
 pub use app_mode::{AppMode, AppState};
 pub use canvas::{
     CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DetectionType, DrawingCanvas,
 };
-pub use detection_metadata::{DetectionMetadata, MetadataDetectionType, FormFieldType};
+pub use detection_metadata::{DetectionMetadata, FormFieldType, MetadataDetectionType};
 pub use error::{FormError, FormErrorKind};
 pub use instance::{
     DrawingInstance, FormPage, InstanceError, InstanceErrorKind, LEGACY_TEMPLATE_ID, ProjectFormat,
@@ -51,8 +51,8 @@ pub use template::{
     TemplatePageBuilder, TemplateRegistry,
 };
 pub use template_ui::{
-    EditorAction, EditorMode, FieldPropertiesPanel, ManagerAction, PropertiesAction,
-    TemplateEditorPanel, TemplateEditorState, TemplateManagerPanel, TemplateManagerState,
-    TemplateSnapshot, TemplateValidator, ValidationError,
+    EditorAction, EditorMode, FieldPropertiesPanel, FieldTypeSelector, ManagerAction,
+    PropertiesAction, TemplateEditorPanel, TemplateEditorState, TemplateManagerPanel,
+    TemplateManagerState, TemplateSnapshot, TemplateValidator, ValidationError,
 };
 pub use tool::ToolMode;

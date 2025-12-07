@@ -1,7 +1,7 @@
 //! Field type selector UI component.
 
 use egui::{Color32, Ui};
-use form_factor_core::template::FieldType;
+use form_factor_core::FieldType;
 use tracing::{debug, instrument};
 
 /// Field type selector widget.

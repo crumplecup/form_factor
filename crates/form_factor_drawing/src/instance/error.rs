@@ -25,8 +25,8 @@ pub enum InstanceErrorKind {
     /// Field not found
     FieldNotFound(String),
 
-    /// Validation failed
-    ValidationFailed(String),
+    /// Builder construction failed
+    BuilderFailed(String),
 
     /// I/O error
     IoError(String),
@@ -53,7 +53,7 @@ impl std::fmt::Display for InstanceErrorKind {
                 write!(f, "Invalid page index {} (max: {})", index, max)
             }
             InstanceErrorKind::FieldNotFound(id) => write!(f, "Field not found: {}", id),
-            InstanceErrorKind::ValidationFailed(msg) => write!(f, "Validation failed: {}", msg),
+            InstanceErrorKind::BuilderFailed(msg) => write!(f, "Builder construction failed: {}", msg),
             InstanceErrorKind::IoError(msg) => write!(f, "I/O error: {}", msg),
             InstanceErrorKind::InvalidInstance(msg) => write!(f, "Invalid instance: {}", msg),
             #[cfg(feature = "ocr")]

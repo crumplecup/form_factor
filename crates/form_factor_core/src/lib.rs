@@ -19,8 +19,8 @@
 mod app;
 mod backend;
 mod error;
-pub mod instance;
-pub mod template;
+mod instance;
+mod template;
 mod template_browser;
 mod template_browser_error;
 

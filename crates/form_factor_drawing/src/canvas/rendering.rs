@@ -263,10 +263,10 @@ impl DrawingCanvas {
                 // Convert detection from image pixel coordinates to canvas coordinates
                 let detection_in_canvas_space =
                     self.map_detection_to_canvas(shape, scale, image_offset);
-                
+
                 // Render the detection box
                 self.render_shape_transformed(&detection_in_canvas_space, &painter, &to_screen);
-                
+
                 // Render text overlay on the detection box
                 self.render_ocr_text(&detection_in_canvas_space, text, &painter, &to_screen);
             }
@@ -1045,10 +1045,16 @@ impl DrawingCanvas {
             Shape::Rectangle(rect) => {
                 let corners = rect.corners();
                 let min_x = corners.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
-                let max_x = corners.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
+                let max_x = corners
+                    .iter()
+                    .map(|p| p.x)
+                    .fold(f32::NEG_INFINITY, f32::max);
                 let min_y = corners.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
-                let max_y = corners.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
-                
+                let max_y = corners
+                    .iter()
+                    .map(|p| p.y)
+                    .fold(f32::NEG_INFINITY, f32::max);
+
                 let center = Pos2::new((min_x + max_x) / 2.0, (min_y + max_y) / 2.0);
                 let size = egui::vec2(max_x - min_x, max_y - min_y);
                 (center, size)
@@ -1065,7 +1071,7 @@ impl DrawingCanvas {
                 let max_x = points.iter().map(|p| p.x).fold(f32::NEG_INFINITY, f32::max);
                 let min_y = points.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
                 let max_y = points.iter().map(|p| p.y).fold(f32::NEG_INFINITY, f32::max);
-                
+
                 let center = Pos2::new((min_x + max_x) / 2.0, (min_y + max_y) / 2.0);
                 let size = egui::vec2(max_x - min_x, max_y - min_y);
                 (center, size)
@@ -1078,24 +1084,29 @@ impl DrawingCanvas {
 
         // Calculate font size to fit the box (adjust based on box height)
         let font_size = (transformed_size.y * 0.7).min(24.0).max(8.0);
-        
+
         // Create text with appropriate font
         let font_id = egui::FontId::proportional(font_size);
         let text_color = Color32::from_rgb(0, 0, 0);
-        
+
         // Calculate text galley for layout
         let galley = painter.layout_no_wrap(text.to_string(), font_id.clone(), text_color);
-        
+
         // Center the text in the box
-        let text_pos = transformed_center - egui::vec2(galley.size().x / 2.0, galley.size().y / 2.0);
-        
+        let text_pos =
+            transformed_center - egui::vec2(galley.size().x / 2.0, galley.size().y / 2.0);
+
         // Draw semi-transparent background for readability
         let bg_rect = egui::Rect::from_min_size(
             text_pos - egui::vec2(2.0, 2.0),
             galley.size() + egui::vec2(4.0, 4.0),
         );
-        painter.rect_filled(bg_rect, 2.0, Color32::from_rgba_premultiplied(255, 255, 255, 200));
-        
+        painter.rect_filled(
+            bg_rect,
+            2.0,
+            Color32::from_rgba_premultiplied(255, 255, 255, 200),
+        );
+
         // Draw the text
         painter.galley(text_pos, galley, text_color);
     }

@@ -1,7 +1,10 @@
 //! Property inspector plugin for editing shape and field properties.
 
-use crate::{detection_properties::DetectionPropertiesPanel, AppEvent, Plugin, PluginContext};
+#[cfg(feature = "plugin-detection")]
+use crate::detection_properties::DetectionPropertiesPanel;
+use crate::{AppEvent, Plugin, PluginContext};
 use egui::{Color32, Ui};
+#[cfg(feature = "plugin-detection")]
 use form_factor_drawing::DetectionMetadata;
 use tracing::instrument;
 
@@ -11,6 +14,7 @@ pub struct PropertiesPlugin {
     name: String,
     enabled: bool,
     selected_item: Option<SelectedItem>,
+    #[cfg(feature = "plugin-detection")]
     detection_panel: DetectionPropertiesPanel,
 }
 
@@ -32,6 +36,7 @@ enum SelectedItem {
         /// Label text
         label: String,
     },
+    #[cfg(feature = "plugin-detection")]
     /// A detection (logo, text, OCR)
     Detection {
         /// Detection metadata
@@ -48,6 +53,7 @@ impl PropertiesPlugin {
             name: "Properties".to_string(),
             enabled: true,
             selected_item: None,
+            #[cfg(feature = "plugin-detection")]
             detection_panel: DetectionPropertiesPanel::new(),
         }
     }
@@ -58,8 +64,9 @@ impl PropertiesPlugin {
         // For now, we'll poll for selection state from events
         // TODO: Implement proper selection tracking
     }
-    
+
     /// Fetches detection metadata from application state.
+    #[cfg(feature = "plugin-detection")]
     fn fetch_detection_metadata(
         &self,
         _detection_id: &str,
@@ -160,6 +167,7 @@ impl Plugin for PropertiesPlugin {
             }) => {
                 Self::render_shape_properties(ui, *id, shape_type, position, size, color, label);
             }
+            #[cfg(feature = "plugin-detection")]
             Some(SelectedItem::Detection { metadata }) => {
                 // Show detection properties panel
                 self.detection_panel.set_metadata(Some(metadata.clone()));
@@ -177,7 +185,7 @@ impl Plugin for PropertiesPlugin {
         }
     }
 
-    fn on_event(&mut self, event: &AppEvent, ctx: &PluginContext) -> Option<AppEvent> {
+    fn on_event(&mut self, event: &AppEvent, _ctx: &PluginContext) -> Option<AppEvent> {
         // Handle selection events
         match event {
             AppEvent::ShapeSelected { index } => {
@@ -192,16 +200,18 @@ impl Plugin for PropertiesPlugin {
                     label: String::new(),
                 });
             }
+            #[cfg(feature = "plugin-detection")]
             AppEvent::DetectionSelected { detection_id } => {
                 tracing::debug!(detection_id, "Detection selected, fetching metadata");
                 // Fetch detection metadata from state
-                if let Some(metadata) = self.fetch_detection_metadata(detection_id, ctx) {
+                if let Some(metadata) = self.fetch_detection_metadata(detection_id, _ctx) {
                     self.selected_item = Some(SelectedItem::Detection { metadata });
                 }
             }
             AppEvent::SelectionCleared => {
                 tracing::debug!("Selection cleared");
                 self.selected_item = None;
+                #[cfg(feature = "plugin-detection")]
                 self.detection_panel.set_metadata(None);
             }
             AppEvent::Custom {
@@ -216,8 +226,6 @@ impl Plugin for PropertiesPlugin {
         }
         None
     }
-    
-
 
     fn is_enabled(&self) -> bool {
         self.enabled

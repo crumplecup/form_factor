@@ -1,6 +1,8 @@
 //! Form Factor - GUI application for tagging scanned forms with OCR metadata
 
-use form_factor::{App, AppContext, DrawingCanvas, Shape};
+use form_factor::{App, AppContext, DrawingCanvas};
+#[cfg(any(feature = "text-detection", feature = "logo-detection"))]
+use form_factor_drawing::Shape;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[cfg(feature = "backend-eframe")]
@@ -861,12 +863,8 @@ impl App for FormFactorApp {
                         // Get form image path and detections for background thread
                         if let Some(form_path) = self.canvas.form_image_path().clone() {
                             // Clone detections to pass to background thread
-                            let detections: Vec<Shape> = self
-                                .canvas
-                                .detections()
-                                .iter()
-                                .cloned()
-                                .collect();
+                            let detections: Vec<Shape> =
+                                self.canvas.detections().iter().cloned().collect();
 
                             let sender = self.plugin_manager.event_bus().sender();
 
@@ -897,13 +895,25 @@ impl App for FormFactorApp {
                                         // Get bounding box from shape
                                         let bbox = match &shape {
                                             Shape::Rectangle(rect) => {
-                                                let xs: Vec<f32> = rect.corners().iter().map(|p| p.x).collect();
-                                                let ys: Vec<f32> = rect.corners().iter().map(|p| p.y).collect();
+                                                let xs: Vec<f32> =
+                                                    rect.corners().iter().map(|p| p.x).collect();
+                                                let ys: Vec<f32> =
+                                                    rect.corners().iter().map(|p| p.y).collect();
 
-                                                let x_min = xs.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
-                                                let y_min = ys.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
-                                                let x_max = xs.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
-                                                let y_max = ys.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+                                                let x_min =
+                                                    xs.iter().fold(f32::INFINITY, |a, &b| a.min(b))
+                                                        as u32;
+                                                let y_min =
+                                                    ys.iter().fold(f32::INFINITY, |a, &b| a.min(b))
+                                                        as u32;
+                                                let x_max = xs
+                                                    .iter()
+                                                    .fold(f32::NEG_INFINITY, |a, &b| a.max(b))
+                                                    as u32;
+                                                let y_max = ys
+                                                    .iter()
+                                                    .fold(f32::NEG_INFINITY, |a, &b| a.max(b))
+                                                    as u32;
 
                                                 let width = x_max.saturating_sub(x_min);
                                                 let height = y_max.saturating_sub(y_min);
@@ -922,14 +932,27 @@ impl App for FormFactorApp {
                                             }
                                             Shape::Polygon(poly) => {
                                                 // Get coords from geo polygon
-                                                let coords: Vec<_> = poly.polygon().exterior().coords().collect();
-                                                let xs: Vec<f32> = coords.iter().map(|c| c.x as f32).collect();
-                                                let ys: Vec<f32> = coords.iter().map(|c| c.y as f32).collect();
+                                                let coords: Vec<_> =
+                                                    poly.polygon().exterior().coords().collect();
+                                                let xs: Vec<f32> =
+                                                    coords.iter().map(|c| c.x as f32).collect();
+                                                let ys: Vec<f32> =
+                                                    coords.iter().map(|c| c.y as f32).collect();
 
-                                                let x_min = xs.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
-                                                let y_min = ys.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
-                                                let x_max = xs.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
-                                                let y_max = ys.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+                                                let x_min =
+                                                    xs.iter().fold(f32::INFINITY, |a, &b| a.min(b))
+                                                        as u32;
+                                                let y_min =
+                                                    ys.iter().fold(f32::INFINITY, |a, &b| a.min(b))
+                                                        as u32;
+                                                let x_max = xs
+                                                    .iter()
+                                                    .fold(f32::NEG_INFINITY, |a, &b| a.max(b))
+                                                    as u32;
+                                                let y_max = ys
+                                                    .iter()
+                                                    .fold(f32::NEG_INFINITY, |a, &b| a.max(b))
+                                                    as u32;
 
                                                 let width = x_max.saturating_sub(x_min);
                                                 let height = y_max.saturating_sub(y_min);
@@ -946,7 +969,10 @@ impl App for FormFactorApp {
                                                 }
                                             }
                                             Err(e) => {
-                                                tracing::warn!("Failed to extract text from region: {}", e);
+                                                tracing::warn!(
+                                                    "Failed to extract text from region: {}",
+                                                    e
+                                                );
                                             }
                                         }
                                     }
@@ -960,9 +986,7 @@ impl App for FormFactorApp {
                                 match result {
                                     Ok(results_json) => {
                                         tracing::info!("OCR extraction complete");
-                                        let _ = sender.send(AppEvent::OcrComplete {
-                                            results_json,
-                                        });
+                                        let _ = sender.send(AppEvent::OcrComplete { results_json });
                                     }
                                     Err(e) => {
                                         tracing::error!("OCR extraction failed: {}", e);
