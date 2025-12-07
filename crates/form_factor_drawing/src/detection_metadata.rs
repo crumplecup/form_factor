@@ -83,6 +83,30 @@ pub struct DetectionMetadata {
     #[setters(doc = "Sets the form field name")]
     form_field_name: Option<String>,
     
+    /// Whether the form field is required
+    #[setters(doc = "Sets required status")]
+    form_field_required: Option<bool>,
+    
+    /// Default value for the form field
+    #[setters(doc = "Sets default value")]
+    form_field_default_value: Option<String>,
+    
+    /// Help text for the form field
+    #[setters(doc = "Sets help text")]
+    form_field_help_text: Option<String>,
+    
+    /// Options for dropdown/radio fields
+    #[setters(doc = "Sets field options")]
+    form_field_options: Option<Vec<String>>,
+    
+    /// Minimum value for number fields
+    #[setters(doc = "Sets minimum value")]
+    form_field_min: Option<f64>,
+    
+    /// Maximum value for number fields
+    #[setters(doc = "Sets maximum value")]
+    form_field_max: Option<f64>,
+    
     /// User notes
     #[setters(doc = "Sets notes")]
     notes: Option<String>,
@@ -108,6 +132,12 @@ impl DetectionMetadata {
             extracted_text: None,
             form_field_type: None,
             form_field_name: None,
+            form_field_required: None,
+            form_field_default_value: None,
+            form_field_help_text: None,
+            form_field_options: None,
+            form_field_min: None,
+            form_field_max: None,
             notes: None,
             custom_metadata: HashMap::new(),
             validated: false,

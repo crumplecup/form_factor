@@ -5,25 +5,39 @@
 
 use derive_getters::Getters;
 use derive_setters::Setters;
-use form_factor_drawing::{DetectionMetadata, FormFieldType, MetadataDetectionType};
+use form_factor_drawing::{
+    template_ui::{FieldPropertiesPanel, FieldTypeSelector},
+    DetectionMetadata, FormFieldType, MetadataDetectionType,
+};
 use tracing::{debug, instrument};
 
 /// Detection properties editor panel
-#[derive(Debug, Clone, Getters, Setters)]
+#[derive(Debug, Getters, Setters)]
 #[setters(prefix = "with_", borrow_self)]
 pub struct DetectionPropertiesPanel {
     /// Current detection metadata being edited
     metadata: Option<DetectionMetadata>,
     /// Whether the panel is expanded
     expanded: bool,
+    /// Field type selector widget
+    field_type_selector: Option<FieldTypeSelector>,
+    /// Field properties editor
+    field_properties_panel: Option<FieldPropertiesPanel>,
+    /// Whether to show field type selector
+    show_field_selector: bool,
 }
 
 impl DetectionPropertiesPanel {
     /// Creates a new detection properties panel.
+    #[instrument]
     pub fn new() -> Self {
+        debug!("Creating detection properties panel");
         Self {
             metadata: None,
             expanded: true,
+            field_type_selector: None,
+            field_properties_panel: None,
+            show_field_selector: false,
         }
     }
 
@@ -75,32 +89,82 @@ impl DetectionPropertiesPanel {
 
                 // Form field association
                 ui.collapsing("Form Field Association", |ui| {
+                    // Field type selection button
                     ui.horizontal(|ui| {
                         ui.label("Field Type:");
-                        let current_type = metadata.form_field_type().clone();
-                        let mut selected = current_type.clone();
-
-                        egui::ComboBox::from_label("")
-                            .selected_text(format!("{:?}", selected.as_ref().unwrap_or(&FormFieldType::Text)))
-                            .show_ui(ui, |ui| {
-                                ui.selectable_value(&mut selected, Some(FormFieldType::Text), "Text");
-                                ui.selectable_value(&mut selected, Some(FormFieldType::TextArea), "Text Area");
-                                ui.selectable_value(&mut selected, Some(FormFieldType::Date), "Date");
-                                ui.selectable_value(&mut selected, Some(FormFieldType::Number), "Number");
-                                ui.selectable_value(&mut selected, Some(FormFieldType::Checkbox), "Checkbox");
-                                ui.selectable_value(&mut selected, Some(FormFieldType::Radio), "Radio");
-                                ui.selectable_value(&mut selected, Some(FormFieldType::Dropdown), "Dropdown");
-                                ui.selectable_value(&mut selected, Some(FormFieldType::Signature), "Signature");
-                                ui.selectable_value(&mut selected, None, "None");
-                            });
-
-                        if selected != current_type {
-                            metadata.with_form_field_type(selected.clone());
-                            debug!(?selected, "Updated form field type");
+                        let current_text = metadata
+                            .form_field_type()
+                            .as_ref()
+                            .map(|ft| format!("{:?}", ft))
+                            .unwrap_or_else(|| "None".to_string());
+                        
+                        if ui.button(current_text).clicked() {
+                            self.show_field_selector = !self.show_field_selector;
+                            if self.show_field_selector && self.field_type_selector.is_none() {
+                                self.field_type_selector = Some(FieldTypeSelector::new());
+                            }
                         }
                     });
 
+                    // Show field type selector popup when enabled
+                    if self.show_field_selector {
+                        if self.field_type_selector.is_some() {
+                            ui.separator();
+                            // TODO: Convert between form_factor_core::FieldType and FormFieldType
+                            // For now, use basic combo box until types are unified
+                            egui::ComboBox::from_label("Select Field Type")
+                                .selected_text(
+                                    metadata
+                                        .form_field_type()
+                                        .as_ref()
+                                        .map(|ft| format!("{:?}", ft))
+                                        .unwrap_or_else(|| "None".to_string()),
+                                )
+                                .show_ui(ui, |ui| {
+                                    let mut selected = metadata.form_field_type().clone();
+                                    let current = selected.clone();
+
+                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Text), "Text").clicked() {
+                                        metadata.with_form_field_type(selected.clone());
+                                    }
+                                    if ui.selectable_value(&mut selected, Some(FormFieldType::TextArea), "Text Area").clicked() {
+                                        metadata.with_form_field_type(selected.clone());
+                                    }
+                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Date), "Date").clicked() {
+                                        metadata.with_form_field_type(selected.clone());
+                                    }
+                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Number), "Number").clicked() {
+                                        metadata.with_form_field_type(selected.clone());
+                                    }
+                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Checkbox), "Checkbox").clicked() {
+                                        metadata.with_form_field_type(selected.clone());
+                                    }
+                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Radio), "Radio").clicked() {
+                                        metadata.with_form_field_type(selected.clone());
+                                    }
+                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Dropdown), "Dropdown").clicked() {
+                                        metadata.with_form_field_type(selected.clone());
+                                    }
+                                    if ui.selectable_value(&mut selected, Some(FormFieldType::Signature), "Signature").clicked() {
+                                        metadata.with_form_field_type(selected.clone());
+                                    }
+                                    if ui.selectable_value(&mut selected, None, "None").clicked() {
+                                        metadata.with_form_field_type(None);
+                                    }
+
+                                    if selected != current {
+                                        debug!(?selected, "Updated form field type");
+                                        self.show_field_selector = false;
+                                    }
+                                });
+                        }
+                    }
+
+                    // Field configuration when type is selected
                     if metadata.form_field_type().is_some() {
+                        ui.separator();
+                        
+                        // Field name
                         ui.horizontal(|ui| {
                             ui.label("Field Name:");
                             let mut field_name = metadata.form_field_name().clone().unwrap_or_default();
@@ -109,6 +173,87 @@ impl DetectionPropertiesPanel {
                                 debug!("Updated form field name");
                             }
                         });
+
+                        // Required checkbox
+                        ui.horizontal(|ui| {
+                            let mut required = metadata.form_field_required().unwrap_or(false);
+                            if ui.checkbox(&mut required, "Required field").changed() {
+                                metadata.with_form_field_required(Some(required));
+                                debug!(required, "Updated required status");
+                            }
+                        });
+
+                        // Default value
+                        ui.horizontal(|ui| {
+                            ui.label("Default Value:");
+                            let mut default_value = metadata.form_field_default_value().clone().unwrap_or_default();
+                            if ui.text_edit_singleline(&mut default_value).changed() {
+                                metadata.with_form_field_default_value(Some(default_value));
+                                debug!("Updated default value");
+                            }
+                        });
+
+                        // Help text
+                        ui.horizontal(|ui| {
+                            ui.label("Help Text:");
+                            let mut help_text = metadata.form_field_help_text().clone().unwrap_or_default();
+                            if ui.text_edit_singleline(&mut help_text).changed() {
+                                metadata.with_form_field_help_text(Some(help_text));
+                                debug!("Updated help text");
+                            }
+                        });
+
+                        // Type-specific configuration
+                        match metadata.form_field_type() {
+                            Some(FormFieldType::Dropdown) | Some(FormFieldType::Radio) => {
+                                ui.separator();
+                                ui.label("Options (one per line):");
+                                let mut options_text = metadata
+                                    .form_field_options()
+                                    .as_ref()
+                                    .map(|opts| opts.join("\n"))
+                                    .unwrap_or_default();
+                                if ui.text_edit_multiline(&mut options_text).changed() {
+                                    let options: Vec<String> = options_text
+                                        .lines()
+                                        .map(|s| s.trim().to_string())
+                                        .filter(|s| !s.is_empty())
+                                        .collect();
+                                    metadata.with_form_field_options(Some(options));
+                                    debug!("Updated field options");
+                                }
+                            }
+                            Some(FormFieldType::Number) => {
+                                ui.separator();
+                                ui.horizontal(|ui| {
+                                    ui.label("Min:");
+                                    let mut min_str = metadata
+                                        .form_field_min()
+                                        .map(|v| v.to_string())
+                                        .unwrap_or_default();
+                                    if ui.text_edit_singleline(&mut min_str).changed() {
+                                        if let Ok(min) = min_str.parse::<f64>() {
+                                            metadata.with_form_field_min(Some(min));
+                                            debug!(min, "Updated min value");
+                                        }
+                                    }
+                                });
+                                ui.horizontal(|ui| {
+                                    ui.label("Max:");
+                                    let mut max_str = metadata
+                                        .form_field_max()
+                                        .map(|v| v.to_string())
+                                        .unwrap_or_default();
+                                    if ui.text_edit_singleline(&mut max_str).changed() {
+                                        if let Ok(max) = max_str.parse::<f64>() {
+                                            metadata.with_form_field_max(Some(max));
+                                            debug!(max, "Updated max value");
+                                        }
+                                    }
+                                });
+                            }
+                            _ => {}
+                        }
                     }
                 });
 
