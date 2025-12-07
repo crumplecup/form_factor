@@ -209,22 +209,24 @@ impl App for FormFactorApp {
                     AppEvent::OpenFileRequested => {
                         FileEventHandler::handle_open_requested(
                             &mut self.canvas,
-                            self.plugin_manager.event_bus().sender(),
+                            &self.plugin_manager.event_bus().sender(),
                             ctx.egui_ctx(),
                         );
                     }
                     AppEvent::SaveFileRequested => {
+                        let project_name = self.canvas.project_name().to_string();
                         FileEventHandler::handle_save_requested(
                             &mut self.canvas,
-                            self.plugin_manager.event_bus().sender(),
-                            self.canvas.project_name(),
+                            &self.plugin_manager.event_bus().sender(),
+                            &project_name,
                         );
                     }
                     AppEvent::SaveAsRequested => {
+                        let project_name = self.canvas.project_name().to_string();
                         FileEventHandler::handle_save_as_requested(
                             &mut self.canvas,
-                            self.plugin_manager.event_bus().sender(),
-                            self.canvas.project_name(),
+                            &self.plugin_manager.event_bus().sender(),
+                            &project_name,
                         );
                     }
                     AppEvent::LoadImageRequested => {
