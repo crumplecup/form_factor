@@ -3,14 +3,14 @@
 //! These tests validate serialization, deserialization, and API contracts
 //! that are critical for real-world usage.
 
-use form_factor::{LayerError, LayerManager, LayerType};
+use form_factor::{FormError, LayerError, LayerManager, LayerType};
 
 // ============================================================================
 // High Priority: Serialization/Deserialization Tests
 // ============================================================================
 
 #[test]
-fn serialization_roundtrip_preserves_all_data() -> Result<(), Box<dyn std::error::Error>> {
+fn serialization_roundtrip_preserves_all_data() -> Result<(), FormError> {
     let mut manager = LayerManager::new();
 
     // Modify state
@@ -44,7 +44,7 @@ fn serialization_roundtrip_preserves_all_data() -> Result<(), Box<dyn std::error
 }
 
 #[test]
-fn serialization_format_is_stable() -> Result<(), Box<dyn std::error::Error>> {
+fn serialization_format_is_stable() -> Result<(), FormError> {
     let manager = LayerManager::new();
     let json = serde_json::to_string_pretty(&manager)?;
 
@@ -59,7 +59,7 @@ fn serialization_format_is_stable() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn deserialization_validates_layer_integrity() -> Result<(), Box<dyn std::error::Error>> {
+fn deserialization_validates_layer_integrity() -> Result<(), FormError> {
     let manager = LayerManager::new();
     let json = serde_json::to_string(&manager)?;
     let restored: LayerManager =
@@ -71,7 +71,7 @@ fn deserialization_validates_layer_integrity() -> Result<(), Box<dyn std::error:
 }
 
 #[test]
-fn deserialization_handles_extra_fields() -> Result<(), Box<dyn std::error::Error>> {
+fn deserialization_handles_extra_fields() -> Result<(), FormError> {
     // JSON with extra unknown fields (forward compatibility)
     let json = r#"{
         "layers": {
@@ -122,7 +122,7 @@ fn deserialization_handles_extra_fields() -> Result<(), Box<dyn std::error::Erro
 }
 
 #[test]
-fn serialization_preserves_custom_layer_names() -> Result<(), Box<dyn std::error::Error>> {
+fn serialization_preserves_custom_layer_names() -> Result<(), FormError> {
     let mut manager = LayerManager::new();
 
     // Customize all layer names
@@ -161,7 +161,7 @@ fn serialization_preserves_custom_layer_names() -> Result<(), Box<dyn std::error
 }
 
 #[test]
-fn multiple_serialization_roundtrips_are_stable() -> Result<(), Box<dyn std::error::Error>> {
+fn multiple_serialization_roundtrips_are_stable() -> Result<(), FormError> {
     let mut manager = LayerManager::new();
     manager.set_visible(LayerType::Grid, true);
     manager.set_locked(LayerType::Canvas, true);
@@ -398,7 +398,7 @@ fn validation_succeeds_after_modifications() {
 }
 
 #[test]
-fn validation_succeeds_after_deserialization() -> Result<(), Box<dyn std::error::Error>> {
+fn validation_succeeds_after_deserialization() -> Result<(), FormError> {
     let json = r#"{
         "layers": {
             "Canvas": {"name": "Canvas", "layer_type": "Canvas", "visible": true, "locked": false},

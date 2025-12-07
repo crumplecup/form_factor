@@ -2,7 +2,7 @@
 //!
 //! Tests validate ToolMode enum behavior, serialization, and trait implementations.
 
-use form_factor::ToolMode;
+use form_factor::{FormError, ToolMode};
 use strum::IntoEnumIterator;
 
 // ============================================================================
@@ -183,7 +183,7 @@ fn copy_semantic_allows_reuse() {
 // ============================================================================
 
 #[test]
-fn serialization_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
+fn serialization_roundtrip() -> Result<(), FormError> {
     for tool in ToolMode::iter() {
         let json = serde_json::to_string(&tool)?;
         let restored: ToolMode =
@@ -194,14 +194,14 @@ fn serialization_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[test]
-fn serialization_format() -> Result<(), Box<dyn std::error::Error>> {
+fn serialization_format() -> Result<(), FormError> {
     let json = serde_json::to_string(&ToolMode::Rectangle)?;
     assert_eq!(json, r#""Rectangle""#);
     Ok(())
 }
 
 #[test]
-fn deserialization_from_string() -> Result<(), Box<dyn std::error::Error>> {
+fn deserialization_from_string() -> Result<(), FormError> {
     let tool: ToolMode =
         serde_json::from_str(r#""Select""#)?;
     assert_eq!(tool, ToolMode::Select);
@@ -219,7 +219,7 @@ fn deserialization_fails_for_invalid_tool() {
 }
 
 #[test]
-fn multiple_serialization_roundtrips_are_stable() -> Result<(), Box<dyn std::error::Error>> {
+fn multiple_serialization_roundtrips_are_stable() -> Result<(), FormError> {
     let mut tool = ToolMode::Rotate;
 
     for _ in 0..5 {

@@ -4,7 +4,7 @@
 //! focusing on pure business logic without GUI dependencies.
 
 use egui::{Color32, Pos2, Stroke};
-use form_factor::{Circle, PolygonShape, Rectangle, Shape, ShapeErrorKind};
+use form_factor::{Circle, FormError, PolygonShape, Rectangle, Shape, ShapeErrorKind};
 use std::f32::consts::PI;
 
 // ============================================================================
@@ -203,7 +203,7 @@ fn error_captures_location_info() {
 // ============================================================================
 
 #[test]
-fn rectangle_creates_from_corners() {
+fn rectangle_creates_from_corners() -> Result<(), FormError> {
     let stroke = Stroke::new(2.0, Color32::RED);
     let fill = Color32::BLUE;
 
@@ -218,10 +218,11 @@ fn rectangle_creates_from_corners() {
     assert_eq!(corners[1], Pos2::new(10.0, 0.0)); // top-right
     assert_eq!(corners[2], Pos2::new(10.0, 20.0)); // bottom-right
     assert_eq!(corners[3], Pos2::new(0.0, 20.0)); // bottom-left
+    Ok(())
 }
 
 #[test]
-fn rectangle_creates_from_four_corners() {
+fn rectangle_creates_from_four_corners() -> Result<(), FormError> {
     let stroke = Stroke::new(2.0, Color32::RED);
     let fill = Color32::BLUE;
 
@@ -236,10 +237,11 @@ fn rectangle_creates_from_four_corners() {
         ?;
 
     assert_eq!(rect.corners(), &corners);
+    Ok(())
 }
 
 #[test]
-fn rectangle_normalizes_corners() {
+fn rectangle_normalizes_corners() -> Result<(), FormError> {
     let stroke = Stroke::new(2.0, Color32::RED);
     let fill = Color32::BLUE;
 
@@ -251,6 +253,7 @@ fn rectangle_normalizes_corners() {
     // Should still produce correctly ordered corners
     assert_eq!(corners[0], Pos2::new(0.0, 0.0)); // top-left
     assert_eq!(corners[2], Pos2::new(10.0, 20.0)); // bottom-right
+    Ok(())
 }
 
 #[test]

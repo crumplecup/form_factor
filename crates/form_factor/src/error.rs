@@ -513,6 +513,18 @@ impl From<std::io::Error> for FormError {
     }
 }
 
+// Convert from serde_json::Error
+impl From<serde_json::Error> for FormError {
+    fn from(err: serde_json::Error) -> Self {
+        ConfigError::new(
+            format!("JSON error: {}", err),
+            line!(),
+            file!(),
+        )
+        .into()
+    }
+}
+
 // ============================================================================
 // Convenience Macros
 // ============================================================================

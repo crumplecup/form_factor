@@ -109,7 +109,7 @@ fn test_zoom_level_modification() {
 }
 
 #[test]
-fn test_shape_addition() -> Result<(), Box<dyn std::error::Error>> {
+fn test_shape_addition() -> Result<(), form_factor::FormError> {
     use egui::{Color32, Pos2, Stroke};
     use form_factor_drawing::{Circle, Rectangle};
 
@@ -168,7 +168,7 @@ fn test_shapes_on_shapes_layer() {
 }
 
 #[test]
-fn test_detections_separate_from_shapes() -> Result<(), Box<dyn std::error::Error>> {
+fn test_detections_separate_from_shapes() -> Result<(), form_factor::FormError> {
     use egui::{Color32, Pos2, Stroke};
     use form_factor_drawing::Rectangle;
 

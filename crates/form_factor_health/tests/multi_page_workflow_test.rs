@@ -6,13 +6,14 @@
 //! - Navigate between pages
 //! - Validate the complete instance
 
+use form_factor::FormError;
 use form_factor_core::{
     FieldBounds, FieldDefinition, FieldType, FieldValue, FormInstance, FormTemplate,
 };
 use form_factor_drawing::{DrawingInstance, DrawingTemplate, TemplatePage};
 
 #[test]
-fn test_multi_page_workflow() -> Result<(), Box<dyn std::error::Error>> {
+fn test_multi_page_workflow() -> Result<(), FormError> {
     // Step 1: Create a multi-page template (3 pages)
     let page1_field1 = FieldDefinition::builder()
         .id("employee_name")
