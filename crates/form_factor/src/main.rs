@@ -892,7 +892,11 @@ impl App for FormFactorApp {
                                     self.toasts.success(format!(
                                         "OCR complete: extracted text from {} region{}",
                                         self.canvas.ocr_detections().len(),
-                                        if self.canvas.ocr_detections().len() == 1 { "" } else { "s" }
+                                        if self.canvas.ocr_detections().len() == 1 {
+                                            ""
+                                        } else {
+                                            "s"
+                                        }
                                     ));
                                 }
                                 Err(e) => {

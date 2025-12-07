@@ -60,6 +60,12 @@ impl Plugin for DetectionPlugin {
                     debug!("Logo detection requested");
                     ctx.events.emit(AppEvent::LogoDetectionRequested);
                 }
+
+                #[cfg(feature = "plugin-ocr")]
+                if ui.button("Extract Text (OCR)").clicked() {
+                    debug!("OCR extraction requested");
+                    ctx.events.emit(AppEvent::OcrExtractionRequested);
+                }
             });
 
             ui.separator();

@@ -249,7 +249,13 @@ impl LayersPlugin {
             let ocr_detections = canvas.ocr_detections();
 
             // Render Logos group
-            Self::render_detection_subtype_static(ui, "Logos", &logos, &mut self.logos_expanded, ctx);
+            Self::render_detection_subtype_static(
+                ui,
+                "Logos",
+                &logos,
+                &mut self.logos_expanded,
+                ctx,
+            );
 
             // Render Text group
             Self::render_detection_subtype_static(ui, "Text", &text, &mut self.text_expanded, ctx);
@@ -347,7 +353,8 @@ impl LayersPlugin {
                 // Delete button
                 if ui.button("🗑").on_hover_text("Delete OCR result").clicked() {
                     debug!(index = index, text = text, "OCR delete requested");
-                    ctx.events.emit(AppEvent::OcrObjectDeleteRequested { index });
+                    ctx.events
+                        .emit(AppEvent::OcrObjectDeleteRequested { index });
                 }
 
                 // Visibility toggle

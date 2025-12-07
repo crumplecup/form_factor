@@ -57,7 +57,10 @@ impl DrawingCanvas {
 
     /// Clear all OCR detections
     pub fn clear_ocr_detections(&mut self) {
-        debug!("Clearing OCR detections: count={}", self.ocr_detections.len());
+        debug!(
+            "Clearing OCR detections: count={}",
+            self.ocr_detections.len()
+        );
         self.ocr_detections.clear();
     }
 
@@ -210,7 +213,10 @@ impl DrawingCanvas {
             Ok(())
         } else {
             Err(CanvasError::new(
-                CanvasErrorKind::InvalidShape(format!("OCR detection index {} out of bounds", index)),
+                CanvasErrorKind::InvalidShape(format!(
+                    "OCR detection index {} out of bounds",
+                    index
+                )),
                 line!(),
                 file!(),
             ))
