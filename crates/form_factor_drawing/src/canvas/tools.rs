@@ -263,6 +263,29 @@ impl DrawingCanvas {
             return;
         }
 
+        // First check detection boxes (they should be on top)
+        // Check OCR detections
+        for (idx, (shape, _text)) in self.ocr_detections().iter().enumerate().rev() {
+            if shape.contains_point(pos) {
+                debug!(idx, "OCR detection selected");
+                self.with_selected_detection(Some((crate::DetectionType::Ocr, idx)));
+                self.set_show_properties(true);
+                return;
+            }
+        }
+
+        // Check regular detections (logos and text from detection plugins)
+        // TODO: Need to distinguish between logo and text detections
+        // For now, treat them all as text detections
+        for (idx, shape) in self.detections().iter().enumerate().rev() {
+            if shape.contains_point(pos) {
+                debug!(idx, "Detection selected");
+                self.with_selected_detection(Some((crate::DetectionType::Text, idx)));
+                self.set_show_properties(true);
+                return;
+            }
+        }
+
         // Find the topmost shape that contains the click point
         // Iterate in reverse to select the most recently drawn shape first
         let mut selected = None;

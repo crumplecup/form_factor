@@ -17,6 +17,17 @@ fn default_true() -> bool {
     true
 }
 
+/// Type of detection that can be selected
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum DetectionType {
+    /// Logo detection
+    Logo,
+    /// Text detection
+    Text,
+    /// OCR detection
+    Ocr,
+}
+
 /// Kinds of errors that can occur in canvas operations
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CanvasErrorKind {
@@ -255,6 +266,10 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     #[setters(skip)]
     pub(super) selected_shape: Option<usize>,
+    /// Currently selected detection (type and index)
+    #[serde(skip)]
+    #[setters(doc = "Sets the selected detection")]
+    pub(super) selected_detection: Option<(DetectionType, usize)>,
     /// Currently selected layer type
     #[serde(skip)]
     #[setters(doc = "Sets the selected layer type")]
@@ -351,6 +366,7 @@ impl Default for DrawingCanvas {
             selected_field: None,
             state: CanvasState::default(),
             selected_shape: None,
+            selected_detection: None,
             selected_layer: None,
             show_properties: false,
             focus_name_field: false,

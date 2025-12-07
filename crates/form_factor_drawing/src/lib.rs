@@ -27,7 +27,9 @@ pub mod template_ui;
 mod tool;
 
 pub use app_mode::{AppMode, AppState};
-pub use canvas::{CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DrawingCanvas};
+pub use canvas::{
+    CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DetectionType, DrawingCanvas,
+};
 pub use error::{FormError, FormErrorKind};
 pub use instance::{
     DrawingInstance, FormPage, InstanceError, InstanceErrorKind, LEGACY_TEMPLATE_ID, ProjectFormat,
