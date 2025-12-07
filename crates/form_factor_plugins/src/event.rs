@@ -121,6 +121,9 @@ pub enum AppEvent {
         visible: bool,
     },
 
+    /// Request to clear the canvas image
+    CanvasImageClearRequested,
+
     /// Detection operation has started
     DetectionStarted {
         /// Type of detection starting

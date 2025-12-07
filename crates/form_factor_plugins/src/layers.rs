@@ -52,6 +52,8 @@ pub struct LayersPlugin {
     text_expanded: bool,
     /// Whether the OCR subtype is expanded
     ocr_expanded: bool,
+    /// Whether the Images layer is expanded to show individual images
+    images_expanded: bool,
 }
 
 impl LayersPlugin {
@@ -77,6 +79,7 @@ impl LayersPlugin {
             logos_expanded: false,
             text_expanded: false,
             ocr_expanded: false,
+            images_expanded: false,
         }
     }
 
@@ -98,10 +101,11 @@ impl LayersPlugin {
         let layer_type = self.layers[index].layer_type;
 
         // Check if this layer supports expansion
-        let is_expandable = matches!(layer_type, LayerType::Shapes | LayerType::Detections);
+        let is_expandable = matches!(layer_type, LayerType::Shapes | LayerType::Detections | LayerType::Canvas);
         let is_expanded = match layer_type {
             LayerType::Shapes => self.shapes_expanded,
             LayerType::Detections => self.detections_expanded,
+            LayerType::Canvas => self.images_expanded,
             _ => false,
         };
 
@@ -119,6 +123,7 @@ impl LayersPlugin {
                             LayerType::Detections => {
                                 self.detections_expanded = !self.detections_expanded
                             }
+                            LayerType::Canvas => self.images_expanded = !self.images_expanded,
                             _ => {}
                         }
                     }
@@ -200,6 +205,7 @@ impl LayersPlugin {
         match layer_type {
             LayerType::Shapes => self.render_shapes_list(ui, ctx),
             LayerType::Detections => self.render_detections_groups(ui, ctx),
+            LayerType::Canvas => self.render_canvas_image(ui, ctx),
             _ => {}
         }
     }
@@ -429,6 +435,42 @@ impl LayersPlugin {
                 }
             });
         });
+    }
+
+    /// Renders the canvas image (if loaded).
+    fn render_canvas_image(&self, ui: &mut egui::Ui, ctx: &PluginContext) {
+        if let Some(canvas) = ctx.canvas {
+            // Check if a form image is loaded
+            if let Some(path) = canvas.form_image_path() {
+                // Extract just the filename from the path
+                let filename = std::path::Path::new(path)
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or(path);
+
+                ui.horizontal(|ui| {
+                    ui.add_space(40.0); // Indent
+
+                    // Display image filename
+                    ui.label(filename);
+
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        // Delete/clear button
+                        if ui.button("🗑").on_hover_text("Clear canvas image").clicked() {
+                            debug!(path = path, "Canvas image clear requested");
+                            ctx.events.emit(AppEvent::CanvasImageClearRequested);
+                        }
+
+                        // Note: Canvas image visibility is controlled by the Canvas layer toggle
+                    });
+                });
+            } else {
+                ui.horizontal(|ui| {
+                    ui.add_space(40.0); // Indent
+                    ui.label(egui::RichText::new("(no image loaded)").weak());
+                });
+            }
+        }
     }
 }
 
