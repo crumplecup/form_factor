@@ -518,6 +518,18 @@ impl App for FormFactorApp {
                             }
                         }
                     }
+                    #[cfg(feature = "plugin-layers")]
+                    AppEvent::OcrObjectDeleteRequested { index } => {
+                        tracing::info!(index, "Deleting OCR detection");
+                        self.canvas.delete_ocr_detection(*index);
+                    }
+                    #[cfg(feature = "plugin-layers")]
+                    AppEvent::OcrObjectVisibilityChanged { index, visible } => {
+                        tracing::info!(index, visible, "Changing OCR detection visibility");
+                        if let Err(e) = self.canvas.set_ocr_detection_visibility(*index, *visible) {
+                            tracing::error!("Failed to change OCR detection visibility: {}", e);
+                        }
+                    }
                     AppEvent::OpenFileRequested => {
                         if let Some(path) = rfd::FileDialog::new()
                             .add_filter("Form Factor Project", &["ffp"])
@@ -868,24 +880,20 @@ impl App for FormFactorApp {
                                         "Extracted text from {} detections",
                                         results.len()
                                     );
-                                    let texts: Vec<String> = results
-                                        .iter()
-                                        .map(|(_, result)| result.text().trim().to_string())
-                                        .collect();
+
+                                    // Clear old OCR detections and add new ones with text
+                                    self.canvas.clear_ocr_detections();
+                                    for (shape, result) in results {
+                                        let text = result.text().trim().to_string();
+                                        self.canvas.add_ocr_detection(shape, text);
+                                    }
 
                                     // Show success toast
                                     self.toasts.success(format!(
                                         "OCR complete: extracted text from {} region{}",
-                                        results.len(),
-                                        if results.len() == 1 { "" } else { "s" }
+                                        self.canvas.ocr_detections().len(),
+                                        if self.canvas.ocr_detections().len() == 1 { "" } else { "s" }
                                     ));
-
-                                    // Emit custom event with extracted text
-                                    if let Ok(event) =
-                                        AppEvent::custom("ocr", "text_extracted", &texts)
-                                    {
-                                        self.plugin_manager.event_bus().sender().emit(event);
-                                    }
                                 }
                                 Err(e) => {
                                     tracing::error!("Failed to extract text: {}", e);

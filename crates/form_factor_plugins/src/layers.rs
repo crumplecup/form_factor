@@ -247,11 +247,6 @@ impl LayersPlugin {
 
             // Get OCR detections (stored separately with text)
             let ocr_detections = canvas.ocr_detections();
-            let ocr: Vec<_> = ocr_detections
-                .iter()
-                .enumerate()
-                .map(|(i, (shape, _text))| (i, shape))
-                .collect();
 
             // Render Logos group
             Self::render_detection_subtype_static(ui, "Logos", &logos, &mut self.logos_expanded, ctx);

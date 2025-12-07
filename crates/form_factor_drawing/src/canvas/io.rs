@@ -122,6 +122,24 @@ impl DrawingCanvas {
         }
     }
 
+    /// Delete an OCR detection at the specified index
+    ///
+    /// # Arguments
+    /// * `index` - Index of the OCR detection to delete
+    #[instrument(skip(self))]
+    pub fn delete_ocr_detection(&mut self, index: usize) {
+        if index < self.ocr_detections.len() {
+            debug!(index, "Deleting OCR detection");
+            self.ocr_detections.remove(index);
+        } else {
+            warn!(
+                index,
+                count = self.ocr_detections.len(),
+                "OCR detection index out of bounds"
+            );
+        }
+    }
+
     /// Set visibility for a shape at the specified index
     ///
     /// # Arguments
@@ -166,6 +184,33 @@ impl DrawingCanvas {
         } else {
             Err(CanvasError::new(
                 CanvasErrorKind::InvalidShape(format!("Detection index {} out of bounds", index)),
+                line!(),
+                file!(),
+            ))
+        }
+    }
+
+    /// Set visibility for an OCR detection at the specified index
+    ///
+    /// # Arguments
+    /// * `index` - Index of the OCR detection
+    /// * `visible` - Whether the OCR detection should be visible
+    ///
+    /// # Errors
+    /// Returns an error if the index is out of bounds
+    #[instrument(skip(self))]
+    pub fn set_ocr_detection_visibility(
+        &mut self,
+        index: usize,
+        visible: bool,
+    ) -> Result<(), CanvasError> {
+        if index < self.ocr_detections.len() {
+            debug!(index, visible, "Setting OCR detection visibility");
+            self.ocr_detections[index].0.set_visible(visible);
+            Ok(())
+        } else {
+            Err(CanvasError::new(
+                CanvasErrorKind::InvalidShape(format!("OCR detection index {} out of bounds", index)),
                 line!(),
                 file!(),
             ))
@@ -421,7 +466,7 @@ impl DrawingCanvas {
     pub fn extract_text_from_detections(
         &self,
         ocr: &form_factor_ocr::OCREngine,
-    ) -> Result<Vec<(usize, form_factor_ocr::OCRResult)>, CanvasError> {
+    ) -> Result<Vec<(Shape, form_factor_ocr::OCRResult)>, CanvasError> {
         let form_path = self.form_image_path.as_ref().ok_or_else(|| {
             CanvasError::new(CanvasErrorKind::NoFormImageLoaded, line!(), file!())
         })?;
@@ -439,7 +484,7 @@ impl DrawingCanvas {
                         result.text().len(),
                         result.confidence()
                     );
-                    results.push((idx, result));
+                    results.push((detection.clone(), result));
                 }
                 Err(e) => {
                     warn!("Failed to extract text from detection {}: {}", idx, e);
