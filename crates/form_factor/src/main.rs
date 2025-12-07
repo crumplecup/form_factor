@@ -23,6 +23,9 @@ use form_factor_plugins::DetectionPlugin;
 #[cfg(all(feature = "plugins", feature = "plugin-properties"))]
 use form_factor_plugins::PropertiesPlugin;
 
+#[cfg(feature = "plugins")]
+use form_factor_plugins::TemplateBrowserPlugin;
+
 /// Main application struct
 struct FormFactorApp {
     name: String,
@@ -33,6 +36,9 @@ struct FormFactorApp {
     data_entry_panel: Option<form_factor::DataEntryPanel>,
     /// Instance manager panel for creating and managing instances
     instance_manager_panel: Option<form_factor::InstanceManagerPanel>,
+    /// Template browser for template management
+    #[cfg(feature = "plugins")]
+    template_browser: Option<TemplateBrowserPlugin>,
     /// Toast notifications for user feedback
     toasts: egui_notify::Toasts,
     #[cfg(feature = "plugins")]
@@ -89,6 +95,8 @@ impl FormFactorApp {
             mode_switcher: form_factor::ModeSwitcher::new(),
             data_entry_panel: None,
             instance_manager_panel: None,
+            #[cfg(feature = "plugins")]
+            template_browser: None,
             toasts: egui_notify::Toasts::default(),
             #[cfg(feature = "plugins")]
             plugin_manager,
@@ -197,85 +205,36 @@ impl FormFactorApp {
 
     /// Render the template manager mode layout
     fn render_template_manager_mode(&mut self, ctx: &AppContext) {
-        use form_factor::{InstanceManagerAction, InstanceManagerPanel};
-        use std::collections::HashMap;
+        #[cfg(feature = "plugins")]
+        {
+            // Create template browser if it doesn't exist
+            if self.template_browser.is_none() {
+                self.template_browser = Some(TemplateBrowserPlugin::new());
+                tracing::info!("Created template browser");
+            }
 
-        // Create instance manager panel if it doesn't exist
-        if self.instance_manager_panel.is_none() {
-            // TODO: Load templates and instances from file system
-            let templates = HashMap::new();
-            let instances = HashMap::new();
+            // Render template browser in right panel
+            if let Some(browser) = &mut self.template_browser {
+                browser.show(ctx.egui_ctx());
+            }
 
-            self.instance_manager_panel = Some(InstanceManagerPanel::new(templates, instances));
-            tracing::info!("Created instance manager panel");
-        }
-
-        // Render instance manager panel and handle actions
-        let mut action = InstanceManagerAction::None;
-        if let Some(panel) = &mut self.instance_manager_panel {
+            // Render canvas in central panel for template viewing/editing
             egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
-                action = panel.ui(ui);
+                self.canvas.ui(ui);
             });
         }
 
-        // Handle instance manager actions
-        match action {
-            InstanceManagerAction::CreateInstance { template_id } => {
-                tracing::info!(template_id, "Creating new instance from template");
-                if let Some(panel) = &self.instance_manager_panel
-                    && let Some(template) = panel.get_template(&template_id)
-                {
-                    let instance = self.create_instance_from_template(template);
-                    self.app_state.set_current_template(Some(template.clone()));
-                    self.app_state.set_current_instance(Some(instance));
-
-                    // Transition to instance filling mode
-                    if let Err(e) = self
-                        .app_state
-                        .transition_to(form_factor::AppMode::InstanceFilling)
-                    {
-                        tracing::error!("Failed to transition to instance filling mode: {}", e);
-                    } else {
-                        // Clear the instance manager panel for next time
-                        self.instance_manager_panel = None;
-                    }
-                }
-            }
-            InstanceManagerAction::LoadInstance { instance_id } => {
-                tracing::info!(instance_id, "Loading instance for editing");
-                if let Some(panel) = &self.instance_manager_panel
-                    && let Some(instance) = panel.get_instance(&instance_id)
-                {
-                    let template_id = instance.template_id();
-                    if let Some(template) = panel.get_template(template_id) {
-                        self.app_state.set_current_template(Some(template.clone()));
-                        self.app_state.set_current_instance(Some(instance.clone()));
-
-                        // Transition to instance filling mode
-                        if let Err(e) = self
-                            .app_state
-                            .transition_to(form_factor::AppMode::InstanceFilling)
-                        {
-                            tracing::error!("Failed to transition to instance filling mode: {}", e);
-                        } else {
-                            // Clear the instance manager panel for next time
-                            self.instance_manager_panel = None;
-                        }
-                    }
-                }
-            }
-            InstanceManagerAction::DeleteInstance { instance_id } => {
-                tracing::info!(instance_id, "Deleting instance");
-                if let Some(panel) = &mut self.instance_manager_panel {
-                    panel.remove_instance(&instance_id);
-                    // TODO: Delete from file system
-                }
-            }
-            InstanceManagerAction::None => {}
+        #[cfg(not(feature = "plugins"))]
+        {
+            egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
+                ui.label("Template manager requires plugins feature");
+            });
         }
     }
 
     /// Create a new instance from a template
+    /// TODO: This will be used when InstanceManager mode is fully implemented
+    #[allow(dead_code)]
     fn create_instance_from_template(
         &self,
         template: &form_factor::DrawingTemplate,

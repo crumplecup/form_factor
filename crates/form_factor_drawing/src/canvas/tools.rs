@@ -389,7 +389,9 @@ impl DrawingCanvas {
             self.with_selected_layer(Some(LayerType::Shapes));
             Some(SelectionResult::Shape { index: idx })
         } else {
-            debug!("No shape selected - clearing selection");
+            debug!("No shape selected - clearing all selections");
+            // Clear detection selection too when clicking empty space
+            self.with_selected_detection(None);
             None
         }
     }
