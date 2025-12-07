@@ -549,12 +549,8 @@ impl App for FormFactorApp {
                     }
                     #[cfg(feature = "text-detection")]
                     AppEvent::TextDetectionRequested => {
-                        // Emit started event
-                        self.plugin_manager.event_bus().sender().emit(
-                            AppEvent::DetectionStarted {
-                                detection_type: "text".to_string(),
-                            },
-                        );
+                        // Show toast immediately that detection started
+                        self.toasts.info("Text detection started...");
 
                         // Get form image path for background thread
                         if let Some(form_path) = self.canvas.form_image_path().as_ref().map(|s| s.clone()) {
@@ -643,12 +639,8 @@ impl App for FormFactorApp {
                     }
                     #[cfg(feature = "logo-detection")]
                     AppEvent::LogoDetectionRequested => {
-                        // Emit started event
-                        self.plugin_manager.event_bus().sender().emit(
-                            AppEvent::DetectionStarted {
-                                detection_type: "logo".to_string(),
-                            },
-                        );
+                        // Show toast immediately that detection started
+                        self.toasts.info("Logo detection started...");
 
                         // Get form image path for background thread
                         if let Some(form_path) = self.canvas.form_image_path().as_ref().map(|s| s.clone()) {
@@ -812,16 +804,6 @@ impl App for FormFactorApp {
                                 tracing::error!("Failed to initialize OCR engine: {}", e);
                             }
                         }
-                    }
-                    AppEvent::DetectionStarted { detection_type } => {
-                        // Show toast notification that detection started
-                        self.toasts.info(format!("{} detection started...",
-                            match detection_type.as_str() {
-                                "text" => "Text",
-                                "logo" => "Logo",
-                                _ => "Detection",
-                            }
-                        ));
                     }
                     AppEvent::DetectionComplete { count, detection_type } => {
                         // Show success toast with count
