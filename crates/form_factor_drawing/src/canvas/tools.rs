@@ -31,6 +31,24 @@ pub enum SelectionResult {
     },
 }
 
+impl SelectionResult {
+    /// Get the shape index if this is a shape selection
+    pub fn shape_index(&self) -> Option<usize> {
+        match self {
+            Self::Shape { index } => Some(*index),
+            _ => None,
+        }
+    }
+
+    /// Get the detection ID if this is a detection selection
+    pub fn detection_id(&self) -> Option<&str> {
+        match self {
+            Self::Detection { detection_id } => Some(detection_id),
+            _ => None,
+        }
+    }
+}
+
 impl DrawingCanvas {
     /// Handle input events for the current tool mode
     ///
@@ -89,11 +107,19 @@ impl DrawingCanvas {
                     if let Some(pos) = response.interact_pointer_pos() {
                         let canvas_pos = transform_pos(pos);
                         trace!(?pos, ?canvas_pos, "Using interact_pointer_pos");
-                        self.handle_selection_click(canvas_pos);
+                        let selection = self.handle_selection_click(canvas_pos);
+                        if let Some(sel) = selection {
+                            debug!(?sel, "Selection made");
+                            self.current_selection = Some(sel);
+                        }
                     } else if let Some(pos) = response.hover_pos() {
                         let canvas_pos = transform_pos(pos);
                         trace!(?pos, ?canvas_pos, "Using hover_pos fallback");
-                        self.handle_selection_click(canvas_pos);
+                        let selection = self.handle_selection_click(canvas_pos);
+                        if let Some(sel) = selection {
+                            debug!(?sel, "Selection made");
+                            self.current_selection = Some(sel);
+                        }
                     } else {
                         debug!("No position available for click");
                     }

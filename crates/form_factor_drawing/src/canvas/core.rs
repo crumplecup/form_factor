@@ -275,6 +275,10 @@ pub struct DrawingCanvas {
     #[serde(skip)]
     #[setters(doc = "Sets the selected detection")]
     pub(super) selected_detection: Option<(DetectionType, usize)>,
+    /// Current selection result (unified selection tracking)
+    #[serde(skip)]
+    #[setters(skip)]
+    pub(super) current_selection: Option<crate::SelectionResult>,
     /// Currently selected layer type
     #[serde(skip)]
     #[setters(doc = "Sets the selected layer type")]
@@ -373,6 +377,7 @@ impl Default for DrawingCanvas {
             state: CanvasState::default(),
             selected_shape: None,
             selected_detection: None,
+            current_selection: None,
             selected_layer: None,
             show_properties: false,
             focus_name_field: false,

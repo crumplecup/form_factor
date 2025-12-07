@@ -30,6 +30,7 @@ mod tool;
 pub use app_mode::{AppMode, AppState};
 pub use canvas::{
     CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DetectionType, DrawingCanvas,
+    SelectionResult,
 };
 pub use detection_metadata::{DetectionMetadata, FormFieldType, MetadataDetectionType};
 pub use error::{FormError, FormErrorKind};
