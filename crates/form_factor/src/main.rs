@@ -20,7 +20,7 @@ use detection_tasks::TextDetectionTask;
 use detection_tasks::LogoDetectionTask;
 #[cfg(feature = "ocr")]
 use detection_tasks::OcrExtractionTask;
-use event_handlers::{CanvasEventHandler, FileEventHandler, LayerEventHandler};
+use event_handlers::{CanvasEventHandler, FileEventHandler, LayerEventHandler, ObjectEventHandler};
 use file_dialogs::FileDialogs;
 #[cfg(feature = "plugins")]
 use plugin_setup::PluginSetup;
@@ -175,70 +175,35 @@ impl App for FormFactorApp {
                         layer_type,
                         object_index,
                     } => {
-                        use form_factor::LayerType;
-                        tracing::info!(?layer_type, object_index, "Deleting object from layer");
-                        match layer_type {
-                            LayerType::Shapes => {
-                                self.canvas.delete_shape(*object_index);
-                            }
-                            LayerType::Detections => {
-                                self.canvas.delete_detection(*object_index);
-                            }
-                            _ => {
-                                tracing::warn!(
-                                    ?layer_type,
-                                    "Layer does not support object deletion"
-                                );
-                            }
-                        }
+                        ObjectEventHandler::handle_delete_requested(
+                            &mut self.canvas,
+                            layer_type,
+                            *object_index,
+                        );
                     }
                     AppEvent::ObjectVisibilityChanged {
                         layer_type,
                         object_index,
                         visible,
                     } => {
-                        use form_factor::LayerType;
-                        tracing::info!(
-                            ?layer_type,
-                            object_index,
-                            visible,
-                            "Changing object visibility"
+                        ObjectEventHandler::handle_visibility_changed(
+                            &mut self.canvas,
+                            layer_type,
+                            *object_index,
+                            *visible,
                         );
-                        match layer_type {
-                            LayerType::Shapes => {
-                                if let Err(e) =
-                                    self.canvas.set_shape_visibility(*object_index, *visible)
-                                {
-                                    tracing::error!("Failed to set shape visibility: {}", e);
-                                }
-                            }
-                            LayerType::Detections => {
-                                if let Err(e) = self
-                                    .canvas
-                                    .set_detection_visibility(*object_index, *visible)
-                                {
-                                    tracing::error!("Failed to set detection visibility: {}", e);
-                                }
-                            }
-                            _ => {
-                                tracing::warn!(
-                                    ?layer_type,
-                                    "Layer does not support object visibility"
-                                );
-                            }
-                        }
                     }
                     #[cfg(feature = "plugin-layers")]
                     AppEvent::OcrObjectDeleteRequested { index } => {
-                        tracing::info!(index, "Deleting OCR detection");
-                        self.canvas.delete_ocr_detection(*index);
+                        ObjectEventHandler::handle_ocr_delete_requested(&mut self.canvas, *index);
                     }
                     #[cfg(feature = "plugin-layers")]
                     AppEvent::OcrObjectVisibilityChanged { index, visible } => {
-                        tracing::info!(index, visible, "Changing OCR detection visibility");
-                        if let Err(e) = self.canvas.set_ocr_detection_visibility(*index, *visible) {
-                            tracing::error!("Failed to change OCR detection visibility: {}", e);
-                        }
+                        ObjectEventHandler::handle_ocr_visibility_changed(
+                            &mut self.canvas,
+                            *index,
+                            *visible,
+                        );
                     }
                     AppEvent::OpenFileRequested => {
                         FileEventHandler::handle_open_requested(
