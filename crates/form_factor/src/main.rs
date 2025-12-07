@@ -14,6 +14,8 @@ use form_factor::{App, AppContext, DrawingCanvas};
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
 use form_factor_drawing::Shape;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+#[cfg(feature = "text-detection")]
+use detection_tasks::TextDetectionTask;
 use file_dialogs::FileDialogs;
 #[cfg(feature = "plugins")]
 use plugin_setup::PluginSetup;
@@ -408,87 +410,7 @@ impl App for FormFactorApp {
                         // Get form image path for background thread
                         if let Some(form_path) = self.canvas.form_image_path().clone() {
                             let sender = self.plugin_manager.event_bus().sender();
-
-                            // Spawn background thread for text detection
-                            std::thread::spawn(move || {
-                                use egui::{Color32, Pos2, Stroke};
-                                use form_factor::{Rectangle, Shape};
-                                use form_factor_cv::TextDetector;
-
-                                tracing::info!("Starting text detection in background thread");
-
-                                // Perform detection in background
-                                let result = (|| -> Result<Vec<Shape>, String> {
-                                    // Create text detector
-                                    let detector = TextDetector::new(
-                                        "models/DB_TD500_resnet50.onnx".to_string(),
-                                    )
-                                    .map_err(|e| format!("Failed to create detector: {}", e))?;
-
-                                    // Detect text regions
-                                    let regions = detector
-                                        .detect_from_file(&form_path, 0.5)
-                                        .map_err(|e| format!("Detection failed: {}", e))?;
-
-                                    // Convert to shapes
-                                    let mut shapes = Vec::new();
-                                    for (i, region) in regions.iter().enumerate() {
-                                        let top_left =
-                                            Pos2::new(*region.x() as f32, *region.y() as f32);
-                                        let bottom_right = Pos2::new(
-                                            (*region.x() + *region.width()) as f32,
-                                            (*region.y() + *region.height()) as f32,
-                                        );
-
-                                        let stroke =
-                                            Stroke::new(2.0, Color32::from_rgb(255, 165, 0));
-                                        let fill = Color32::TRANSPARENT;
-
-                                        if let Ok(mut rect) = Rectangle::from_corners(
-                                            top_left,
-                                            bottom_right,
-                                            stroke,
-                                            fill,
-                                        ) {
-                                            rect.set_name(format!(
-                                                "Text Region {} ({:.2}%)",
-                                                i + 1,
-                                                *region.confidence() * 100.0
-                                            ));
-                                            shapes.push(Shape::Rectangle(rect));
-                                        }
-                                    }
-
-                                    Ok(shapes)
-                                })();
-
-                                match result {
-                                    Ok(shapes) => {
-                                        let count = shapes.len();
-                                        tracing::info!("Detected {} text regions", count);
-
-                                        // Serialize shapes as JSON
-                                        if let Ok(shapes_json) = serde_json::to_string(&shapes) {
-                                            sender.emit(AppEvent::DetectionResultsReady {
-                                                detection_type: "text".to_string(),
-                                                shapes_json,
-                                            });
-                                        }
-
-                                        sender.emit(AppEvent::DetectionComplete {
-                                            count,
-                                            detection_type: "text".to_string(),
-                                        });
-                                    }
-                                    Err(e) => {
-                                        tracing::error!("Text detection failed: {}", e);
-                                        sender.emit(AppEvent::DetectionFailed {
-                                            detection_type: "text".to_string(),
-                                            error: e,
-                                        });
-                                    }
-                                }
-                            });
+                            TextDetectionTask::spawn(form_path, sender);
                         } else {
                             tracing::error!("No form image loaded for text detection");
                             self.plugin_manager.event_bus().sender().emit(
