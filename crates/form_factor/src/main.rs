@@ -14,6 +14,7 @@ use form_factor::{App, AppContext, DrawingCanvas};
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
 use form_factor_drawing::Shape;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use file_dialogs::FileDialogs;
 use ui_properties::PropertyRenderer;
 
 #[cfg(feature = "backend-eframe")]
@@ -377,9 +378,7 @@ impl App for FormFactorApp {
                         }
                     }
                     AppEvent::OpenFileRequested => {
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("Form Factor Project", &["ffp"])
-                            .pick_file()
+                        if let Some(path) = FileDialogs::open_project()
                             && let Some(path_str) = path.to_str()
                         {
                             match self.canvas.load_from_file(path_str, ctx.egui_ctx()) {
@@ -399,10 +398,7 @@ impl App for FormFactorApp {
                     }
                     AppEvent::SaveFileRequested => {
                         // Save to current file or show save dialog
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("Form Factor Project", &["ffp"])
-                            .set_file_name(format!("{}.ffp", self.canvas.project_name()))
-                            .save_file()
+                        if let Some(path) = FileDialogs::save_project(self.canvas.project_name())
                             && let Some(path_str) = path.to_str()
                         {
                             match self.canvas.save_to_file(path_str) {
@@ -420,10 +416,7 @@ impl App for FormFactorApp {
                         }
                     }
                     AppEvent::SaveAsRequested => {
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("Form Factor Project", &["ffp"])
-                            .set_file_name(format!("{}.ffp", self.canvas.project_name()))
-                            .save_file()
+                        if let Some(path) = FileDialogs::save_project(self.canvas.project_name())
                             && let Some(path_str) = path.to_str()
                         {
                             match self.canvas.save_to_file(path_str) {
@@ -441,9 +434,7 @@ impl App for FormFactorApp {
                         }
                     }
                     AppEvent::LoadImageRequested => {
-                        if let Some(path) = rfd::FileDialog::new()
-                            .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
-                            .pick_file()
+                        if let Some(path) = FileDialogs::load_image()
                             && let Some(path_str) = path.to_str()
                         {
                             match self.canvas.load_form_image(path_str, ctx.egui_ctx()) {
