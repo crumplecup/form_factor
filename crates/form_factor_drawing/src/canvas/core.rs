@@ -137,6 +137,8 @@ pub enum DetectionSubtype {
     Logos,
     /// Text detections
     Text,
+    /// OCR detections
+    Ocr,
 }
 
 /// Template editing mode
