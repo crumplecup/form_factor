@@ -34,6 +34,8 @@ struct FormFactorApp {
     data_entry_panel: Option<form_factor::DataEntryPanel>,
     /// Instance manager panel for creating and managing instances
     instance_manager_panel: Option<form_factor::InstanceManagerPanel>,
+    /// Toast notifications for user feedback
+    toasts: egui_notify::Toasts,
     #[cfg(feature = "plugins")]
     plugin_manager: form_factor::PluginManager,
 }
@@ -90,6 +92,7 @@ impl FormFactorApp {
             mode_switcher: form_factor::ModeSwitcher::new(),
             data_entry_panel: None,
             instance_manager_panel: None,
+            toasts: egui_notify::Toasts::default(),
             #[cfg(feature = "plugins")]
             plugin_manager,
         }
@@ -810,6 +813,41 @@ impl App for FormFactorApp {
                             }
                         }
                     }
+                    AppEvent::DetectionStarted { detection_type } => {
+                        // Show toast notification that detection started
+                        self.toasts.info(format!("{} detection started...",
+                            match detection_type.as_str() {
+                                "text" => "Text",
+                                "logo" => "Logo",
+                                _ => "Detection",
+                            }
+                        ));
+                    }
+                    AppEvent::DetectionComplete { count, detection_type } => {
+                        // Show success toast with count
+                        self.toasts.success(format!(
+                            "{} detection complete: found {} region{}",
+                            match detection_type.as_str() {
+                                "text" => "Text",
+                                "logo" => "Logo",
+                                _ => "Detection",
+                            },
+                            count,
+                            if *count == 1 { "" } else { "s" }
+                        ));
+                    }
+                    AppEvent::DetectionFailed { detection_type, error } => {
+                        // Show error toast
+                        self.toasts.error(format!(
+                            "{} detection failed: {}",
+                            match detection_type.as_str() {
+                                "text" => "Text",
+                                "logo" => "Logo",
+                                _ => "Detection",
+                            },
+                            error
+                        ));
+                    }
                     AppEvent::DetectionResultsReady {
                         detection_type,
                         shapes_json,
@@ -878,6 +916,9 @@ impl App for FormFactorApp {
                 });
             }
         }
+
+        // Render toast notifications (shown on top of everything)
+        self.toasts.show(ctx.egui_ctx());
     }
 
     fn on_exit(&mut self) {

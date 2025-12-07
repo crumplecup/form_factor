@@ -1152,6 +1152,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "egui-notify"
+version = "0.21.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e8d811c81c13fbce131116eeb6b228086f2c7eb6e4105e03ceb3a358c53c1668"
+dependencies = [
+ "egui",
+]
+
+[[package]]
 name = "egui-wgpu"
 version = "0.33.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1462,6 +1471,7 @@ dependencies = [
  "derive_more",
  "dotenvy",
  "egui",
+ "egui-notify",
  "form_factor_backends",
  "form_factor_core",
  "form_factor_cv",

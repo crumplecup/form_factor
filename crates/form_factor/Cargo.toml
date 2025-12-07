@@ -25,6 +25,7 @@ form_factor_plugins = { workspace = true, optional = true }
 
 # Direct dependencies for error types and demo app
 egui = { workspace = true }
+egui-notify = { workspace = true }
 thiserror = { workspace = true }
 derive_more = { workspace = true }
 dotenvy = { workspace = true }
