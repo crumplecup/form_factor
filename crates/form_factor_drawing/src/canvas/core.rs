@@ -409,8 +409,8 @@ impl DrawingCanvas {
         self.focus_name_field = focus;
     }
 
-    /// Add a shape to the shapes vector (for use within canvas module)
-    pub(super) fn add_shape(&mut self, shape: Shape) {
+    /// Add a shape to the shapes vector
+    pub fn add_shape(&mut self, shape: Shape) {
         self.shapes.push(shape);
     }
 
