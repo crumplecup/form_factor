@@ -18,6 +18,8 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use detection_tasks::TextDetectionTask;
 #[cfg(feature = "logo-detection")]
 use detection_tasks::LogoDetectionTask;
+#[cfg(feature = "ocr")]
+use detection_tasks::OcrExtractionTask;
 use file_dialogs::FileDialogs;
 #[cfg(feature = "plugins")]
 use plugin_setup::PluginSetup;
@@ -451,138 +453,9 @@ impl App for FormFactorApp {
                         if let Some(form_path) = self.canvas.form_image_path().clone() {
                             // Clone detections to pass to background thread
                             let detections: Vec<Shape> = self.canvas.detections().to_vec();
-
                             let sender = self.plugin_manager.event_bus().sender();
-
-                            // Spawn background thread for OCR extraction
-                            std::thread::spawn(move || {
-                                use form_factor::{OCRConfig, OCREngine, PageSegmentationMode};
-                                use image;
-
-                                tracing::info!("Starting OCR extraction in background thread");
-
-                                // Perform OCR in background
-                                let result = (|| -> Result<String, String> {
-                                    // Load the image
-                                    let img = image::open(&form_path)
-                                        .map_err(|e| format!("Failed to load image: {}", e))?;
-
-                                    // Create OCR engine
-                                    let ocr = OCREngine::new(
-                                        OCRConfig::new()
-                                            .with_psm(PageSegmentationMode::Auto)
-                                            .with_min_confidence(60),
-                                    )
-                                    .map_err(|e| format!("Failed to create OCR engine: {}", e))?;
-
-                                    // Extract text from each detection
-                                    let mut results = Vec::new();
-                                    for shape in detections {
-                                        // Get bounding box from shape
-                                        let bbox = match &shape {
-                                            Shape::Rectangle(rect) => {
-                                                let xs: Vec<f32> =
-                                                    rect.corners().iter().map(|p| p.x).collect();
-                                                let ys: Vec<f32> =
-                                                    rect.corners().iter().map(|p| p.y).collect();
-
-                                                let x_min =
-                                                    xs.iter().fold(f32::INFINITY, |a, &b| a.min(b))
-                                                        as u32;
-                                                let y_min =
-                                                    ys.iter().fold(f32::INFINITY, |a, &b| a.min(b))
-                                                        as u32;
-                                                let x_max = xs
-                                                    .iter()
-                                                    .fold(f32::NEG_INFINITY, |a, &b| a.max(b))
-                                                    as u32;
-                                                let y_max = ys
-                                                    .iter()
-                                                    .fold(f32::NEG_INFINITY, |a, &b| a.max(b))
-                                                    as u32;
-
-                                                let width = x_max.saturating_sub(x_min);
-                                                let height = y_max.saturating_sub(y_min);
-
-                                                (x_min, y_min, width, height)
-                                            }
-                                            Shape::Circle(circle) => {
-                                                let center = circle.center();
-                                                let radius = circle.radius();
-                                                let x_min = (center.x - radius) as u32;
-                                                let y_min = (center.y - radius) as u32;
-                                                let width = (radius * 2.0) as u32;
-                                                let height = (radius * 2.0) as u32;
-
-                                                (x_min, y_min, width, height)
-                                            }
-                                            Shape::Polygon(poly) => {
-                                                // Get coords from geo polygon
-                                                let coords: Vec<_> =
-                                                    poly.polygon().exterior().coords().collect();
-                                                let xs: Vec<f32> =
-                                                    coords.iter().map(|c| c.x as f32).collect();
-                                                let ys: Vec<f32> =
-                                                    coords.iter().map(|c| c.y as f32).collect();
-
-                                                let x_min =
-                                                    xs.iter().fold(f32::INFINITY, |a, &b| a.min(b))
-                                                        as u32;
-                                                let y_min =
-                                                    ys.iter().fold(f32::INFINITY, |a, &b| a.min(b))
-                                                        as u32;
-                                                let x_max = xs
-                                                    .iter()
-                                                    .fold(f32::NEG_INFINITY, |a, &b| a.max(b))
-                                                    as u32;
-                                                let y_max = ys
-                                                    .iter()
-                                                    .fold(f32::NEG_INFINITY, |a, &b| a.max(b))
-                                                    as u32;
-
-                                                let width = x_max.saturating_sub(x_min);
-                                                let height = y_max.saturating_sub(y_min);
-
-                                                (x_min, y_min, width, height)
-                                            }
-                                        };
-
-                                        match ocr.extract_text_from_region(&img, bbox) {
-                                            Ok(result) => {
-                                                let text = result.text().trim().to_string();
-                                                if !text.is_empty() {
-                                                    results.push((shape, text));
-                                                }
-                                            }
-                                            Err(e) => {
-                                                tracing::warn!(
-                                                    "Failed to extract text from region: {}",
-                                                    e
-                                                );
-                                            }
-                                        }
-                                    }
-
-                                    // Serialize results to JSON
-                                    serde_json::to_string(&results)
-                                        .map_err(|e| format!("Failed to serialize results: {}", e))
-                                })();
-
-                                // Send result back to main thread
-                                match result {
-                                    Ok(results_json) => {
-                                        tracing::info!("OCR extraction complete");
-                                        let _ = sender.send(AppEvent::OcrComplete { results_json });
-                                    }
-                                    Err(e) => {
-                                        tracing::error!("OCR extraction failed: {}", e);
-                                        let _ = sender.send(AppEvent::DetectionFailed {
-                                            detection_type: "ocr".to_string(),
-                                            error: e,
-                                        });
-                                    }
-                                }
-                            });
+                            
+                            OcrExtractionTask::spawn(form_path, detections, sender);
                         } else {
                             self.toasts.error("No image loaded");
                         }

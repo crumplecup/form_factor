@@ -1,8 +1,8 @@
 //! Background detection task spawning
 
-#[cfg(any(feature = "text-detection", feature = "logo-detection"))]
+#[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
 use form_factor::AppEvent;
-#[cfg(any(feature = "text-detection", feature = "logo-detection"))]
+#[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
 use form_factor_plugins::EventSender;
 use tracing::instrument;
 
@@ -237,5 +237,147 @@ impl LogoDetectionTask {
         }
 
         Ok(shapes)
+    }
+}
+
+/// OCR extraction task
+#[cfg(feature = "ocr")]
+pub struct OcrExtractionTask;
+
+#[cfg(feature = "ocr")]
+impl OcrExtractionTask {
+    /// Spawn background thread for OCR extraction
+    #[instrument(skip(sender, detections), fields(form_path, detection_count = detections.len()))]
+    pub fn spawn(form_path: String, detections: Vec<form_factor::Shape>, sender: EventSender) {
+        tracing::info!("Spawning OCR extraction background task");
+
+        std::thread::spawn(move || {
+            tracing::debug!("OCR extraction thread started");
+
+            match Self::run_extraction(&form_path, detections) {
+                Ok(results_json) => {
+                    tracing::info!("OCR extraction complete");
+                    let _ = sender.send(AppEvent::OcrComplete { results_json });
+                }
+                Err(e) => {
+                    tracing::error!(error = %e, "OCR extraction failed");
+                    let _ = sender.send(AppEvent::DetectionFailed {
+                        detection_type: "ocr".to_string(),
+                        error: e,
+                    });
+                }
+            }
+        });
+    }
+
+    /// Run OCR extraction on detections
+    #[instrument(skip(detections), fields(form_path, detection_count = detections.len()))]
+    fn run_extraction(
+        form_path: &str,
+        detections: Vec<form_factor::Shape>,
+    ) -> Result<String, String> {
+        use form_factor::{OCRConfig, OCREngine, PageSegmentationMode, Shape};
+        use image;
+
+        tracing::debug!("Loading image");
+
+        // Load the image
+        let img = image::open(form_path).map_err(|e| {
+            tracing::error!(error = %e, "Failed to load image");
+            format!("Failed to load image: {}", e)
+        })?;
+
+        tracing::debug!("Creating OCR engine");
+
+        // Create OCR engine
+        let ocr = OCREngine::new(
+            OCRConfig::new()
+                .with_psm(PageSegmentationMode::Auto)
+                .with_min_confidence(60),
+        )
+        .map_err(|e| {
+            tracing::error!(error = %e, "Failed to create OCR engine");
+            format!("Failed to create OCR engine: {}", e)
+        })?;
+
+        tracing::debug!(count = detections.len(), "Extracting text from detections");
+
+        // Extract text from each detection
+        let mut results = Vec::new();
+        for (idx, shape) in detections.into_iter().enumerate() {
+            // Get bounding box from shape
+            let bbox = Self::shape_to_bbox(&shape);
+
+            match ocr.extract_text_from_region(&img, bbox) {
+                Ok(result) => {
+                    let text = result.text().trim().to_string();
+                    if !text.is_empty() {
+                        tracing::debug!(index = idx, text = %text, "Extracted text from region");
+                        results.push((shape, text));
+                    } else {
+                        tracing::debug!(index = idx, "Region contained no text");
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(index = idx, error = %e, "Failed to extract text from region");
+                }
+            }
+        }
+
+        tracing::info!(count = results.len(), "Text extraction complete");
+
+        // Serialize results to JSON
+        serde_json::to_string(&results).map_err(|e| {
+            tracing::error!(error = %e, "Failed to serialize results");
+            format!("Failed to serialize results: {}", e)
+        })
+    }
+
+    /// Convert shape to bounding box (x, y, width, height)
+    fn shape_to_bbox(shape: &form_factor::Shape) -> (u32, u32, u32, u32) {
+        use form_factor::Shape;
+
+        match shape {
+            Shape::Rectangle(rect) => {
+                let xs: Vec<f32> = rect.corners().iter().map(|p| p.x).collect();
+                let ys: Vec<f32> = rect.corners().iter().map(|p| p.y).collect();
+
+                let x_min = xs.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                let y_min = ys.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                let x_max = xs.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+                let y_max = ys.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+
+                let width = x_max.saturating_sub(x_min);
+                let height = y_max.saturating_sub(y_min);
+
+                (x_min, y_min, width, height)
+            }
+            Shape::Circle(circle) => {
+                let center = circle.center();
+                let radius = circle.radius();
+                let x_min = (center.x - radius) as u32;
+                let y_min = (center.y - radius) as u32;
+                let width = (radius * 2.0) as u32;
+                let height = (radius * 2.0) as u32;
+
+                (x_min, y_min, width, height)
+            }
+            Shape::Polygon(poly) => {
+                // Get coords from geo polygon
+                let coords: Vec<_> = poly.polygon().exterior().coords().collect();
+                let xs: Vec<f32> = coords.iter().map(|c| c.x as f32).collect();
+                let ys: Vec<f32> = coords.iter().map(|c| c.y as f32).collect();
+
+                let x_min = xs.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                let y_min = ys.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                let x_max = xs.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+                let y_max = ys.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+
+                let width = x_max.saturating_sub(x_min);
+                let height = y_max.saturating_sub(y_min);
+
+                (x_min, y_min, width, height)
+            }
+        }
     }
 }
