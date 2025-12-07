@@ -20,7 +20,7 @@ use detection_tasks::TextDetectionTask;
 use detection_tasks::LogoDetectionTask;
 #[cfg(feature = "ocr")]
 use detection_tasks::OcrExtractionTask;
-use event_handlers::FileEventHandler;
+use event_handlers::{CanvasEventHandler, FileEventHandler};
 use file_dialogs::FileDialogs;
 #[cfg(feature = "plugins")]
 use plugin_setup::PluginSetup;
@@ -141,16 +141,13 @@ impl App for FormFactorApp {
                 use form_factor::AppEvent;
                 match event {
                     AppEvent::CanvasZoomChanged { zoom } => {
-                        self.canvas.set_zoom(*zoom);
+                        CanvasEventHandler::handle_zoom_changed(&mut self.canvas, *zoom);
                     }
                     AppEvent::CanvasPanChanged { x, y } => {
-                        self.canvas.set_pan_offset(*x, *y);
+                        CanvasEventHandler::handle_pan_changed(&mut self.canvas, *x, *y);
                     }
                     AppEvent::ToolSelected { tool_name } => {
-                        // Parse tool name and set tool mode
-                        if let Some(tool) = ToolParser::from_name(tool_name) {
-                            self.canvas.set_tool(tool);
-                        }
+                        CanvasEventHandler::handle_tool_selected(&mut self.canvas, tool_name);
                     }
                     AppEvent::LayerVisibilityChanged {
                         layer_name,
@@ -469,16 +466,16 @@ impl App for FormFactorApp {
                         }
                     }
                     AppEvent::CanvasImageVisibilityChanged { visible } => {
-                        self.canvas.with_form_image_visible(*visible);
-                        tracing::debug!(visible = visible, "Canvas image visibility changed");
+                        CanvasEventHandler::handle_image_visibility_changed(
+                            &mut self.canvas,
+                            *visible,
+                        );
                     }
                     AppEvent::CanvasImageLockChanged { locked } => {
-                        self.canvas.with_form_image_locked(*locked);
-                        tracing::debug!(locked = locked, "Canvas image lock state changed");
+                        CanvasEventHandler::handle_image_lock_changed(&mut self.canvas, *locked);
                     }
                     AppEvent::CanvasImageClearRequested => {
-                        self.canvas.with_form_image_path(None);
-                        tracing::info!("Canvas image cleared");
+                        CanvasEventHandler::handle_image_clear_requested(&mut self.canvas);
                     }
                     _ => {
                         // Ignore other events
