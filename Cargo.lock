@@ -1470,6 +1470,7 @@ version = "0.1.0"
 dependencies = [
  "derive_more",
  "dotenvy",
+ "eframe",
  "egui",
  "egui-notify",
  "form_factor_backends",

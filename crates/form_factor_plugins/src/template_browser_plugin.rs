@@ -1,29 +1,23 @@
+use derive_getters::Getters;
+use derive_setters::Setters;
 use egui::{Context, ScrollArea, Ui};
 use form_factor_core::{SortOrder, TemplateBrowser, TemplateEntry};
 use tracing::instrument;
 
 /// Plugin for browsing and managing templates.
-#[derive(Debug)]
+#[derive(Debug, Clone, Getters, Setters)]
+#[setters(prefix = "with_", borrow_self)]
 pub struct TemplateBrowserPlugin {
     browser: TemplateBrowser,
 }
 
 impl TemplateBrowserPlugin {
     /// Creates a new template browser plugin.
+    #[instrument]
     pub fn new() -> Self {
         Self {
             browser: TemplateBrowser::default(),
         }
-    }
-
-    /// Gets a reference to the browser state.
-    pub fn browser(&self) -> &TemplateBrowser {
-        &self.browser
-    }
-
-    /// Gets a mutable reference to the browser state.
-    pub fn browser_mut(&mut self) -> &mut TemplateBrowser {
-        &mut self.browser
     }
 
     /// Renders the template browser UI.
@@ -44,11 +38,12 @@ impl TemplateBrowserPlugin {
         ui.separator();
 
         // Search/filter box
-        let mut filter_text = self.browser.filter_text().clone();
+        let mut filter_text = self.browser().filter_text().clone();
         ui.horizontal(|ui| {
             ui.label("🔍");
             if ui.text_edit_singleline(&mut filter_text).changed() {
-                self.browser.set_filter_text(filter_text);
+                let updated = self.browser().clone().with_filter_text(filter_text);
+                self.with_browser(updated);
             }
         });
 
@@ -58,17 +53,18 @@ impl TemplateBrowserPlugin {
         ui.horizontal(|ui| {
             ui.label("Sort:");
             egui::ComboBox::from_id_salt("sort_order")
-                .selected_text(self.browser.sort_order().display_name())
+                .selected_text(self.browser().sort_order().display_name())
                 .show_ui(ui, |ui| {
                     for order in SortOrder::all() {
                         if ui
                             .selectable_label(
-                                *self.browser.sort_order() == *order,
+                                *self.browser().sort_order() == *order,
                                 order.display_name(),
                             )
                             .clicked()
                         {
-                            self.browser.set_sort_order(*order);
+                            let updated = self.browser().clone().with_sort_order(*order);
+                            self.with_browser(updated);
                         }
                     }
                 });
@@ -77,7 +73,7 @@ impl TemplateBrowserPlugin {
         ui.separator();
 
         // Template list
-        let filtered = self.browser.filtered_templates();
+        let filtered = self.browser().filtered_templates();
 
         ScrollArea::vertical()
             .auto_shrink([false, false])
@@ -103,7 +99,7 @@ impl TemplateBrowserPlugin {
                 // TODO: Emit event to import template
             }
 
-            if self.browser.selected_template().is_some() && ui.button("🗑 Delete").clicked() {
+            if self.browser().selected_template().is_some() && ui.button("🗑 Delete").clicked() {
                 // TODO: Emit event to delete selected template
             }
         });
@@ -111,7 +107,7 @@ impl TemplateBrowserPlugin {
 
     /// Renders a single template entry.
     fn show_template_entry(&self, ui: &mut Ui, index: usize, entry: &TemplateEntry) {
-        let is_selected = self.browser.selected_index() == &Some(index);
+        let is_selected = self.browser().selected_index() == &Some(index);
 
         let response = ui.selectable_label(is_selected, entry.metadata().name());
 

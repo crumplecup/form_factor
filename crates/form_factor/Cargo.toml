@@ -24,6 +24,7 @@ form_factor_backends = { workspace = true, features = ["eframe"], optional = tru
 form_factor_plugins = { workspace = true, optional = true }
 
 # Direct dependencies for error types and demo app
+eframe = { workspace = true }
 egui = { workspace = true }
 egui-notify = { workspace = true }
 thiserror = { workspace = true }

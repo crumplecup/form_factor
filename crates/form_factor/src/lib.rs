@@ -30,7 +30,7 @@
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
 
-// Top-level error module stays here (aggregates errors from all crates)
+// Top-level modules
 mod error;
 
 // ============================================================================
@@ -61,17 +61,14 @@ pub use form_factor_backends::{EframeBackend, EframeError};
 // Error Types
 // ============================================================================
 
-/// Top-level error type (wraps Box<FormErrorKind>)
-pub use error::FormError;
+/// Top-level error type
+pub use error::FormFactorError;
 
-/// Error category enum
-pub use error::FormErrorKind;
+/// Result type alias
+pub use error::FormFactorResult;
 
 /// I/O error types (re-exported from core)
 pub use form_factor_core::{IoError, IoOperation};
-
-/// Specific error types for each category
-pub use error::{AccessKitError, AppError, BackendError, ConfigError, EguiError};
 
 // ============================================================================
 // Drawing Tools

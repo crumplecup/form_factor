@@ -87,7 +87,9 @@ mod detection_properties;
 mod properties;
 
 mod template_browser_plugin;
-mod template_ui;
+
+/// Template UI components for page navigation and field management.
+pub mod template_ui;
 
 // Re-export plugin types
 #[cfg(feature = "plugin-canvas")]
