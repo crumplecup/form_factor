@@ -14,6 +14,7 @@ use form_factor::{App, AppContext, DrawingCanvas};
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
 use form_factor_drawing::Shape;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use detection_results::DetectionResultHandler;
 #[cfg(feature = "text-detection")]
 use detection_tasks::TextDetectionTask;
 #[cfg(feature = "logo-detection")]
@@ -288,85 +289,42 @@ impl App for FormFactorApp {
                     }
                     #[cfg(feature = "ocr")]
                     AppEvent::OcrComplete { results_json } => {
-                        // Deserialize results from JSON
-                        match serde_json::from_str::<Vec<(Shape, String)>>(results_json) {
-                            Ok(results) => {
-                                tracing::info!("Extracted text from {} detections", results.len());
-
-                                // Clear old OCR detections and add new ones with text
-                                self.canvas.clear_ocr_detections();
-                                for (shape, text) in results {
-                                    self.canvas.add_ocr_detection(shape, text);
-                                }
-
-                                // Show success toast
-                                self.toasts.success(format!(
-                                    "OCR complete: extracted text from {} region{}",
-                                    self.canvas.ocr_detections().len(),
-                                    if self.canvas.ocr_detections().len() == 1 {
-                                        ""
-                                    } else {
-                                        "s"
-                                    }
-                                ));
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to deserialize OCR results: {}", e);
-                                self.toasts.error(format!("OCR processing failed: {}", e));
-                            }
-                        }
+                        DetectionResultHandler::handle_ocr_complete(
+                            &mut self.canvas,
+                            &mut self.toasts,
+                            results_json,
+                        );
                     }
                     AppEvent::DetectionComplete {
                         count,
                         detection_type,
                     } => {
-                        // Show success toast with count
-                        self.toasts.success(format!(
-                            "{} detection complete: found {} region{}",
-                            match detection_type.as_str() {
-                                "text" => "Text",
-                                "logo" => "Logo",
-                                _ => "Detection",
-                            },
-                            count,
-                            if *count == 1 { "" } else { "s" }
-                        ));
+                        DetectionResultHandler::handle_detection_complete(
+                            &mut self.toasts,
+                            detection_type,
+                            *count,
+                        );
                     }
                     AppEvent::DetectionFailed {
                         detection_type,
                         error,
                     } => {
-                        // Show error toast
-                        self.toasts.error(format!(
-                            "{} detection failed: {}",
-                            match detection_type.as_str() {
-                                "text" => "Text",
-                                "logo" => "Logo",
-                                _ => "Detection",
-                            },
-                            error
-                        ));
+                        DetectionResultHandler::handle_detection_failed(
+                            &mut self.toasts,
+                            detection_type,
+                            error,
+                        );
                     }
+                    #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
                     AppEvent::DetectionResultsReady {
                         detection_type,
                         shapes_json,
                     } => {
-                        // Deserialize shapes and add to canvas detections
-                        match serde_json::from_str::<Vec<form_factor::Shape>>(shapes_json) {
-                            Ok(shapes) => {
-                                tracing::info!(
-                                    "Received {} {} detection results",
-                                    shapes.len(),
-                                    detection_type
-                                );
-                                for shape in shapes {
-                                    self.canvas.add_detection(shape);
-                                }
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to deserialize detection results: {}", e);
-                            }
-                        }
+                        DetectionResultHandler::handle_detection_results_ready(
+                            &mut self.canvas,
+                            detection_type,
+                            shapes_json,
+                        );
                     }
                     AppEvent::CanvasImageVisibilityChanged { visible } => {
                         CanvasEventHandler::handle_image_visibility_changed(
