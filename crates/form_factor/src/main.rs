@@ -1139,6 +1139,20 @@ impl App for FormFactorApp {
                     .show(ctx.egui_ctx(), |ui| {
                         egui::ScrollArea::vertical().show(ui, |ui| {
                             self.plugin_manager.render_plugins(ui, &self.canvas);
+
+                            // Show property editor when something is selected
+                            if *self.canvas.show_properties() {
+                                ui.separator();
+                                ui.heading("Properties");
+
+                                if let Some(shape_idx) = *self.canvas.selected_shape() {
+                                    self.render_shape_properties(ui, shape_idx);
+                                } else if let Some((det_type, det_idx)) =
+                                    *self.canvas.selected_detection()
+                                {
+                                    self.render_detection_properties(ui, det_type, det_idx);
+                                }
+                            }
                         });
                     });
 
@@ -1225,6 +1239,97 @@ impl FormFactorApp {
             }
             self.prev_selected_detection = current_detection;
         }
+    }
+
+    /// Render property editor for selected shape
+    fn render_shape_properties(&mut self, ui: &mut egui::Ui, shape_idx: usize) {
+        let Some(shape) = self.canvas.shapes().get(shape_idx) else {
+            return;
+        };
+
+        ui.label(format!("Shape #{}", shape_idx));
+        ui.add_space(8.0);
+
+        // Show shape type and bounds
+        match shape {
+            form_factor::Shape::Rectangle(rect) => {
+                ui.label("Type: Rectangle");
+                let corners = rect.corners();
+                let min_x = corners.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
+                let max_x = corners
+                    .iter()
+                    .map(|p| p.x)
+                    .fold(f32::NEG_INFINITY, f32::max);
+                let min_y = corners.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
+                let max_y = corners
+                    .iter()
+                    .map(|p| p.y)
+                    .fold(f32::NEG_INFINITY, f32::max);
+                ui.label(format!("Position: ({:.1}, {:.1})", min_x, min_y));
+                ui.label(format!("Size: {:.1} × {:.1}", max_x - min_x, max_y - min_y));
+            }
+            form_factor::Shape::Circle(circle) => {
+                ui.label("Type: Circle");
+                let center = circle.center();
+                let radius = circle.radius();
+                ui.label(format!("Center: ({:.1}, {:.1})", center.x, center.y));
+                ui.label(format!("Radius: {:.1}", radius));
+            }
+            form_factor::Shape::Polygon(poly) => {
+                ui.label("Type: Polygon");
+                let points = poly.to_egui_points();
+                ui.label(format!("Vertices: {}", points.len()));
+            }
+        }
+
+        ui.add_space(8.0);
+        ui.separator();
+        ui.add_space(8.0);
+
+        // Field assignment section
+        ui.heading("Field Assignment");
+        ui.label("Assign this shape to a form field:");
+
+        // TODO: Integrate field type selector and field editor from template UI
+        ui.label("(Field editor coming soon)");
+    }
+
+    /// Render property editor for selected detection
+    fn render_detection_properties(
+        &mut self,
+        ui: &mut egui::Ui,
+        det_type: form_factor_drawing::DetectionType,
+        det_idx: usize,
+    ) {
+        ui.label(format!("{:?} Detection #{}", det_type, det_idx));
+        ui.add_space(8.0);
+
+        match det_type {
+            form_factor_drawing::DetectionType::Logo => {
+                // TODO: Show logo detection properties
+                ui.label("Logo detection");
+            }
+            form_factor_drawing::DetectionType::Text => {
+                // TODO: Show text detection properties
+                ui.label("Text detection");
+            }
+            form_factor_drawing::DetectionType::Ocr => {
+                if let Some((_shape, text)) = self.canvas.ocr_detections().get(det_idx) {
+                    ui.label(format!("Text: {}", text));
+                }
+            }
+        }
+
+        ui.add_space(8.0);
+        ui.separator();
+        ui.add_space(8.0);
+
+        // Field assignment section
+        ui.heading("Field Assignment");
+        ui.label("Assign this detection to a form field:");
+
+        // TODO: Integrate field type selector and field editor from template UI
+        ui.label("(Field editor coming soon)");
     }
 }
 

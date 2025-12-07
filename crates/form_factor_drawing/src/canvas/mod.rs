@@ -15,4 +15,3 @@ mod tools;
 pub use core::{
     CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DetectionType, DrawingCanvas,
 };
-pub use tools::SelectionResult;

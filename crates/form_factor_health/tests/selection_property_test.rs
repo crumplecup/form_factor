@@ -14,12 +14,8 @@ fn test_shape_storage_and_retrieval() -> Result<(), ShapeError> {
     let circle = Circle::new(Pos2::new(100.0, 100.0), 50.0, stroke, fill)?;
     canvas.test_add_shape(Shape::Circle(circle));
 
-    let rect = Rectangle::from_corners(
-        Pos2::new(50.0, 50.0),
-        Pos2::new(250.0, 80.0),
-        stroke,
-        fill,
-    )?;
+    let rect =
+        Rectangle::from_corners(Pos2::new(50.0, 50.0), Pos2::new(250.0, 80.0), stroke, fill)?;
     canvas.test_add_shape(Shape::Rectangle(rect));
 
     // Verify shapes were stored
