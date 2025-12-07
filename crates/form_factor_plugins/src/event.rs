@@ -124,6 +124,18 @@ pub enum AppEvent {
     /// Request to clear the canvas image
     CanvasImageClearRequested,
 
+    /// Canvas image visibility changed
+    CanvasImageVisibilityChanged {
+        /// Whether the canvas image is visible
+        visible: bool,
+    },
+
+    /// Canvas image lock state changed
+    CanvasImageLockChanged {
+        /// Whether the canvas image is locked
+        locked: bool,
+    },
+
     /// Detection operation has started
     DetectionStarted {
         /// Type of detection starting

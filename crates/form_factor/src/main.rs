@@ -954,6 +954,18 @@ impl App for FormFactorApp {
                             }
                         }
                     }
+                    AppEvent::CanvasImageVisibilityChanged { visible } => {
+                        self.canvas.with_form_image_visible(*visible);
+                        tracing::debug!(visible = visible, "Canvas image visibility changed");
+                    }
+                    AppEvent::CanvasImageLockChanged { locked } => {
+                        self.canvas.with_form_image_locked(*locked);
+                        tracing::debug!(locked = locked, "Canvas image lock state changed");
+                    }
+                    AppEvent::CanvasImageClearRequested => {
+                        self.canvas.with_form_image_path(None);
+                        tracing::info!("Canvas image cleared");
+                    }
                     _ => {
                         // Ignore other events
                     }

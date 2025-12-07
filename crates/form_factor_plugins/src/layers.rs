@@ -461,7 +461,33 @@ impl LayersPlugin {
                             ctx.events.emit(AppEvent::CanvasImageClearRequested);
                         }
 
-                        // Note: Canvas image visibility is controlled by the Canvas layer toggle
+                        // Lock toggle
+                        let is_locked = canvas.form_image_locked();
+                        let lock_icon = if *is_locked { "🔒" } else { "🔓" };
+                        if ui
+                            .button(lock_icon)
+                            .on_hover_text("Toggle image lock")
+                            .clicked()
+                        {
+                            debug!(locked = !is_locked, "Canvas image lock toggled");
+                            ctx.events.emit(AppEvent::CanvasImageLockChanged {
+                                locked: !is_locked,
+                            });
+                        }
+
+                        // Visibility toggle
+                        let is_visible = canvas.form_image_visible();
+                        let eye_icon = if *is_visible { "👁" } else { "⚫" };
+                        if ui
+                            .button(eye_icon)
+                            .on_hover_text("Toggle image visibility")
+                            .clicked()
+                        {
+                            debug!(visible = !is_visible, "Canvas image visibility toggled");
+                            ctx.events.emit(AppEvent::CanvasImageVisibilityChanged {
+                                visible: !is_visible,
+                            });
+                        }
                     });
                 });
             } else {

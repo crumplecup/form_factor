@@ -12,6 +12,11 @@ pub(super) fn default_zoom_level() -> f32 {
     5.0
 }
 
+/// Default value for booleans that should be true
+fn default_true() -> bool {
+    true
+}
+
 /// Kinds of errors that can occur in canvas operations
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CanvasErrorKind {
@@ -196,6 +201,14 @@ pub struct DrawingCanvas {
     /// Path to the loaded form image (for serialization)
     #[setters(doc = "Sets the form image path")]
     pub(super) form_image_path: Option<String>,
+    /// Whether the form image is visible
+    #[serde(default = "default_true")]
+    #[setters(doc = "Sets image visibility")]
+    pub(super) form_image_visible: bool,
+    /// Whether the form image is locked (prevents interaction)
+    #[serde(default)]
+    #[setters(doc = "Sets image lock state")]
+    pub(super) form_image_locked: bool,
     /// Template ID for this canvas (if associated with a template)
     #[setters(doc = "Sets the template ID")]
     pub(super) template_id: Option<String>,
@@ -327,6 +340,8 @@ impl Default for DrawingCanvas {
             current_tool: ToolMode::default(),
             layer_manager: LayerManager::new(),
             form_image_path: None,
+            form_image_visible: true,
+            form_image_locked: false,
             template_id: None,
             current_template: None,
             template_mode: TemplateMode::default(),

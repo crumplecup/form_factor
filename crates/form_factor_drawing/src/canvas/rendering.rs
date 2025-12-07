@@ -101,8 +101,9 @@ impl DrawingCanvas {
                 * egui::emath::TSTransform::from_scaling(self.zoom_level)
                 * egui::emath::TSTransform::from_translation(-canvas_center.to_vec2());
 
-        // Draw form image on Canvas layer if loaded
+        // Draw form image on Canvas layer if loaded and visible
         if self.layer_manager.is_visible(LayerType::Canvas)
+            && self.form_image_visible
             && let (Some(texture), Some(image_size)) = (&self.form_image, self.form_image_size)
         {
             // Calculate scaling to fit image within canvas while maintaining aspect ratio
