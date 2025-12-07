@@ -15,6 +15,7 @@
 
 mod app_mode;
 mod canvas;
+mod detection_metadata;
 mod error;
 pub mod instance;
 pub mod instance_ui;
@@ -30,6 +31,7 @@ pub use app_mode::{AppMode, AppState};
 pub use canvas::{
     CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DetectionType, DrawingCanvas,
 };
+pub use detection_metadata::{DetectionMetadata, MetadataDetectionType, FormFieldType};
 pub use error::{FormError, FormErrorKind};
 pub use instance::{
     DrawingInstance, FormPage, InstanceError, InstanceErrorKind, LEGACY_TEMPLATE_ID, ProjectFormat,

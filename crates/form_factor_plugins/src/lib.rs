@@ -80,6 +80,9 @@ mod file;
 #[cfg(feature = "plugin-detection")]
 mod detection;
 
+#[cfg(feature = "plugin-detection")]
+mod detection_properties;
+
 #[cfg(feature = "plugin-properties")]
 mod properties;
 
@@ -101,6 +104,9 @@ pub use file::FilePlugin;
 
 #[cfg(feature = "plugin-detection")]
 pub use detection::DetectionPlugin;
+
+#[cfg(feature = "plugin-detection")]
+pub use detection_properties::DetectionPropertiesPanel;
 
 #[cfg(feature = "plugin-properties")]
 pub use properties::PropertiesPlugin;

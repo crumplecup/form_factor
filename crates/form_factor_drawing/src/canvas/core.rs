@@ -1,10 +1,11 @@
 //! Core canvas state and error types
 
-use crate::{LayerManager, LayerType, Shape, ToolMode};
+use crate::{DetectionMetadata, LayerManager, LayerType, Shape, ToolMode};
 use derive_getters::Getters;
 use egui::{Color32, Pos2, Stroke};
 use form_factor_core::FieldDefinition;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tracing::debug;
 
 /// Default zoom level for new canvases
@@ -203,6 +204,10 @@ pub struct DrawingCanvas {
     /// OCR detection results with text
     #[setters(doc = "Sets OCR detections")]
     pub(super) ocr_detections: Vec<(Shape, String)>,
+    /// Metadata for all detections (keyed by shape ID or index)
+    #[serde(default)]
+    #[setters(doc = "Sets detection metadata")]
+    pub(super) detection_metadata: HashMap<String, DetectionMetadata>,
     /// Currently active tool
     #[setters(doc = "Sets the currently active tool")]
     pub(super) current_tool: ToolMode,
@@ -352,6 +357,7 @@ impl Default for DrawingCanvas {
             shapes: Vec::new(),
             detections: Vec::new(),
             ocr_detections: Vec::new(),
+            detection_metadata: HashMap::new(),
             current_tool: ToolMode::default(),
             layer_manager: LayerManager::new(),
             form_image_path: None,
@@ -462,6 +468,26 @@ impl DrawingCanvas {
     /// Add an OCR detection with its extracted text
     pub fn add_ocr_detection(&mut self, shape: Shape, text: String) {
         self.ocr_detections.push((shape, text));
+    }
+
+    /// Add or update detection metadata
+    pub fn set_detection_metadata(&mut self, id: String, metadata: DetectionMetadata) {
+        self.detection_metadata.insert(id, metadata);
+    }
+
+    /// Get detection metadata by ID
+    pub fn get_detection_metadata(&self, id: &str) -> Option<&DetectionMetadata> {
+        self.detection_metadata.get(id)
+    }
+
+    /// Get mutable detection metadata by ID
+    pub fn get_detection_metadata_mut(&mut self, id: &str) -> Option<&mut DetectionMetadata> {
+        self.detection_metadata.get_mut(id)
+    }
+
+    /// Remove detection metadata
+    pub fn remove_detection_metadata(&mut self, id: &str) -> Option<DetectionMetadata> {
+        self.detection_metadata.remove(id)
     }
 
     /// Get a mutable reference to the shapes vector (for use within canvas module)
