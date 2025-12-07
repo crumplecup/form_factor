@@ -51,7 +51,7 @@ impl TextDetectionTask {
 
     /// Run text detection on image
     #[instrument(fields(form_path))]
-    fn run_detection(form_path: &str) -> Result<Vec<form_factor::Shape>, String> {
+    fn run_detection(form_path: &str) -> Result<Vec<form_factor_drawing::Shape>, String> {
         use egui::{Color32, Pos2, Stroke};
         use form_factor_drawing::{Rectangle, Shape};
         use form_factor_cv::TextDetector;
@@ -146,7 +146,7 @@ impl LogoDetectionTask {
 
     /// Run logo detection on image
     #[instrument(fields(form_path))]
-    fn run_detection(form_path: &str) -> Result<Vec<form_factor::Shape>, String> {
+    fn run_detection(form_path: &str) -> Result<Vec<form_factor_drawing::Shape>, String> {
         use egui::{Color32, Pos2, Stroke};
         use form_factor_drawing::{Rectangle, Shape};
         use form_factor_cv::LogoDetector;
@@ -248,7 +248,7 @@ pub struct OcrExtractionTask;
 impl OcrExtractionTask {
     /// Spawn background thread for OCR extraction
     #[instrument(skip(sender, detections), fields(form_path, detection_count = detections.len()))]
-    pub fn spawn(form_path: String, detections: Vec<form_factor::Shape>, sender: EventSender) {
+    pub fn spawn(form_path: String, detections: Vec<form_factor_drawing::Shape>, sender: EventSender) {
         tracing::info!("Spawning OCR extraction background task");
 
         std::thread::spawn(move || {
@@ -274,7 +274,7 @@ impl OcrExtractionTask {
     #[instrument(skip(detections), fields(form_path, detection_count = detections.len()))]
     fn run_extraction(
         form_path: &str,
-        detections: Vec<form_factor::Shape>,
+        detections: Vec<form_factor_drawing::Shape>,
     ) -> Result<String, String> {
         use form_factor_drawing::Shape;
         use form_factor_ocr::{OCRConfig, OCREngine, PageSegmentationMode};
@@ -335,7 +335,7 @@ impl OcrExtractionTask {
     }
 
     /// Convert shape to bounding box (x, y, width, height)
-    fn shape_to_bbox(shape: &form_factor::Shape) -> (u32, u32, u32, u32) {
+    fn shape_to_bbox(shape: &form_factor_drawing::Shape) -> (u32, u32, u32, u32) {
         use form_factor_drawing::Shape;
 
         match shape {
