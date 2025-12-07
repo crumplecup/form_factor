@@ -546,36 +546,234 @@ impl App for FormFactorApp {
                     }
                     #[cfg(feature = "text-detection")]
                     AppEvent::TextDetectionRequested => {
-                        match self.canvas.detect_text_regions(0.5) {
-                            Ok(count) => {
-                                tracing::info!("Detected {} text regions", count);
-                                self.plugin_manager.event_bus().sender().emit(
-                                    AppEvent::DetectionComplete {
-                                        count,
-                                        detection_type: "text".to_string(),
-                                    },
-                                );
-                            }
-                            Err(e) => {
-                                tracing::error!("Failed to detect text: {}", e);
-                            }
-                        }
-                    }
-                    #[cfg(feature = "logo-detection")]
-                    AppEvent::LogoDetectionRequested => match self.canvas.detect_logos() {
-                        Ok(count) => {
-                            tracing::info!("Detected {} logos", count);
+                        // Emit started event
+                        self.plugin_manager.event_bus().sender().emit(
+                            AppEvent::DetectionStarted {
+                                detection_type: "text".to_string(),
+                            },
+                        );
+
+                        // Get form image path for background thread
+                        if let Some(form_path) = self.canvas.form_image_path().as_ref().map(|s| s.clone()) {
+                            let sender = self.plugin_manager.event_bus().sender();
+
+                            // Spawn background thread for text detection
+                            std::thread::spawn(move || {
+                                use form_factor::{Rectangle, Shape};
+                                use form_factor_cv::TextDetector;
+                                use egui::{Color32, Pos2, Stroke};
+
+                                tracing::info!("Starting text detection in background thread");
+
+                                // Perform detection in background
+                                let result = (|| -> Result<Vec<Shape>, String> {
+                                    // Create text detector
+                                    let detector = TextDetector::new("models/DB_TD500_resnet50.onnx".to_string())
+                                        .map_err(|e| format!("Failed to create detector: {}", e))?;
+
+                                    // Detect text regions
+                                    let regions = detector
+                                        .detect_from_file(&form_path, 0.5)
+                                        .map_err(|e| format!("Detection failed: {}", e))?;
+
+                                    // Convert to shapes
+                                    let mut shapes = Vec::new();
+                                    for (i, region) in regions.iter().enumerate() {
+                                        let top_left = Pos2::new(*region.x() as f32, *region.y() as f32);
+                                        let bottom_right = Pos2::new(
+                                            (*region.x() + *region.width()) as f32,
+                                            (*region.y() + *region.height()) as f32,
+                                        );
+
+                                        let stroke = Stroke::new(2.0, Color32::from_rgb(255, 165, 0));
+                                        let fill = Color32::TRANSPARENT;
+
+                                        if let Ok(mut rect) = Rectangle::from_corners(top_left, bottom_right, stroke, fill) {
+                                            rect.set_name(format!(
+                                                "Text Region {} ({:.2}%)",
+                                                i + 1,
+                                                *region.confidence() * 100.0
+                                            ));
+                                            shapes.push(Shape::Rectangle(rect));
+                                        }
+                                    }
+
+                                    Ok(shapes)
+                                })();
+
+                                match result {
+                                    Ok(shapes) => {
+                                        let count = shapes.len();
+                                        tracing::info!("Detected {} text regions", count);
+
+                                        // Serialize shapes as JSON
+                                        if let Ok(shapes_json) = serde_json::to_string(&shapes) {
+                                            sender.emit(AppEvent::DetectionResultsReady {
+                                                detection_type: "text".to_string(),
+                                                shapes_json,
+                                            });
+                                        }
+
+                                        sender.emit(AppEvent::DetectionComplete {
+                                            count,
+                                            detection_type: "text".to_string(),
+                                        });
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Text detection failed: {}", e);
+                                        sender.emit(AppEvent::DetectionFailed {
+                                            detection_type: "text".to_string(),
+                                            error: e,
+                                        });
+                                    }
+                                }
+                            });
+                        } else {
+                            tracing::error!("No form image loaded for text detection");
                             self.plugin_manager.event_bus().sender().emit(
-                                AppEvent::DetectionComplete {
-                                    count,
-                                    detection_type: "logo".to_string(),
+                                AppEvent::DetectionFailed {
+                                    detection_type: "text".to_string(),
+                                    error: "No form image loaded".to_string(),
                                 },
                             );
                         }
-                        Err(e) => {
-                            tracing::error!("Failed to detect logos: {}", e);
+                    }
+                    #[cfg(feature = "logo-detection")]
+                    AppEvent::LogoDetectionRequested => {
+                        // Emit started event
+                        self.plugin_manager.event_bus().sender().emit(
+                            AppEvent::DetectionStarted {
+                                detection_type: "logo".to_string(),
+                            },
+                        );
+
+                        // Get form image path for background thread
+                        if let Some(form_path) = self.canvas.form_image_path().as_ref().map(|s| s.clone()) {
+                            let sender = self.plugin_manager.event_bus().sender();
+
+                            // Spawn background thread for logo detection
+                            std::thread::spawn(move || {
+                                use form_factor::{Rectangle, Shape};
+                                use form_factor_cv::LogoDetector;
+                                use egui::{Color32, Pos2, Stroke};
+
+                                tracing::info!("Starting logo detection in background thread");
+
+                                // Perform detection in background
+                                let result = (|| -> Result<Vec<Shape>, String> {
+                                    // Create logo detector
+                                    let mut detector = LogoDetector::builder()
+                                        .template_matching()
+                                        .with_confidence_threshold(0.5)
+                                        .with_scales(vec![
+                                            0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.65, 0.75, 1.0, 1.25, 1.5, 2.0,
+                                        ])
+                                        .build();
+
+                                    // Load logo templates from logos directory
+                                    let logos_dir = std::path::Path::new("logos");
+                                    if !logos_dir.exists() {
+                                        return Err("logos directory does not exist".to_string());
+                                    }
+
+                                    let mut logo_count = 0;
+                                    for entry in std::fs::read_dir(logos_dir)
+                                        .map_err(|e| format!("Failed to read logos directory: {}", e))?
+                                    {
+                                        let entry = entry
+                                            .map_err(|e| format!("Failed to read directory entry: {}", e))?;
+                                        let path = entry.path();
+                                        if path.is_file() {
+                                            if let Some(ext) = path.extension() {
+                                                let ext_str = ext.to_string_lossy().to_lowercase();
+                                                if ext_str == "png" || ext_str == "jpg" || ext_str == "jpeg" || ext_str == "webp" {
+                                                    let logo_name = path
+                                                        .file_stem()
+                                                        .and_then(|s| s.to_str())
+                                                        .unwrap_or("unknown");
+                                                    if let Err(e) = detector.add_logo(logo_name, &path) {
+                                                        tracing::warn!("Failed to load logo {}: {}", logo_name, e);
+                                                    } else {
+                                                        logo_count += 1;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if logo_count == 0 {
+                                        return Err("No logo templates found in logos directory".to_string());
+                                    }
+
+                                    tracing::info!("Loaded {} logo templates", logo_count);
+
+                                    // Detect logos
+                                    let results = detector
+                                        .detect_logos_from_path(&form_path)
+                                        .map_err(|e| format!("Detection failed: {}", e))?;
+
+                                    // Convert to shapes
+                                    let mut shapes = Vec::new();
+                                    for result in results.iter() {
+                                        let top_left = Pos2::new(result.location.x as f32, result.location.y as f32);
+                                        let bottom_right = Pos2::new(
+                                            (result.location.x + result.size.width) as f32,
+                                            (result.location.y + result.size.height) as f32,
+                                        );
+
+                                        let stroke = Stroke::new(2.0, Color32::from_rgb(0, 128, 255)); // Blue for logos
+                                        let fill = Color32::TRANSPARENT;
+
+                                        if let Ok(mut rect) = Rectangle::from_corners(top_left, bottom_right, stroke, fill) {
+                                            rect.set_name(format!(
+                                                "Logo: {} ({:.2}%)",
+                                                result.logo_name,
+                                                result.confidence * 100.0
+                                            ));
+                                            shapes.push(Shape::Rectangle(rect));
+                                        }
+                                    }
+
+                                    Ok(shapes)
+                                })();
+
+                                match result {
+                                    Ok(shapes) => {
+                                        let count = shapes.len();
+                                        tracing::info!("Detected {} logos", count);
+
+                                        // Serialize shapes as JSON
+                                        if let Ok(shapes_json) = serde_json::to_string(&shapes) {
+                                            sender.emit(AppEvent::DetectionResultsReady {
+                                                detection_type: "logo".to_string(),
+                                                shapes_json,
+                                            });
+                                        }
+
+                                        sender.emit(AppEvent::DetectionComplete {
+                                            count,
+                                            detection_type: "logo".to_string(),
+                                        });
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("Logo detection failed: {}", e);
+                                        sender.emit(AppEvent::DetectionFailed {
+                                            detection_type: "logo".to_string(),
+                                            error: e,
+                                        });
+                                    }
+                                }
+                            });
+                        } else {
+                            tracing::error!("No form image loaded for logo detection");
+                            self.plugin_manager.event_bus().sender().emit(
+                                AppEvent::DetectionFailed {
+                                    detection_type: "logo".to_string(),
+                                    error: "No form image loaded".to_string(),
+                                },
+                            );
                         }
-                    },
+                    }
                     #[cfg(feature = "ocr")]
                     AppEvent::OcrExtractionRequested => {
                         use form_factor::{OCRConfig, OCREngine, PageSegmentationMode};
@@ -609,6 +807,27 @@ impl App for FormFactorApp {
                             },
                             Err(e) => {
                                 tracing::error!("Failed to initialize OCR engine: {}", e);
+                            }
+                        }
+                    }
+                    AppEvent::DetectionResultsReady {
+                        detection_type,
+                        shapes_json,
+                    } => {
+                        // Deserialize shapes and add to canvas detections
+                        match serde_json::from_str::<Vec<form_factor::Shape>>(&shapes_json) {
+                            Ok(shapes) => {
+                                tracing::info!(
+                                    "Received {} {} detection results",
+                                    shapes.len(),
+                                    detection_type
+                                );
+                                for shape in shapes {
+                                    self.canvas.add_detection(shape);
+                                }
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to deserialize detection results: {}", e);
                             }
                         }
                     }

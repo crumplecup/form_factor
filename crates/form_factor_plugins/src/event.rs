@@ -85,12 +85,34 @@ pub enum AppEvent {
     /// OCR text extraction was requested
     OcrExtractionRequested,
 
+    /// Detection operation has started
+    DetectionStarted {
+        /// Type of detection starting
+        detection_type: String,
+    },
+
+    /// Detection operation failed
+    DetectionFailed {
+        /// Type of detection that failed
+        detection_type: String,
+        /// Error message
+        error: String,
+    },
+
     /// Detection results are available
     DetectionComplete {
         /// Number of detections found
         count: usize,
         /// Type of detection
         detection_type: String,
+    },
+
+    /// Detection results with shape data
+    DetectionResultsReady {
+        /// Type of detection
+        detection_type: String,
+        /// Serialized shape data (JSON)
+        shapes_json: String,
     },
 
     /// A tool was selected

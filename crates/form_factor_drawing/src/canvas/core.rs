@@ -414,6 +414,11 @@ impl DrawingCanvas {
         self.shapes.push(shape);
     }
 
+    /// Add a detection shape to the detections vector
+    pub fn add_detection(&mut self, shape: Shape) {
+        self.detections.push(shape);
+    }
+
     /// Get a mutable reference to the shapes vector (for use within canvas module)
     pub(super) fn shapes_mut(&mut self) -> &mut Vec<Shape> {
         &mut self.shapes
