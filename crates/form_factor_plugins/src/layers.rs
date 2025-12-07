@@ -12,7 +12,7 @@ use crate::{
     event::AppEvent,
     plugin::{Plugin, PluginContext},
 };
-use form_factor_drawing::{DetectionSubtype, LayerType};
+use form_factor_drawing::LayerType;
 use strum::IntoEnumIterator;
 use tracing::{debug, instrument};
 
@@ -238,10 +238,14 @@ impl LayersPlugin {
                 .collect();
 
             // Render Logos group
-            self.render_detection_subtype(ui, "Logos", &logos, &mut self.logos_expanded, ctx);
+            let logos_exp = self.logos_expanded;
+            self.render_detection_subtype(ui, "Logos", &logos, &mut logos_exp.clone(), ctx);
+            self.logos_expanded = logos_exp;
 
-            // Render Text group
-            self.render_detection_subtype(ui, "Text", &text, &mut self.text_expanded, ctx);
+            // Render Text group  
+            let text_exp = self.text_expanded;
+            self.render_detection_subtype(ui, "Text", &text, &mut text_exp.clone(), ctx);
+            self.text_expanded = text_exp;
         }
     }
 
