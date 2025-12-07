@@ -14,6 +14,7 @@ use form_factor::{App, AppContext, DrawingCanvas};
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
 use form_factor_drawing::Shape;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use ui_properties::PropertyRenderer;
 
 #[cfg(feature = "backend-eframe")]
 use form_factor::{Backend, BackendConfig, EframeBackend};
@@ -992,11 +993,44 @@ impl App for FormFactorApp {
                                 ui.heading("Properties");
 
                                 if let Some(shape_idx) = *self.canvas.selected_shape() {
-                                    self.render_shape_properties(ui, shape_idx);
+                                    if let Err(e) = PropertyRenderer::render_shape_properties(
+                                        ui,
+                                        &self.canvas,
+                                        shape_idx,
+                                    ) {
+                                        tracing::error!(error = %e, "Failed to render shape properties");
+                                        ui.label(format!("Error: {}", e));
+                                    } else {
+                                        // Show field type selector button (maintained in FormFactorApp for state)
+                                        if ui.button("Assign to Field...").clicked() {
+                                            self.show_field_selector = true;
+                                            if self.field_type_selector.is_none() {
+                                                self.field_type_selector =
+                                                    Some(form_factor_drawing::FieldTypeSelector::new());
+                                            }
+                                        }
+                                    }
                                 } else if let Some((det_type, det_idx)) =
                                     *self.canvas.selected_detection()
                                 {
-                                    self.render_detection_properties(ui, det_type, det_idx);
+                                    if let Err(e) = PropertyRenderer::render_detection_properties(
+                                        ui,
+                                        &self.canvas,
+                                        det_type,
+                                        det_idx,
+                                    ) {
+                                        tracing::error!(error = %e, "Failed to render detection properties");
+                                        ui.label(format!("Error: {}", e));
+                                    } else {
+                                        // Show field type selector button (maintained in FormFactorApp for state)
+                                        if ui.button("Assign to Field...").clicked() {
+                                            self.show_field_selector = true;
+                                            if self.field_type_selector.is_none() {
+                                                self.field_type_selector =
+                                                    Some(form_factor_drawing::FieldTypeSelector::new());
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         });
@@ -1118,110 +1152,6 @@ impl FormFactorApp {
         }
     }
 
-    /// Render property editor for selected shape
-    fn render_shape_properties(&mut self, ui: &mut egui::Ui, shape_idx: usize) {
-        let Some(shape) = self.canvas.shapes().get(shape_idx) else {
-            return;
-        };
-
-        ui.label(format!("Shape #{}", shape_idx));
-        ui.add_space(8.0);
-
-        // Show shape type and bounds
-        match shape {
-            form_factor::Shape::Rectangle(rect) => {
-                ui.label("Type: Rectangle");
-                let corners = rect.corners();
-                let min_x = corners.iter().map(|p| p.x).fold(f32::INFINITY, f32::min);
-                let max_x = corners
-                    .iter()
-                    .map(|p| p.x)
-                    .fold(f32::NEG_INFINITY, f32::max);
-                let min_y = corners.iter().map(|p| p.y).fold(f32::INFINITY, f32::min);
-                let max_y = corners
-                    .iter()
-                    .map(|p| p.y)
-                    .fold(f32::NEG_INFINITY, f32::max);
-                ui.label(format!("Position: ({:.1}, {:.1})", min_x, min_y));
-                ui.label(format!("Size: {:.1} × {:.1}", max_x - min_x, max_y - min_y));
-            }
-            form_factor::Shape::Circle(circle) => {
-                ui.label("Type: Circle");
-                let center = circle.center();
-                let radius = circle.radius();
-                ui.label(format!("Center: ({:.1}, {:.1})", center.x, center.y));
-                ui.label(format!("Radius: {:.1}", radius));
-            }
-            form_factor::Shape::Polygon(poly) => {
-                ui.label("Type: Polygon");
-                let points = poly.to_egui_points();
-                ui.label(format!("Vertices: {}", points.len()));
-            }
-        }
-
-        ui.add_space(8.0);
-        ui.separator();
-        ui.add_space(8.0);
-
-        // Field assignment section
-        ui.heading("Field Assignment");
-        
-        // Show field type selector button
-        if ui.button("Assign to Field...").clicked() {
-            self.show_field_selector = true;
-            if self.field_type_selector.is_none() {
-                self.field_type_selector = Some(form_factor_drawing::FieldTypeSelector::new());
-            }
-        }
-    }
-
-    /// Render property editor for selected detection
-    fn render_detection_properties(
-        &mut self,
-        ui: &mut egui::Ui,
-        det_type: form_factor_drawing::DetectionType,
-        det_idx: usize,
-    ) {
-        ui.label(format!("{:?} Detection #{}", det_type, det_idx));
-        ui.add_space(8.0);
-
-        // Show detection-specific information
-        match det_type {
-            form_factor_drawing::DetectionType::Logo => {
-                if let Some(_detection) = self.canvas.detections().get(det_idx) {
-                    ui.label("Logo detection");
-                    // Show confidence, position, etc.
-                }
-            }
-            form_factor_drawing::DetectionType::Text => {
-                if let Some(_detection) = self.canvas.detections().get(det_idx) {
-                    ui.label("Text detection");
-                    // Show detected text, confidence, etc.
-                }
-            }
-            form_factor_drawing::DetectionType::Ocr => {
-                if let Some((_shape, text)) = self.canvas.ocr_detections().get(det_idx) {
-                    ui.label("Detected text:");
-                    ui.text_edit_singleline(&mut text.clone());
-                }
-            }
-        }
-
-        ui.add_space(8.0);
-        ui.separator();
-        ui.add_space(8.0);
-
-        // Field assignment section
-        ui.heading("Field Assignment");
-        
-        // Show field type selector button
-        if ui.button("Assign to Field...").clicked() {
-            self.show_field_selector = true;
-            if self.field_type_selector.is_none() {
-                self.field_type_selector = Some(form_factor_drawing::FieldTypeSelector::new());
-            }
-        }
-    }
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

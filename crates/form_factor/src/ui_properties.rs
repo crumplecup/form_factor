@@ -58,6 +58,16 @@ impl PropertyRenderer {
             }
         }
 
+        ui.add_space(8.0);
+        ui.separator();
+        ui.add_space(8.0);
+
+        // Field assignment section
+        ui.heading("Field Assignment");
+
+        // Note: Field selector button handling moved to caller
+        // to maintain state in FormFactorApp
+
         Ok(())
     }
 
@@ -99,6 +109,16 @@ impl PropertyRenderer {
                 }
             }
         }
+
+        ui.add_space(8.0);
+        ui.separator();
+        ui.add_space(8.0);
+
+        // Field assignment section
+        ui.heading("Field Assignment");
+
+        // Note: Field selector button handling moved to caller
+        // to maintain state in FormFactorApp
 
         Ok(())
     }
