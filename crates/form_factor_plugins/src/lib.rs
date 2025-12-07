@@ -80,9 +80,6 @@ mod file;
 #[cfg(feature = "plugin-detection")]
 mod detection;
 
-#[cfg(feature = "plugin-ocr")]
-mod ocr;
-
 #[cfg(feature = "plugin-properties")]
 mod properties;
 
@@ -104,9 +101,6 @@ pub use file::FilePlugin;
 
 #[cfg(feature = "plugin-detection")]
 pub use detection::DetectionPlugin;
-
-#[cfg(feature = "plugin-ocr")]
-pub use ocr::OcrPlugin;
 
 #[cfg(feature = "plugin-properties")]
 pub use properties::PropertiesPlugin;

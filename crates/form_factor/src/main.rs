@@ -18,9 +18,6 @@ use form_factor_plugins::FilePlugin;
 #[cfg(all(feature = "plugins", feature = "plugin-detection"))]
 use form_factor_plugins::DetectionPlugin;
 
-#[cfg(all(feature = "plugins", feature = "plugin-ocr"))]
-use form_factor_plugins::OcrPlugin;
-
 #[cfg(all(feature = "plugins", feature = "plugin-properties"))]
 use form_factor_plugins::PropertiesPlugin;
 
@@ -68,12 +65,6 @@ impl FormFactorApp {
             {
                 manager.register(Box::new(DetectionPlugin::new()));
                 tracing::info!("Registered detection plugin");
-            }
-
-            #[cfg(feature = "plugin-ocr")]
-            {
-                manager.register(Box::new(OcrPlugin::new()));
-                tracing::info!("Registered OCR plugin");
             }
 
             #[cfg(feature = "plugin-properties")]
