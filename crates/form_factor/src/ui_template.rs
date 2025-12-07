@@ -1,5 +1,4 @@
 use crate::AppContext;
-use tracing::instrument;
 
 #[cfg(feature = "plugins")]
 use form_factor_drawing::AppState;
@@ -7,7 +6,7 @@ use form_factor_drawing::AppState;
 use form_factor_plugins::TemplateBrowserPlugin;
 
 /// Handles UI updates for template manager mode
-#[instrument(skip(app_state, template_browser, canvas, ctx))]
+#[tracing::instrument(skip(app_state, template_browser, canvas, ctx))]
 #[cfg(feature = "plugins")]
 pub fn update_template_manager_mode(
     app_state: &AppState,
@@ -43,7 +42,7 @@ pub fn update_template_manager_mode(
 }
 
 /// Handles UI updates for template manager mode (no-plugins fallback)
-#[instrument(skip(ctx))]
+#[tracing::instrument(skip(ctx))]
 #[cfg(not(feature = "plugins"))]
 pub fn update_template_manager_mode(ctx: &AppContext) {
     egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {

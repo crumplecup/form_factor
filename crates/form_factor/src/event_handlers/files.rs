@@ -1,6 +1,5 @@
 //! File event handlers
 
-use tracing::instrument;
 
 #[cfg(feature = "plugins")]
 use crate::file_dialogs::FileDialogs;
@@ -16,7 +15,7 @@ pub struct FileEventHandler;
 #[cfg(feature = "plugins")]
 impl FileEventHandler {
     /// Handle open file request
-    #[instrument(skip(canvas, sender, egui_ctx))]
+    #[tracing::instrument(skip(canvas, sender, egui_ctx))]
     pub fn handle_open_requested(
         canvas: &mut DrawingCanvas,
         sender: &EventSender,
@@ -40,7 +39,7 @@ impl FileEventHandler {
     }
 
     /// Handle save file request
-    #[instrument(skip(canvas, sender), fields(project_name))]
+    #[tracing::instrument(skip(canvas, sender), fields(project_name))]
     pub fn handle_save_requested(
         canvas: &mut DrawingCanvas,
         sender: &EventSender,
@@ -66,7 +65,7 @@ impl FileEventHandler {
     }
 
     /// Handle save as request
-    #[instrument(skip(canvas, sender), fields(project_name))]
+    #[tracing::instrument(skip(canvas, sender), fields(project_name))]
     pub fn handle_save_as_requested(
         canvas: &mut DrawingCanvas,
         sender: &EventSender,
@@ -92,7 +91,7 @@ impl FileEventHandler {
     }
 
     /// Handle load image request
-    #[instrument(skip(canvas, egui_ctx))]
+    #[tracing::instrument(skip(canvas, egui_ctx))]
     pub fn handle_load_image_requested(canvas: &mut DrawingCanvas, egui_ctx: &egui::Context) {
         tracing::debug!("Handling load image request");
 

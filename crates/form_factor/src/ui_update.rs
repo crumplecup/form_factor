@@ -1,9 +1,8 @@
 use crate::AppContext;
 use form_factor_drawing::{AppState, DataEntryAction, DataEntryPanel};
-use tracing::instrument;
 
 /// Handles UI updates for instance filling mode
-#[instrument(skip(app_state, data_entry_panel, ctx))]
+#[tracing::instrument(skip(app_state, data_entry_panel, ctx))]
 pub fn update_instance_filling_mode(
     app_state: &mut AppState,
     data_entry_panel: &mut Option<DataEntryPanel>,
@@ -37,7 +36,7 @@ pub fn update_instance_filling_mode(
 }
 
 /// Handles data entry actions from the panel
-#[instrument(skip(app_state, data_entry_panel))]
+#[tracing::instrument(skip(app_state, data_entry_panel))]
 fn handle_data_entry_action(
     action: DataEntryAction,
     app_state: &mut AppState,
@@ -97,14 +96,14 @@ fn handle_data_entry_action(
 }
 
 /// Save instance as draft (incomplete data allowed)
-#[instrument]
+#[tracing::instrument]
 fn save_instance_draft(instance_name: &str) {
     // TODO: Implement instance draft saving to file system
     tracing::info!(instance_name, "Saved instance draft");
 }
 
 /// Save instance as final submission (validation required)
-#[instrument]
+#[tracing::instrument]
 fn save_instance_final(instance_name: &str) -> bool {
     // TODO: Implement instance final saving to file system
     tracing::info!(instance_name, "Saved final instance");

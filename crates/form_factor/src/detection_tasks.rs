@@ -1,19 +1,24 @@
 //! Background detection task spawning
 
-#[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
+#[cfg(all(
+    feature = "plugins",
+    any(feature = "text-detection", feature = "logo-detection", feature = "ocr")
+))]
 use form_factor_plugins::AppEvent;
-#[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
+#[cfg(all(
+    feature = "plugins",
+    any(feature = "text-detection", feature = "logo-detection", feature = "ocr")
+))]
 use form_factor_plugins::EventSender;
-use tracing::instrument;
 
 /// Text detection task
-#[cfg(feature = "text-detection")]
+#[cfg(all(feature = "plugins", feature = "text-detection"))]
 pub struct TextDetectionTask;
 
-#[cfg(feature = "text-detection")]
+#[cfg(all(feature = "plugins", feature = "text-detection"))]
 impl TextDetectionTask {
     /// Spawn background thread for text detection
-    #[instrument(skip(sender), fields(form_path))]
+    #[tracing::instrument(skip(sender), fields(form_path))]
     pub fn spawn(form_path: String, sender: EventSender) {
         tracing::info!("Spawning text detection background task");
 
@@ -50,7 +55,7 @@ impl TextDetectionTask {
     }
 
     /// Run text detection on image
-    #[instrument(fields(form_path))]
+    #[tracing::instrument(fields(form_path))]
     fn run_detection(form_path: &str) -> Result<Vec<form_factor_drawing::Shape>, String> {
         use egui::{Color32, Pos2, Stroke};
         use form_factor_drawing::{Rectangle, Shape};
@@ -102,13 +107,13 @@ impl TextDetectionTask {
 }
 
 /// Logo detection task
-#[cfg(feature = "logo-detection")]
+#[cfg(all(feature = "plugins", feature = "logo-detection"))]
 pub struct LogoDetectionTask;
 
-#[cfg(feature = "logo-detection")]
+#[cfg(all(feature = "plugins", feature = "logo-detection"))]
 impl LogoDetectionTask {
     /// Spawn background thread for logo detection
-    #[instrument(skip(sender), fields(form_path))]
+    #[tracing::instrument(skip(sender), fields(form_path))]
     pub fn spawn(form_path: String, sender: EventSender) {
         tracing::info!("Spawning logo detection background task");
 
@@ -145,7 +150,7 @@ impl LogoDetectionTask {
     }
 
     /// Run logo detection on image
-    #[instrument(fields(form_path))]
+    #[tracing::instrument(fields(form_path))]
     fn run_detection(form_path: &str) -> Result<Vec<form_factor_drawing::Shape>, String> {
         use egui::{Color32, Pos2, Stroke};
         use form_factor_drawing::{Rectangle, Shape};
@@ -241,13 +246,13 @@ impl LogoDetectionTask {
 }
 
 /// OCR extraction task
-#[cfg(feature = "ocr")]
+#[cfg(all(feature = "plugins", feature = "ocr"))]
 pub struct OcrExtractionTask;
 
-#[cfg(feature = "ocr")]
+#[cfg(all(feature = "plugins", feature = "ocr"))]
 impl OcrExtractionTask {
     /// Spawn background thread for OCR extraction
-    #[instrument(skip(sender, detections), fields(form_path, detection_count = detections.len()))]
+    #[tracing::instrument(skip(sender, detections), fields(form_path, detection_count = detections.len()))]
     pub fn spawn(form_path: String, detections: Vec<form_factor_drawing::Shape>, sender: EventSender) {
         tracing::info!("Spawning OCR extraction background task");
 
@@ -271,7 +276,7 @@ impl OcrExtractionTask {
     }
 
     /// Run OCR extraction on detections
-    #[instrument(skip(detections), fields(form_path, detection_count = detections.len()))]
+    #[tracing::instrument(skip(detections), fields(form_path, detection_count = detections.len()))]
     fn run_extraction(
         form_path: &str,
         detections: Vec<form_factor_drawing::Shape>,

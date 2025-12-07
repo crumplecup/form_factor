@@ -254,13 +254,13 @@ pub use plugin_setup::PluginSetup;
 pub use type_conversions::{LayerParser, ToolParser};
 
 /// Detection task spawning
-#[cfg(feature = "text-detection")]
+#[cfg(all(feature = "plugins", feature = "text-detection"))]
 pub use detection_tasks::TextDetectionTask;
 
-#[cfg(feature = "logo-detection")]
+#[cfg(all(feature = "plugins", feature = "logo-detection"))]
 pub use detection_tasks::LogoDetectionTask;
 
-#[cfg(feature = "ocr")]
+#[cfg(all(feature = "plugins", feature = "ocr"))]
 pub use detection_tasks::OcrExtractionTask;
 
 /// Detection result processing

@@ -1,14 +1,13 @@
 //! Object event handlers
 
 use form_factor_drawing::{DrawingCanvas, LayerType};
-use tracing::instrument;
 
 /// Object event handler
 pub struct ObjectEventHandler;
 
 impl ObjectEventHandler {
     /// Handle object delete requested
-    #[instrument(skip(canvas), fields(layer_type = ?layer_type, object_index))]
+    #[tracing::instrument(skip(canvas), fields(layer_type = ?layer_type, object_index))]
     pub fn handle_delete_requested(
         canvas: &mut DrawingCanvas,
         layer_type: &LayerType,
@@ -30,7 +29,7 @@ impl ObjectEventHandler {
     }
 
     /// Handle object visibility changed
-    #[instrument(skip(canvas), fields(layer_type = ?layer_type, object_index, visible))]
+    #[tracing::instrument(skip(canvas), fields(layer_type = ?layer_type, object_index, visible))]
     pub fn handle_visibility_changed(
         canvas: &mut DrawingCanvas,
         layer_type: &LayerType,
@@ -63,7 +62,7 @@ impl ObjectEventHandler {
 
     /// Handle OCR object delete requested
     #[cfg(feature = "plugin-layers")]
-    #[instrument(skip(canvas), fields(index))]
+    #[tracing::instrument(skip(canvas), fields(index))]
     pub fn handle_ocr_delete_requested(canvas: &mut DrawingCanvas, index: usize) {
         tracing::info!(index, "Deleting OCR detection");
         canvas.delete_ocr_detection(index);
@@ -71,7 +70,7 @@ impl ObjectEventHandler {
 
     /// Handle OCR object visibility changed
     #[cfg(feature = "plugin-layers")]
-    #[instrument(skip(canvas), fields(index, visible))]
+    #[tracing::instrument(skip(canvas), fields(index, visible))]
     pub fn handle_ocr_visibility_changed(
         canvas: &mut DrawingCanvas,
         index: usize,

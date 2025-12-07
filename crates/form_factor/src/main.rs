@@ -4,15 +4,18 @@ mod ui_template;
 mod ui_update;
 
 use form_factor::{App, AppContext, DrawingCanvas};
-#[cfg(feature = "text-detection")]
+#[cfg(all(feature = "plugins", feature = "text-detection"))]
 use form_factor::TextDetectionTask;
-#[cfg(feature = "logo-detection")]
+#[cfg(all(feature = "plugins", feature = "logo-detection"))]
 use form_factor::LogoDetectionTask;
-#[cfg(feature = "ocr")]
+#[cfg(all(feature = "plugins", feature = "ocr"))]
 use form_factor::OcrExtractionTask;
 #[cfg(feature = "plugins")]
 use form_factor::PluginSetup;
-#[cfg(any(feature = "text-detection", feature = "logo-detection"))]
+#[cfg(all(
+    feature = "plugins",
+    any(feature = "text-detection", feature = "logo-detection", feature = "ocr")
+))]
 use form_factor_drawing::Shape;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -223,7 +226,7 @@ impl App for FormFactorApp {
                             ctx.egui_ctx(),
                         );
                     }
-                    #[cfg(feature = "text-detection")]
+                    #[cfg(all(feature = "plugins", feature = "text-detection"))]
                     AppEvent::TextDetectionRequested => {
                         // Show toast immediately that detection started
                         self.toasts.info("Text detection started...");
@@ -242,7 +245,7 @@ impl App for FormFactorApp {
                             );
                         }
                     }
-                    #[cfg(feature = "logo-detection")]
+                    #[cfg(all(feature = "plugins", feature = "logo-detection"))]
                     AppEvent::LogoDetectionRequested => {
                         // Show toast immediately that detection started
                         self.toasts.info("Logo detection started...");
@@ -261,7 +264,7 @@ impl App for FormFactorApp {
                             );
                         }
                     }
-                    #[cfg(feature = "ocr")]
+                    #[cfg(all(feature = "plugins", feature = "ocr"))]
                     AppEvent::OcrExtractionRequested => {
                         // Show toast immediately that OCR started
                         self.toasts.info("OCR extraction started...");

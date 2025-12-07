@@ -1,6 +1,5 @@
 //! Detection result processing
 
-use tracing::instrument;
 
 #[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
 use form_factor_drawing::DrawingCanvas;
@@ -14,7 +13,7 @@ pub struct DetectionResultHandler;
 impl DetectionResultHandler {
     /// Handle OCR complete
     #[cfg(feature = "ocr")]
-    #[instrument(skip(canvas, toasts, results_json))]
+    #[tracing::instrument(skip(canvas, toasts, results_json))]
     pub fn handle_ocr_complete(
         canvas: &mut DrawingCanvas,
         toasts: &mut egui_notify::Toasts,
@@ -48,7 +47,7 @@ impl DetectionResultHandler {
     }
 
     /// Handle detection complete
-    #[instrument(skip(toasts), fields(detection_type, count))]
+    #[tracing::instrument(skip(toasts), fields(detection_type, count))]
     pub fn handle_detection_complete(
         toasts: &mut egui_notify::Toasts,
         detection_type: &str,
@@ -71,7 +70,7 @@ impl DetectionResultHandler {
     }
 
     /// Handle detection failed
-    #[instrument(skip(toasts), fields(detection_type, error))]
+    #[tracing::instrument(skip(toasts), fields(detection_type, error))]
     pub fn handle_detection_failed(
         toasts: &mut egui_notify::Toasts,
         detection_type: &str,
@@ -90,7 +89,7 @@ impl DetectionResultHandler {
 
     /// Handle detection results ready
     #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
-    #[instrument(skip(canvas, shapes_json), fields(detection_type))]
+    #[tracing::instrument(skip(canvas, shapes_json), fields(detection_type))]
     pub fn handle_detection_results_ready(
         canvas: &mut DrawingCanvas,
         detection_type: &str,

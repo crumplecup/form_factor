@@ -2,14 +2,13 @@
 
 use form_factor_drawing::{DrawingCanvas, Shape};
 use form_factor_drawing::DetectionType;
-use tracing::instrument;
 
 /// Renders property editors for shapes and detections
 pub struct PropertyRenderer;
 
 impl PropertyRenderer {
     /// Render shape property editor
-    #[instrument(skip(ui, canvas), fields(shape_idx))]
+    #[tracing::instrument(skip(ui, canvas), fields(shape_idx))]
     pub fn render_shape_properties(
         ui: &mut egui::Ui,
         canvas: &DrawingCanvas,
@@ -72,7 +71,7 @@ impl PropertyRenderer {
     }
 
     /// Render detection property editor
-    #[instrument(skip(ui, canvas), fields(det_type = ?det_type, det_idx))]
+    #[tracing::instrument(skip(ui, canvas), fields(det_type = ?det_type, det_idx))]
     pub fn render_detection_properties(
         ui: &mut egui::Ui,
         canvas: &DrawingCanvas,

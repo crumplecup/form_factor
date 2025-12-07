@@ -2,14 +2,13 @@
 
 use crate::type_conversions::LayerParser;
 use form_factor_drawing::{AppMode, AppState, DrawingCanvas, DataEntryPanel, InstanceManagerPanel, LayerType};
-use tracing::instrument;
 
 /// Layer event handler
 pub struct LayerEventHandler;
 
 impl LayerEventHandler {
     /// Handle layer visibility changed
-    #[instrument(skip(canvas), fields(layer_name, visible))]
+    #[tracing::instrument(skip(canvas), fields(layer_name, visible))]
     pub fn handle_visibility_changed(
         canvas: &mut DrawingCanvas,
         layer_name: &str,
@@ -25,7 +24,7 @@ impl LayerEventHandler {
     }
 
     /// Handle layer selected
-    #[instrument(skip(canvas), fields(layer_name))]
+    #[tracing::instrument(skip(canvas), fields(layer_name))]
     pub fn handle_selected(canvas: &mut DrawingCanvas, layer_name: &str) {
         tracing::debug!(layer_name, "Layer selected");
 
@@ -34,7 +33,7 @@ impl LayerEventHandler {
     }
 
     /// Handle layer clear requested
-    #[instrument(skip(canvas, app_state, instance_manager_panel, data_entry_panel), fields(layer_name))]
+    #[tracing::instrument(skip(canvas, app_state, instance_manager_panel, data_entry_panel), fields(layer_name))]
     pub fn handle_clear_requested(
         canvas: &mut DrawingCanvas,
         app_state: &mut AppState,
