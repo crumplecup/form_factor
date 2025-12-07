@@ -73,7 +73,7 @@ pub trait Plugin: Send {
     /// * `ui` - The egui UI context for rendering
     /// * `ctx` - Plugin context with access to events and app state
     #[cfg(feature = "plugin-canvas")]
-    fn ui(&mut self, ui: &mut egui::Ui, ctx: &PluginContext<'_>);
+    fn ui(&mut self, ui: &mut egui::Ui, ctx: &PluginContext);
 
     /// Renders the plugin's UI.
     ///
@@ -97,7 +97,7 @@ pub trait Plugin: Send {
     /// # Returns
     /// The plugin can optionally return a new event to emit in response.
     #[cfg(feature = "plugin-canvas")]
-    fn on_event(&mut self, _event: &AppEvent, _ctx: &PluginContext<'_>) -> Option<AppEvent> {
+    fn on_event(&mut self, _event: &AppEvent, _ctx: &PluginContext) -> Option<AppEvent> {
         None
     }
 
@@ -124,7 +124,7 @@ pub trait Plugin: Send {
     /// # Arguments
     /// * `ctx` - Plugin context with access to events
     #[cfg(feature = "plugin-canvas")]
-    fn on_load(&mut self, _ctx: &PluginContext<'_>) {}
+    fn on_load(&mut self, _ctx: &PluginContext) {}
 
     /// Called when the plugin is first loaded.
     ///
@@ -142,7 +142,7 @@ pub trait Plugin: Send {
     /// # Arguments
     /// * `ctx` - Plugin context with access to events
     #[cfg(feature = "plugin-canvas")]
-    fn on_save(&mut self, _ctx: &PluginContext<'_>) {}
+    fn on_save(&mut self, _ctx: &PluginContext) {}
 
     /// Called before the application saves state.
     ///
@@ -160,7 +160,7 @@ pub trait Plugin: Send {
     /// # Arguments
     /// * `ctx` - Plugin context with access to events
     #[cfg(feature = "plugin-canvas")]
-    fn on_shutdown(&mut self, _ctx: &PluginContext<'_>) {}
+    fn on_shutdown(&mut self, _ctx: &PluginContext) {}
 
     /// Called when the application is shutting down.
     ///
@@ -210,7 +210,7 @@ mod tests {
             &self.name
         }
 
-        fn ui(&mut self, _ui: &mut egui::Ui, _ctx: &PluginContext<'_>) {
+        fn ui(&mut self, _ui: &mut egui::Ui, _ctx: &PluginContext) {
             self.call_count += 1;
         }
 

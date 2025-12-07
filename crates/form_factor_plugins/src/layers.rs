@@ -215,7 +215,7 @@ impl LayersPlugin {
             }
 
             for (i, shape) in shapes.iter().enumerate() {
-                self.render_shape_entry(ui, i, shape, ctx);
+                Self::render_shape_entry_static(ui, i, shape, ctx);
             }
         }
     }
@@ -243,20 +243,15 @@ impl LayersPlugin {
                 .collect();
 
             // Render Logos group
-            let logos_exp = self.logos_expanded;
-            self.render_detection_subtype(ui, "Logos", &logos, &mut logos_exp.clone(), ctx);
-            self.logos_expanded = logos_exp;
+            Self::render_detection_subtype_static(ui, "Logos", &logos, &mut self.logos_expanded, ctx);
 
             // Render Text group
-            let text_exp = self.text_expanded;
-            self.render_detection_subtype(ui, "Text", &text, &mut text_exp.clone(), ctx);
-            self.text_expanded = text_exp;
+            Self::render_detection_subtype_static(ui, "Text", &text, &mut self.text_expanded, ctx);
         }
     }
 
     /// Renders a detection subtype group (e.g., "Logos" or "Text").
-    fn render_detection_subtype(
-        &self,
+    fn render_detection_subtype_static(
         ui: &mut egui::Ui,
         label: &str,
         items: &[(usize, &form_factor_drawing::Shape)],
@@ -279,14 +274,13 @@ impl LayersPlugin {
         // Render individual items if expanded
         if *is_expanded && !items.is_empty() {
             for &(index, shape) in items {
-                self.render_shape_entry(ui, index, shape, ctx);
+                LayersPlugin::render_shape_entry_static(ui, index, shape, ctx);
             }
         }
     }
 
     /// Renders a single shape entry (used for both Shapes and Detections).
-    fn render_shape_entry(
-        &self,
+    fn render_shape_entry_static(
         ui: &mut egui::Ui,
         index: usize,
         shape: &form_factor_drawing::Shape,
