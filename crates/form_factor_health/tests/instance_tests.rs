@@ -9,17 +9,17 @@ fn test_create_instance_from_template() {
 
     assert_eq!(instance.template_id(), "test_template");
     assert_eq!(instance.page_count(), 3);
-    assert_eq!(instance.instance_name(), None);
+    assert_eq!(instance.instance_name().as_deref(), None);
     assert_eq!(instance.field_values().len(), 0);
 }
 
 #[test]
 fn test_set_instance_name() {
     let mut instance = DrawingInstance::from_template("test_template", 1);
-    assert_eq!(instance.instance_name(), None);
+    assert_eq!(instance.instance_name().as_deref(), None);
 
     instance.set_instance_name("My Form Instance");
-    assert_eq!(instance.instance_name(), Some("My Form Instance"));
+    assert_eq!(instance.instance_name().as_deref(), Some("My Form Instance"));
 }
 
 #[test]
@@ -294,8 +294,8 @@ fn test_field_value_with_confidence() {
     )
     .with_confidence(0.95);
 
-    assert_eq!(value.confidence, Some(0.95));
-    assert!(!value.verified);
+    assert_eq!(value.confidence(), &Some(0.95));
+    assert!(!value.verified());
 }
 
 #[test]
@@ -308,7 +308,7 @@ fn test_field_value_with_verified() {
     )
     .with_verified(true);
 
-    assert!(value.verified);
+    assert!(value.verified());
 }
 
 #[test]
@@ -322,8 +322,8 @@ fn test_field_value_confidence_and_verified() {
     .with_confidence(0.85)
     .with_verified(true);
 
-    assert_eq!(value.confidence, Some(0.85));
-    assert!(value.verified);
+    assert_eq!(value.confidence(), &Some(0.85));
+    assert!(value.verified());
 }
 
 #[test]

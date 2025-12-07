@@ -10,7 +10,7 @@ use form_factor::{LayerError, LayerManager, LayerType};
 // ============================================================================
 
 #[test]
-fn serialization_roundtrip_preserves_all_data() {
+fn serialization_roundtrip_preserves_all_data() -> Result<(), Box<dyn std::error::Error>> {
     let mut manager = LayerManager::new();
 
     // Modify state
@@ -19,14 +19,14 @@ fn serialization_roundtrip_preserves_all_data() {
     manager.set_visible(LayerType::Shapes, false);
     manager
         .get_layer_mut(LayerType::Detections)
-        .set_name("Custom Detections");
+        .set_name("Custom Detections".to_string());
 
     // Serialize
-    let json = serde_json::to_string(&manager).expect("Serialization should succeed");
+    let json = serde_json::to_string(&manager)?;
 
     // Deserialize
     let restored: LayerManager =
-        serde_json::from_str(&json).expect("Deserialization should succeed");
+        serde_json::from_str(&json)?;
 
     // Verify all state preserved
     assert!(restored.is_visible(LayerType::Grid));
@@ -40,12 +40,13 @@ fn serialization_roundtrip_preserves_all_data() {
     // Verify layers that weren't modified
     assert!(restored.is_visible(LayerType::Canvas));
     assert!(!restored.is_locked(LayerType::Grid));
+    Ok(())
 }
 
 #[test]
-fn serialization_format_is_stable() {
+fn serialization_format_is_stable() -> Result<(), Box<dyn std::error::Error>> {
     let manager = LayerManager::new();
-    let json = serde_json::to_string_pretty(&manager).expect("Serialization should succeed");
+    let json = serde_json::to_string_pretty(&manager)?;
 
     // Verify JSON contains expected structure
     assert!(json.contains("Canvas"));
@@ -54,21 +55,23 @@ fn serialization_format_is_stable() {
     assert!(json.contains("Grid"));
     assert!(json.contains("visible"));
     assert!(json.contains("locked"));
+    Ok(())
 }
 
 #[test]
-fn deserialization_validates_layer_integrity() {
+fn deserialization_validates_layer_integrity() -> Result<(), Box<dyn std::error::Error>> {
     let manager = LayerManager::new();
-    let json = serde_json::to_string(&manager).expect("Serialization should succeed");
+    let json = serde_json::to_string(&manager)?;
     let restored: LayerManager =
-        serde_json::from_str(&json).expect("Deserialization should succeed");
+        serde_json::from_str(&json)?;
 
     // Validation should pass for properly deserialized data
     assert!(restored.validate().is_ok());
+    Ok(())
 }
 
 #[test]
-fn deserialization_handles_extra_fields() {
+fn deserialization_handles_extra_fields() -> Result<(), Box<dyn std::error::Error>> {
     // JSON with extra unknown fields (forward compatibility)
     let json = r#"{
         "layers": {
@@ -113,32 +116,33 @@ fn deserialization_handles_extra_fields() {
         "extra_manager_field": "also ignored"
     }"#;
 
-    let manager: LayerManager = serde_json::from_str(json).expect("Should handle extra fields");
+    let manager: LayerManager = serde_json::from_str(json)?;
     assert_eq!(manager.len(), 6);
+    Ok(())
 }
 
 #[test]
-fn serialization_preserves_custom_layer_names() {
+fn serialization_preserves_custom_layer_names() -> Result<(), Box<dyn std::error::Error>> {
     let mut manager = LayerManager::new();
 
     // Customize all layer names
     manager
         .get_layer_mut(LayerType::Canvas)
-        .set_name("Background Image");
+        .set_name("Background Image".to_string());
     manager
         .get_layer_mut(LayerType::Detections)
-        .set_name("Auto-detected Regions");
+        .set_name("Auto-detected Regions".to_string());
     manager
         .get_layer_mut(LayerType::Shapes)
-        .set_name("Manual Annotations");
+        .set_name("Manual Annotations".to_string());
     manager
         .get_layer_mut(LayerType::Grid)
-        .set_name("Alignment Grid");
+        .set_name("Alignment Grid".to_string());
 
     // Round-trip
-    let json = serde_json::to_string(&manager).expect("Serialization should succeed");
+    let json = serde_json::to_string(&manager)?;
     let restored: LayerManager =
-        serde_json::from_str(&json).expect("Deserialization should succeed");
+        serde_json::from_str(&json)?;
 
     assert_eq!(
         restored.get_layer(LayerType::Canvas).name(),
@@ -153,23 +157,25 @@ fn serialization_preserves_custom_layer_names() {
         "Manual Annotations"
     );
     assert_eq!(restored.get_layer(LayerType::Grid).name(), "Alignment Grid");
+    Ok(())
 }
 
 #[test]
-fn multiple_serialization_roundtrips_are_stable() {
+fn multiple_serialization_roundtrips_are_stable() -> Result<(), Box<dyn std::error::Error>> {
     let mut manager = LayerManager::new();
     manager.set_visible(LayerType::Grid, true);
     manager.set_locked(LayerType::Canvas, true);
 
     // Multiple round-trips
     for _ in 0..5 {
-        let json = serde_json::to_string(&manager).expect("Serialization should succeed");
-        manager = serde_json::from_str(&json).expect("Deserialization should succeed");
+        let json = serde_json::to_string(&manager)?;
+        manager = serde_json::from_str(&json)?;
     }
 
     // State should be unchanged
     assert!(manager.is_visible(LayerType::Grid));
     assert!(manager.is_locked(LayerType::Canvas));
+    Ok(())
 }
 
 // ============================================================================
@@ -182,7 +188,7 @@ fn get_layer_mut_modifications_persist() {
 
     {
         let layer = manager.get_layer_mut(LayerType::Shapes);
-        layer.set_name("Modified Shapes");
+        layer.set_name("Modified Shapes".to_string());
         layer.set_visible(false);
         layer.set_locked(true);
     }
@@ -386,13 +392,13 @@ fn validation_succeeds_after_modifications() {
     manager.set_locked(LayerType::Canvas, true);
     manager
         .get_layer_mut(LayerType::Shapes)
-        .set_name("Modified");
+        .set_name("Modified".to_string());
 
     assert!(manager.validate().is_ok());
 }
 
 #[test]
-fn validation_succeeds_after_deserialization() {
+fn validation_succeeds_after_deserialization() -> Result<(), Box<dyn std::error::Error>> {
     let json = r#"{
         "layers": {
             "Canvas": {"name": "Canvas", "layer_type": "Canvas", "visible": true, "locked": false},
@@ -404,8 +410,9 @@ fn validation_succeeds_after_deserialization() {
         }
     }"#;
 
-    let manager: LayerManager = serde_json::from_str(json).expect("Deserialization should succeed");
+    let manager: LayerManager = serde_json::from_str(json)?;
     assert!(manager.validate().is_ok());
+    Ok(())
 }
 
 // ============================================================================
@@ -557,7 +564,7 @@ fn layer_type_clone_and_copy() {
 #[test]
 fn layer_name_can_be_empty_string() {
     let mut manager = LayerManager::new();
-    manager.get_layer_mut(LayerType::Canvas).set_name("");
+    manager.get_layer_mut(LayerType::Canvas).set_name("".to_string());
     assert_eq!(manager.get_layer(LayerType::Canvas).name(), "");
 }
 
@@ -566,7 +573,7 @@ fn layer_name_can_contain_special_characters() {
     let mut manager = LayerManager::new();
     manager
         .get_layer_mut(LayerType::Shapes)
-        .set_name("Layer 🎨 with émojis & spëcial chars!");
+        .set_name("Layer 🎨 with émojis & spëcial chars!".to_string());
     assert_eq!(
         manager.get_layer(LayerType::Shapes).name(),
         "Layer 🎨 with émojis & spëcial chars!"
@@ -577,7 +584,7 @@ fn layer_name_can_contain_special_characters() {
 fn layer_name_can_be_very_long() {
     let mut manager = LayerManager::new();
     let long_name = "a".repeat(10000);
-    manager.get_layer_mut(LayerType::Grid).set_name(&long_name);
+    manager.get_layer_mut(LayerType::Grid).set_name(long_name.clone());
     assert_eq!(manager.get_layer(LayerType::Grid).name(), &long_name);
 }
 

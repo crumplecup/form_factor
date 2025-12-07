@@ -12,7 +12,7 @@ use form_factor_core::{
 use form_factor_drawing::{DrawingInstance, DrawingTemplate, TemplatePage};
 
 #[test]
-fn test_multi_page_workflow() {
+fn test_multi_page_workflow() -> Result<(), Box<dyn std::error::Error>> {
     // Step 1: Create a multi-page template (3 pages)
     let page1_field1 = FieldDefinition::builder()
         .id("employee_name")
@@ -123,7 +123,7 @@ fn test_multi_page_workflow() {
 
     assert_eq!(instance.template_id(), "employee_onboarding");
     assert_eq!(instance.page_count(), 3);
-    assert_eq!(instance.instance_name(), Some("John Doe - New Hire"));
+    assert_eq!(instance.instance_name().as_deref(), Some("John Doe - New Hire"));
 
     // Step 3: Fill out page 1 (Personal Information)
     let name_value = FieldValue::new_text(
@@ -182,19 +182,19 @@ fn test_multi_page_workflow() {
     assert_eq!(page2_values.len(), 3);
 
     // Step 5: Fill out page 3 (Signature)
-    use form_factor_core::FieldContent;
+    use form_factor_core::{FieldContent, FieldValueBuilder};
 
-    let signature_value = FieldValue {
-        field_id: "signature".to_string(),
-        content: FieldContent::Signature {
+    let signature_value = FieldValueBuilder::default()
+        .field_id("signature")
+        .content(FieldContent::Signature {
             present: true,
             shape_index: None,
-        },
-        bounds: FieldBounds::new(100.0, 400.0, 300.0, 60.0),
-        page_index: 2,
-        confidence: None,
-        verified: true,
-    };
+        })
+        .bounds(FieldBounds::new(100.0, 400.0, 300.0, 60.0))
+        .page_index(2)
+        .confidence(None)
+        .verified(true)
+        .build()?;
 
     let date_value = FieldValue::new_text(
         "date_signed",
@@ -225,8 +225,8 @@ fn test_multi_page_workflow() {
     // Step 8: Validate the complete instance
     let validation_result = template.validate_instance(&instance);
     assert!(validation_result.is_valid());
-    assert!(validation_result.missing_required.is_empty());
-    assert!(validation_result.field_errors.is_empty());
+    assert!(validation_result.missing_required().is_empty());
+    assert!(validation_result.field_errors().is_empty());
 
     // Step 9: Test incomplete form validation
     let mut incomplete_instance = DrawingInstance::from_template("employee_onboarding", 3);
@@ -244,10 +244,10 @@ fn test_multi_page_workflow() {
 
     let incomplete_validation = template.validate_instance(&incomplete_instance);
     assert!(!incomplete_validation.is_valid());
-    assert!(!incomplete_validation.missing_required.is_empty());
+    assert!(!incomplete_validation.missing_required().is_empty());
 
     // Should be missing: employee_email, street_address, city, state, signature, date_signed
-    assert_eq!(incomplete_validation.missing_required.len(), 6);
+    assert_eq!(incomplete_validation.missing_required().len(), 6);
 
     // Step 10: Test serialization/deserialization of multi-page instance
     let json = instance.to_json().unwrap();
@@ -398,4 +398,5 @@ fn test_field_distribution_across_pages() {
     assert_eq!(instance.field_values_for_page(0).len(), 5);
     assert_eq!(instance.field_values_for_page(1).len(), 3);
     assert_eq!(instance.field_values_for_page(2).len(), 0);
+    Ok(())
 }

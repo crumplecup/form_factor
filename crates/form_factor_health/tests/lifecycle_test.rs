@@ -95,7 +95,7 @@ fn test_complete_template_instance_lifecycle() {
     instance.add_metadata("test_run", "integration");
 
     assert_eq!(instance.template_id(), "lifecycle_test_template");
-    assert_eq!(instance.instance_name(), Some("John Doe - Test Instance"));
+    assert_eq!(instance.instance_name().as_deref(), Some("John Doe - Test Instance"));
 
     // Step 5: Fill the instance with valid data
     let name_value = FieldValue::new_text(
@@ -136,9 +136,9 @@ fn test_complete_template_instance_lifecycle() {
     // Step 6: Validate instance against template
     let validation_result = loaded_template.validate_instance(&instance);
     assert!(validation_result.is_valid());
-    assert!(validation_result.missing_required.is_empty());
-    assert!(validation_result.field_errors.is_empty());
-    assert_eq!(validation_result.template_version, "1.0.0");
+    assert!(validation_result.missing_required().is_empty());
+    assert!(validation_result.field_errors().is_empty());
+    assert_eq!(validation_result.template_version(), "1.0.0");
 
     // Store validation results in instance
     instance.set_validation_results(validation_result.clone());
@@ -173,8 +173,8 @@ fn test_complete_template_instance_lifecycle() {
     // Verify specific field values
     let loaded_name = loaded_instance.field_value("full_name").unwrap();
     assert_eq!(loaded_name.as_text(), Some("John Doe"));
-    assert_eq!(loaded_name.confidence, Some(0.95));
-    assert!(loaded_name.verified);
+    assert_eq!(loaded_name.confidence(), &Some(0.95));
+    assert!(loaded_name.verified());
 
     let loaded_email = loaded_instance.field_value("email").unwrap();
     assert_eq!(loaded_email.as_text(), Some("john.doe@example.com"));
@@ -212,7 +212,7 @@ fn test_complete_template_instance_lifecycle() {
 
     let invalid_result = loaded_template.validate_instance(&invalid_instance);
     assert!(!invalid_result.is_valid());
-    assert_eq!(invalid_result.missing_required.len(), 2); // Missing email and ssn
+    assert_eq!(invalid_result.missing_required().len(), 2); // Missing email and ssn
 
     // Step 11: Clean up
     std::fs::remove_file(&instance_file).ok();
@@ -259,7 +259,7 @@ fn test_template_versioning() {
 
     let validation_v1 = template_v1.validate_instance(&instance_v1);
     assert!(validation_v1.is_valid());
-    assert_eq!(validation_v1.template_version, "1.0.0");
+    assert_eq!(validation_v1.template_version(), "1.0.0");
 
     // Create version 2.0.0 with additional required field
     let field1_v2 = FieldDefinition::builder()
@@ -298,7 +298,7 @@ fn test_template_versioning() {
     assert!(!validation_v2.is_valid());
     assert!(
         validation_v2
-            .missing_required
+            .missing_required()
             .contains(&"new_required_field".to_string())
     );
 
@@ -370,6 +370,6 @@ fn test_json_persistence_roundtrip() {
 
     let loaded_value = loaded_instance.field_value("test_field").unwrap();
     assert_eq!(loaded_value.as_text(), Some("Test Name"));
-    assert_eq!(loaded_value.confidence, Some(0.88));
-    assert!(loaded_value.verified);
+    assert_eq!(loaded_value.confidence(), &Some(0.88));
+    assert!(loaded_value.verified());
 }

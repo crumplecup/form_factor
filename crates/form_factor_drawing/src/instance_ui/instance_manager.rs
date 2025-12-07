@@ -116,14 +116,12 @@ impl InstanceManagerPanel {
                         egui::Button::new("Create Instance"),
                     )
                     .clicked()
-                {
-                    if let Some(template_id) = &self.selected_template_id {
+                    && let Some(template_id) = &self.selected_template_id {
                         info!(template_id, "Creating new instance");
                         action = InstanceManagerAction::CreateInstance {
                             template_id: template_id.clone(),
                         };
                     }
-                }
             }
         });
 
@@ -230,8 +228,8 @@ impl InstanceManagerPanel {
                     });
 
                     // Validation status
-                    if instance.is_validated() {
-                        if let Some(results) = instance.validation_results() {
+                    if instance.is_validated()
+                        && let Some(results) = instance.validation_results() {
                             let status_text = if *results.valid() {
                                 RichText::new("✓ Valid").color(Color32::GREEN)
                             } else {
@@ -240,7 +238,6 @@ impl InstanceManagerPanel {
                             };
                             ui.label(status_text.small());
                         }
-                    }
                 });
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {

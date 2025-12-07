@@ -5,6 +5,7 @@
 
 use derive_builder::Builder;
 use derive_getters::Getters;
+use derive_setters::Setters;
 use egui::{Color32, Pos2, Stroke};
 use geo::{Contains, Point};
 use geo_types::{Coord, LineString, Polygon as GeoPolygon};
@@ -88,18 +89,31 @@ pub enum Shape {
 ///
 /// Internally uses `geo::Polygon` for robust geometric operations.
 /// Corners are stored in clockwise order: top-left, top-right, bottom-right, bottom-left.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters, Setters)]
+#[setters(prefix = "with_", borrow_self)]
 pub struct Rectangle {
     /// Internal polygon representation for geometric operations
+    #[setters(skip)]
     polygon: GeoPolygon<f64>,
     /// Four corners for efficient rendering (cached from polygon)
+    #[setters(skip)]
     corners: [Pos2; 4],
     /// Stroke style for the outline
+    #[setters(skip)]
     stroke: Stroke,
     /// Fill color
     fill: Color32,
     /// User-defined name for this shape
+    #[setters(skip)]
     name: String,
+    /// Whether this shape is visible
+    #[serde(default = "default_visible")]
+    visible: bool,
+}
+
+/// Default visibility state for shapes
+fn default_visible() -> bool {
+    true
 }
 
 impl Rectangle {
@@ -150,6 +164,7 @@ impl Rectangle {
             stroke,
             fill,
             name: String::new(),
+            visible: true,
         })
     }
 
@@ -179,6 +194,7 @@ impl Rectangle {
             stroke,
             fill,
             name: String::new(),
+            visible: true,
         })
     }
 
@@ -248,10 +264,7 @@ impl Rectangle {
         self.stroke = stroke;
     }
 
-    /// Set the fill color
-    pub fn set_fill(&mut self, fill: Color32) {
-        self.fill = fill;
-    }
+
 
     /// Get the center point of this rectangle
     pub fn center(&self) -> Pos2 {
@@ -326,7 +339,8 @@ impl Rectangle {
 ///
 /// Uses egui's native circle representation. Point-in-circle testing is
 /// performed using simple distance calculations.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters, Builder)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters, Setters, Builder)]
+#[setters(prefix = "with_", borrow_self)]
 #[builder(setter(into))]
 pub struct Circle {
     /// Center point of the circle
@@ -340,6 +354,10 @@ pub struct Circle {
     /// User-defined name for this shape
     #[builder(default = "String::new()")]
     name: String,
+    /// Whether this shape is visible
+    #[serde(default = "default_visible")]
+    #[builder(default = "true")]
+    visible: bool,
 }
 
 impl Circle {
@@ -369,6 +387,7 @@ impl Circle {
             stroke,
             fill,
             name: String::new(),
+            visible: true,
         })
     }
 
@@ -469,7 +488,8 @@ impl Circle {
 ///
 /// Uses `geo::Polygon` for all geometric operations. The polygon is automatically
 /// closed (first point connects to last point).
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Getters, Setters)]
+#[setters(prefix = "with_", borrow_self)]
 pub struct PolygonShape {
     /// Internal polygon representation
     polygon: GeoPolygon<f64>,
@@ -479,6 +499,9 @@ pub struct PolygonShape {
     fill: Color32,
     /// User-defined name for this shape
     name: String,
+    /// Whether this shape is visible
+    #[serde(default = "default_visible")]
+    visible: bool,
 }
 
 impl PolygonShape {
@@ -513,6 +536,7 @@ impl PolygonShape {
             stroke,
             fill,
             name: String::new(),
+            visible: true,
         })
     }
 
@@ -714,6 +738,15 @@ impl Shape {
             Shape::Rectangle(rect) => rect.contains_point(pos),
             Shape::Circle(circle) => circle.contains_point(pos),
             Shape::Polygon(poly) => poly.contains_point(pos),
+        }
+    }
+
+    /// Set visibility for this shape
+    pub fn set_visible(&mut self, visible: bool) {
+        match self {
+            Shape::Rectangle(rect) => { rect.with_visible(visible); },
+            Shape::Circle(circle) => { circle.with_visible(visible); },
+            Shape::Polygon(poly) => { poly.with_visible(visible); },
         }
     }
 }

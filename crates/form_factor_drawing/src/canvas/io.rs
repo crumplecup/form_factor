@@ -71,6 +71,89 @@ impl DrawingCanvas {
         self.form_image_path = None;
     }
 
+    /// Delete a shape at the specified index
+    ///
+    /// # Arguments
+    /// * `index` - Index of the shape to delete
+    #[instrument(skip(self))]
+    pub fn delete_shape(&mut self, index: usize) {
+        if index < self.shapes.len() {
+            debug!(index, "Deleting shape");
+            self.shapes.remove(index);
+            // Clear selection if the deleted shape was selected
+            if self.selected_shape == Some(index) {
+                self.selected_shape = None;
+            } else if let Some(selected) = self.selected_shape {
+                // Adjust selection index if a shape before it was deleted
+                if selected > index {
+                    self.selected_shape = Some(selected - 1);
+                }
+            }
+        } else {
+            warn!(index, count = self.shapes.len(), "Shape index out of bounds");
+        }
+    }
+
+    /// Delete a detection at the specified index
+    ///
+    /// # Arguments
+    /// * `index` - Index of the detection to delete
+    #[instrument(skip(self))]
+    pub fn delete_detection(&mut self, index: usize) {
+        if index < self.detections.len() {
+            debug!(index, "Deleting detection");
+            self.detections.remove(index);
+        } else {
+            warn!(index, count = self.detections.len(), "Detection index out of bounds");
+        }
+    }
+
+    /// Set visibility for a shape at the specified index
+    ///
+    /// # Arguments
+    /// * `index` - Index of the shape
+    /// * `visible` - Whether the shape should be visible
+    ///
+    /// # Errors
+    /// Returns an error if the index is out of bounds
+    #[instrument(skip(self))]
+    pub fn set_shape_visibility(&mut self, index: usize, visible: bool) -> Result<(), CanvasError> {
+        if index < self.shapes.len() {
+            debug!(index, visible, "Setting shape visibility");
+            self.shapes[index].set_visible(visible);
+            Ok(())
+        } else {
+            Err(CanvasError::new(
+                CanvasErrorKind::InvalidShape(format!("Shape index {} out of bounds", index)),
+                line!(),
+                file!(),
+            ))
+        }
+    }
+
+    /// Set visibility for a detection at the specified index
+    ///
+    /// # Arguments
+    /// * `index` - Index of the detection
+    /// * `visible` - Whether the detection should be visible
+    ///
+    /// # Errors
+    /// Returns an error if the index is out of bounds
+    #[instrument(skip(self))]
+    pub fn set_detection_visibility(&mut self, index: usize, visible: bool) -> Result<(), CanvasError> {
+        if index < self.detections.len() {
+            debug!(index, visible, "Setting detection visibility");
+            self.detections[index].set_visible(visible);
+            Ok(())
+        } else {
+            Err(CanvasError::new(
+                CanvasErrorKind::InvalidShape(format!("Detection index {} out of bounds", index)),
+                line!(),
+                file!(),
+            ))
+        }
+    }
+
     /// Load a form image from a file path
     pub fn load_form_image(&mut self, path: &str, ctx: &egui::Context) -> Result<(), CanvasError> {
         // Load the image from disk

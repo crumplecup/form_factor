@@ -106,11 +106,9 @@ impl TemplateEditorPanel {
         if response.dragged()
             && let Some(drag) = self.drag_state.clone()
             && let Some(current_pos) = response.interact_pointer_pos()
-        {
-            if let Err(e) = self.update_field_bounds(&drag, current_pos, canvas_rect, page_index) {
+            && let Err(e) = self.update_field_bounds(&drag, current_pos, canvas_rect, page_index) {
                 tracing::error!(error = %e, "Failed to update field bounds");
             }
-        }
 
         // End drag operation
         if response.drag_stopped()

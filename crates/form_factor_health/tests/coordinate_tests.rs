@@ -121,21 +121,21 @@ fn test_map_detection_scales_position_and_size() {
     if let Shape::Circle(c) = mapped {
         // Center should be at (500 * 0.5 + 50, 500 * 0.5 + 50) = (300, 300)
         assert!(
-            (c.center.x - 300.0).abs() < 0.01,
+            (c.center().x - 300.0).abs() < 0.01,
             "Center X should be 300.0, got {}",
-            c.center.x
+            c.center().x
         );
         assert!(
-            (c.center.y - 300.0).abs() < 0.01,
+            (c.center().y - 300.0).abs() < 0.01,
             "Center Y should be 300.0, got {}",
-            c.center.y
+            c.center().y
         );
 
         // Radius should be 100 * 0.5 = 50
         assert!(
-            (c.radius - 50.0).abs() < 0.01,
+            (c.radius() - 50.0).abs() < 0.01,
             "Radius should be 50.0, got {}",
-            c.radius
+            c.radius()
         );
     } else {
         panic!("Expected Circle after mapping");
@@ -282,12 +282,12 @@ fn test_different_canvas_sizes_maintain_relative_positions() {
         Shape::Circle(c2_large),
     ) = (&shape1_small, &shape2_small, &shape1_large, &shape2_large)
     {
-        let small_dx = c2_small.center.x - c1_small.center.x;
-        let small_dy = c2_small.center.y - c1_small.center.y;
+        let small_dx = c2_small.center().x - c1_small.center().x;
+        let small_dy = c2_small.center().y - c1_small.center().y;
         let small_distance = (small_dx * small_dx + small_dy * small_dy).sqrt();
 
-        let large_dx = c2_large.center.x - c1_large.center.x;
-        let large_dy = c2_large.center.y - c1_large.center.y;
+        let large_dx = c2_large.center().x - c1_large.center().x;
+        let large_dy = c2_large.center().y - c1_large.center().y;
         let large_distance = (large_dx * large_dx + large_dy * large_dy).sqrt();
 
         // The ratio of distances should match the ratio of scales

@@ -205,7 +205,7 @@ impl ValidationError {
 mod tests {
     use super::*;
     use crate::DrawingTemplateBuilder;
-    use form_factor_core::{FieldBounds, FieldDefinition, FieldType};
+    use form_factor_core::{FieldBounds, FieldDefinitionBuilder, FieldType};
 
     #[test]
     fn test_valid_template() {
@@ -217,22 +217,16 @@ mod tests {
 
         // Add a page and field
         builder.pages.push(crate::TemplatePage::new(0));
-        builder.pages[0].add_field(FieldDefinition {
-            id: "field1".to_string(),
-            label: "Field 1".to_string(),
-            field_type: FieldType::FreeText,
-            page_index: 0,
-            bounds: FieldBounds {
-                x: 10.0,
-                y: 10.0,
-                width: 100.0,
-                height: 30.0,
-            },
-            required: false,
-            validation_pattern: None,
-            help_text: None,
-            metadata: std::collections::HashMap::new(),
-        });
+        let field = FieldDefinitionBuilder::default()
+            .id("field1".to_string())
+            .label("Field 1".to_string())
+            .field_type(FieldType::FreeText)
+            .page_index(0)
+            .bounds(FieldBounds::new(10.0, 10.0, 100.0, 30.0))
+            .required(false)
+            .build()
+            .expect("Valid field");
+        builder.pages[0].add_field(field);
 
         let errors = TemplateValidator::validate(&builder, &registry, true);
         assert!(errors.is_empty(), "Expected no validation errors");
@@ -277,22 +271,15 @@ mod tests {
         builder.pages.push(crate::TemplatePage::new(0));
 
         // Add two fields with the same ID
-        let field = FieldDefinition {
-            id: "field1".to_string(),
-            label: "Field 1".to_string(),
-            field_type: FieldType::FreeText,
-            page_index: 0,
-            bounds: FieldBounds {
-                x: 10.0,
-                y: 10.0,
-                width: 100.0,
-                height: 30.0,
-            },
-            required: false,
-            validation_pattern: None,
-            help_text: None,
-            metadata: std::collections::HashMap::new(),
-        };
+        let field = FieldDefinitionBuilder::default()
+            .id("field1".to_string())
+            .label("Field 1".to_string())
+            .field_type(FieldType::FreeText)
+            .page_index(0)
+            .bounds(FieldBounds::new(10.0, 10.0, 100.0, 30.0))
+            .required(false)
+            .build()
+            .expect("Valid field");
 
         builder.pages[0].add_field(field.clone());
         builder.pages[0].add_field(field);
@@ -309,22 +296,16 @@ mod tests {
             .name("Test Template");
 
         builder.pages.push(crate::TemplatePage::new(0));
-        builder.pages[0].add_field(FieldDefinition {
-            id: "field1".to_string(),
-            label: "Field 1".to_string(),
-            field_type: FieldType::FreeText,
-            page_index: 0,
-            bounds: FieldBounds {
-                x: 10.0,
-                y: 10.0,
-                width: 0.0, // Invalid
-                height: 30.0,
-            },
-            required: false,
-            validation_pattern: None,
-            help_text: None,
-            metadata: std::collections::HashMap::new(),
-        });
+        let field = FieldDefinitionBuilder::default()
+            .id("field1".to_string())
+            .label("Field 1".to_string())
+            .field_type(FieldType::FreeText)
+            .page_index(0)
+            .bounds(FieldBounds::new(10.0, 10.0, 0.0, 30.0)) // Invalid width
+            .required(false)
+            .build()
+            .expect("Valid field");
+        builder.pages[0].add_field(field);
 
         let errors = TemplateValidator::validate(&builder, &registry, true);
         assert!(
@@ -342,22 +323,17 @@ mod tests {
             .name("Test Template");
 
         builder.pages.push(crate::TemplatePage::new(0));
-        builder.pages[0].add_field(FieldDefinition {
-            id: "field1".to_string(),
-            label: "Field 1".to_string(),
-            field_type: FieldType::FreeText,
-            page_index: 0,
-            bounds: FieldBounds {
-                x: 10.0,
-                y: 10.0,
-                width: 100.0,
-                height: 30.0,
-            },
-            required: false,
-            validation_pattern: Some("[invalid(regex".to_string()), // Invalid regex
-            help_text: None,
-            metadata: std::collections::HashMap::new(),
-        });
+        let field = FieldDefinitionBuilder::default()
+            .id("field1".to_string())
+            .label("Field 1".to_string())
+            .field_type(FieldType::FreeText)
+            .page_index(0)
+            .bounds(FieldBounds::new(10.0, 10.0, 100.0, 30.0))
+            .required(false)
+            .validation_pattern("[invalid(regex") // Invalid regex
+            .build()
+            .expect("Valid field");
+        builder.pages[0].add_field(field);
 
         let errors = TemplateValidator::validate(&builder, &registry, true);
         assert!(

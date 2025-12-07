@@ -2,7 +2,7 @@ use form_factor::{Circle, DrawingCanvas, Rectangle, Shape};
 use egui::{Color32, Pos2, Stroke};
 
 #[test]
-fn test_shape_creation_and_persistence() {
+fn test_shape_creation_and_persistence() -> Result<(), Box<dyn std::error::Error>> {
     // Create drawing canvas
     let mut canvas = DrawingCanvas::new();
 
@@ -19,7 +19,7 @@ fn test_shape_creation_and_persistence() {
         Pos2::new(100.0, 100.0),
         Stroke::new(2.0, Color32::RED),
         Color32::TRANSPARENT,
-    ).expect("Valid rectangle");
+    )?;
     let shape = Shape::Rectangle(rect);
 
     // Add shape to canvas
@@ -35,10 +35,11 @@ fn test_shape_creation_and_persistence() {
     // Verify the shape matches what we added
     let added_shape = &canvas.shapes()[0];
     assert_eq!(added_shape, &shape);
+    Ok(())
 }
 
 #[test]
-fn test_multiple_shape_creation() {
+fn test_multiple_shape_creation() -> Result<(), Box<dyn std::error::Error>> {
     let mut canvas = DrawingCanvas::new();
 
     // Add multiple shapes
@@ -49,7 +50,7 @@ fn test_multiple_shape_creation() {
             Pos2::new(x + 50.0, x + 50.0),
             Stroke::new(1.0, Color32::BLUE),
             Color32::TRANSPARENT,
-        ).expect("Valid rectangle");
+        )?;
         let shape = Shape::Rectangle(rect);
         canvas.add_shape(shape);
     }
@@ -60,10 +61,11 @@ fn test_multiple_shape_creation() {
         5,
         "All shapes should be persisted"
     );
+    Ok(())
 }
 
 #[test]
-fn test_shape_drawing_workflow() {
+fn test_shape_drawing_workflow() -> Result<(), Box<dyn std::error::Error>> {
     let mut canvas = DrawingCanvas::new();
 
     // Simulate drawing workflow:
@@ -77,7 +79,7 @@ fn test_shape_drawing_workflow() {
         end_point,
         Stroke::new(2.0, Color32::GREEN),
         Color32::TRANSPARENT,
-    ).expect("Valid rectangle");
+    )?;
     let shape = Shape::Rectangle(rect);
 
     // 3. User finishes drawing - shape should be added
@@ -89,10 +91,11 @@ fn test_shape_drawing_workflow() {
         1,
         "Completed shape should persist"
     );
+    Ok(())
 }
 
 #[test]
-fn test_mixed_shape_types() {
+fn test_mixed_shape_types() -> Result<(), Box<dyn std::error::Error>> {
     let mut canvas = DrawingCanvas::new();
 
     // Add a rectangle
@@ -101,7 +104,7 @@ fn test_mixed_shape_types() {
         Pos2::new(50.0, 50.0),
         Stroke::new(1.0, Color32::RED),
         Color32::TRANSPARENT,
-    ).expect("Valid rectangle");
+    )?;
     canvas.add_shape(Shape::Rectangle(rect));
 
     // Add a circle
@@ -110,7 +113,7 @@ fn test_mixed_shape_types() {
         25.0,
         Stroke::new(1.0, Color32::BLUE),
         Color32::TRANSPARENT,
-    ).expect("Valid circle");
+    )?;
     canvas.add_shape(Shape::Circle(circle));
 
     // Verify both shapes were added
@@ -129,4 +132,5 @@ fn test_mixed_shape_types() {
         Shape::Circle(_) => {}, // Expected
         _ => panic!("Second shape should be Circle"),
     }
+    Ok(())
 }

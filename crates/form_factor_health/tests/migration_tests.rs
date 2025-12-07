@@ -8,11 +8,11 @@ use form_factor_drawing::{
 #[test]
 fn test_migrate_canvas_preserves_project_name() {
     let mut canvas = DrawingCanvas::new();
-    canvas.set_project_name("Test Project");
+    canvas.with_project_name("Test Project".to_string());
 
     let instance = migrate_canvas_to_instance(canvas);
 
-    assert_eq!(instance.instance_name(), Some("Test Project"));
+    assert_eq!(instance.instance_name().as_deref(), Some("Test Project"));
 }
 
 #[test]
@@ -105,7 +105,7 @@ fn test_detect_instance_format() {
 fn test_load_legacy_format_and_convert() {
     // Create a legacy canvas
     let mut canvas = DrawingCanvas::new();
-    canvas.set_project_name("Legacy Project");
+    canvas.with_project_name("Legacy Project".to_string());
 
     // Serialize as legacy format (version will default to 1)
     let json = serde_json::to_string(&canvas).unwrap();
@@ -117,7 +117,7 @@ fn test_load_legacy_format_and_convert() {
     let instance = format.into_instance();
 
     assert_eq!(instance.template_id(), LEGACY_TEMPLATE_ID);
-    assert_eq!(instance.instance_name(), Some("Legacy Project"));
+    assert_eq!(instance.instance_name().as_deref(), Some("Legacy Project"));
     assert_eq!(instance.page_count(), 1);
 }
 
@@ -137,7 +137,7 @@ fn test_load_instance_format_unchanged() {
     let loaded_instance = format.into_instance();
 
     assert_eq!(loaded_instance.template_id(), "custom_template");
-    assert_eq!(loaded_instance.instance_name(), Some("Test Instance"));
+    assert_eq!(loaded_instance.instance_name().as_deref(), Some("Test Instance"));
     assert_eq!(loaded_instance.page_count(), 2);
 }
 
@@ -145,7 +145,7 @@ fn test_load_instance_format_unchanged() {
 fn test_roundtrip_migration() {
     // Create legacy canvas with some data
     let mut canvas = DrawingCanvas::new();
-    canvas.set_project_name("Roundtrip Test");
+    canvas.with_project_name("Roundtrip Test".to_string());
 
     // Serialize legacy format
     let legacy_json = serde_json::to_string(&canvas).unwrap();
@@ -156,7 +156,7 @@ fn test_roundtrip_migration() {
 
     // Verify migration
     assert_eq!(instance.template_id(), LEGACY_TEMPLATE_ID);
-    assert_eq!(instance.instance_name(), Some("Roundtrip Test"));
+    assert_eq!(instance.instance_name().as_deref(), Some("Roundtrip Test"));
     assert_eq!(instance.page_count(), 1);
 
     // Serialize as new format
@@ -171,7 +171,7 @@ fn test_roundtrip_migration() {
 
     // Verify data preserved
     assert_eq!(instance2.template_id(), LEGACY_TEMPLATE_ID);
-    assert_eq!(instance2.instance_name(), Some("Roundtrip Test"));
+    assert_eq!(instance2.instance_name().as_deref(), Some("Roundtrip Test"));
     assert_eq!(instance2.page_count(), 1);
 }
 

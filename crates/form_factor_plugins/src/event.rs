@@ -52,6 +52,24 @@ pub enum AppEvent {
         layer_name: String,
     },
 
+    /// Request to delete a specific object from a layer
+    ObjectDeleteRequested {
+        /// Type of the layer containing the object
+        layer_type: form_factor_drawing::LayerType,
+        /// Index of the object to delete
+        object_index: usize,
+    },
+
+    /// Visibility of a specific object changed
+    ObjectVisibilityChanged {
+        /// Type of the layer containing the object
+        layer_type: form_factor_drawing::LayerType,
+        /// Index of the object
+        object_index: usize,
+        /// Whether the object is visible
+        visible: bool,
+    },
+
     /// A file was opened
     FileOpened {
         /// Path to the opened file

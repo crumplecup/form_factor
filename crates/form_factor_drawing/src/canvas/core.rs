@@ -35,6 +35,8 @@ pub enum CanvasErrorKind {
     NoRecentProjects,
     /// OCR text extraction failed
     OCRFailed(String),
+    /// Invalid shape operation
+    InvalidShape(String),
 }
 
 impl std::fmt::Display for CanvasErrorKind {
@@ -52,6 +54,7 @@ impl std::fmt::Display for CanvasErrorKind {
             CanvasErrorKind::LogoDetection(msg) => write!(f, "Logo detection failed: {}", msg),
             CanvasErrorKind::NoRecentProjects => write!(f, "No recent projects found"),
             CanvasErrorKind::OCRFailed(msg) => write!(f, "OCR text extraction failed: {}", msg),
+            CanvasErrorKind::InvalidShape(msg) => write!(f, "Invalid shape: {}", msg),
         }
     }
 }

@@ -198,15 +198,52 @@ impl LayersPlugin {
                 ui.horizontal(|ui| {
                     ui.add_space(40.0); // Indent to show hierarchy
 
-                    // Get shape name
-                    let shape_name = match shape {
-                        form_factor_drawing::Shape::Rectangle(r) => r.name(),
-                        form_factor_drawing::Shape::Circle(c) => c.name(),
-                        form_factor_drawing::Shape::Polygon(p) => p.name(),
+                    // Get shape name and visibility
+                    let (shape_name, is_visible) = match shape {
+                        form_factor_drawing::Shape::Rectangle(r) => (r.name(), r.visible()),
+                        form_factor_drawing::Shape::Circle(c) => (c.name(), c.visible()),
+                        form_factor_drawing::Shape::Polygon(p) => (p.name(), p.visible()),
                     };
 
                     // Display shape with index and name
                     ui.label(format!("{}. {}", i + 1, shape_name));
+
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        // Delete button
+                        if ui.button("🗑").on_hover_text("Delete object").clicked() {
+                            debug!(
+                                layer = ?layer_type,
+                                index = i,
+                                name = shape_name,
+                                "Object delete requested"
+                            );
+                            ctx.events.emit(AppEvent::ObjectDeleteRequested {
+                                layer_type,
+                                object_index: i,
+                            });
+                        }
+
+                        // Visibility toggle
+                        let eye_icon = if *is_visible { "👁" } else { "⚫" };
+                        if ui
+                            .button(eye_icon)
+                            .on_hover_text("Toggle visibility")
+                            .clicked()
+                        {
+                            debug!(
+                                layer = ?layer_type,
+                                index = i,
+                                name = shape_name,
+                                visible = !is_visible,
+                                "Object visibility toggled"
+                            );
+                            ctx.events.emit(AppEvent::ObjectVisibilityChanged {
+                                layer_type,
+                                object_index: i,
+                                visible: !is_visible,
+                            });
+                        }
+                    });
                 });
             }
         }

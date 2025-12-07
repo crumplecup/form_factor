@@ -57,8 +57,8 @@ fn test_validation_success_all_required_fields() {
 
     let result = template.validate_instance(&instance);
     assert!(result.is_valid());
-    assert!(result.missing_required.is_empty());
-    assert!(result.field_errors.is_empty());
+    assert!(result.missing_required().is_empty());
+    assert!(result.field_errors().is_empty());
 }
 
 #[test]
@@ -68,10 +68,10 @@ fn test_validation_missing_required_field() {
 
     let result = template.validate_instance(&instance);
     assert!(!result.is_valid());
-    assert_eq!(result.missing_required.len(), 1);
+    assert_eq!(result.missing_required().len(), 1);
     assert!(
         result
-            .missing_required
+            .missing_required()
             .contains(&"required_email".to_string())
     );
 }
@@ -131,7 +131,7 @@ fn test_validation_email_pattern() {
 
     let result = template.validate_instance(&instance);
     assert!(!result.is_valid());
-    assert!(!result.field_errors.is_empty());
+    assert!(!result.field_errors().is_empty());
 }
 
 #[test]
@@ -452,7 +452,7 @@ fn test_validation_empty_required_field() {
     assert!(!result.is_valid());
     assert!(
         result
-            .missing_required
+            .missing_required()
             .contains(&"required_text".to_string())
     );
 }
@@ -604,6 +604,6 @@ fn test_validation_multiple_errors() {
 
     let result = template.validate_instance(&instance);
     assert!(!result.is_valid());
-    assert!(!result.missing_required.is_empty());
-    assert!(!result.field_errors.is_empty());
+    assert!(!result.missing_required().is_empty());
+    assert!(!result.field_errors().is_empty());
 }

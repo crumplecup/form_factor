@@ -31,7 +31,7 @@ fn test_default_canvas_renders() {
 #[test]
 fn test_canvas_with_project_name_renders() {
     let mut canvas = create_test_canvas();
-    canvas.set_project_name("Test Project".to_string());
+    canvas.with_project_name("Test Project".to_string());
     assert_ui_renders_without_panic(&mut canvas);
 }
 

@@ -183,30 +183,33 @@ fn copy_semantic_allows_reuse() {
 // ============================================================================
 
 #[test]
-fn serialization_roundtrip() {
+fn serialization_roundtrip() -> Result<(), Box<dyn std::error::Error>> {
     for tool in ToolMode::iter() {
-        let json = serde_json::to_string(&tool).expect("Serialization should succeed");
+        let json = serde_json::to_string(&tool)?;
         let restored: ToolMode =
-            serde_json::from_str(&json).expect("Deserialization should succeed");
+            serde_json::from_str(&json)?;
         assert_eq!(tool, restored);
     }
+    Ok(())
 }
 
 #[test]
-fn serialization_format() {
-    let json = serde_json::to_string(&ToolMode::Rectangle).expect("Serialization should succeed");
+fn serialization_format() -> Result<(), Box<dyn std::error::Error>> {
+    let json = serde_json::to_string(&ToolMode::Rectangle)?;
     assert_eq!(json, r#""Rectangle""#);
+    Ok(())
 }
 
 #[test]
-fn deserialization_from_string() {
+fn deserialization_from_string() -> Result<(), Box<dyn std::error::Error>> {
     let tool: ToolMode =
-        serde_json::from_str(r#""Select""#).expect("Deserialization should succeed");
+        serde_json::from_str(r#""Select""#)?;
     assert_eq!(tool, ToolMode::Select);
 
     let tool: ToolMode =
-        serde_json::from_str(r#""Freehand""#).expect("Deserialization should succeed");
+        serde_json::from_str(r#""Freehand""#)?;
     assert_eq!(tool, ToolMode::Freehand);
+    Ok(())
 }
 
 #[test]
@@ -216,15 +219,16 @@ fn deserialization_fails_for_invalid_tool() {
 }
 
 #[test]
-fn multiple_serialization_roundtrips_are_stable() {
+fn multiple_serialization_roundtrips_are_stable() -> Result<(), Box<dyn std::error::Error>> {
     let mut tool = ToolMode::Rotate;
 
     for _ in 0..5 {
-        let json = serde_json::to_string(&tool).expect("Serialization should succeed");
-        tool = serde_json::from_str(&json).expect("Deserialization should succeed");
+        let json = serde_json::to_string(&tool)?;
+        tool = serde_json::from_str(&json)?;
     }
 
     assert_eq!(tool, ToolMode::Rotate);
+    Ok(())
 }
 
 // ============================================================================

@@ -136,9 +136,7 @@ impl FormFactorApp {
                 if let Some(panel) = &self.data_entry_panel {
                     let instance_name = panel
                         .instance()
-                        .instance_name()
-                        .as_ref()
-                        .map(|s| s.clone())
+                        .instance_name().clone()
                         .unwrap_or_else(|| "unnamed".to_string());
                     self.save_instance_draft(instance_name);
                 }
@@ -149,9 +147,7 @@ impl FormFactorApp {
                     let valid = panel.validate().is_ok();
                     let name = panel
                         .instance()
-                        .instance_name()
-                        .as_ref()
-                        .map(|s| s.clone())
+                        .instance_name().clone()
                         .unwrap_or_else(|| "unnamed".to_string());
                     (valid, name)
                 } else {
@@ -176,11 +172,10 @@ impl FormFactorApp {
             }
             DataEntryAction::None => {
                 // No action, update dirty state
-                if let Some(panel) = &self.data_entry_panel {
-                    if panel.is_dirty() {
+                if let Some(panel) = &self.data_entry_panel
+                    && panel.is_dirty() {
                         self.app_state.mark_dirty();
                     }
-                }
             }
         }
     }
@@ -227,8 +222,8 @@ impl FormFactorApp {
         match action {
             InstanceManagerAction::CreateInstance { template_id } => {
                 tracing::info!(template_id, "Creating new instance from template");
-                if let Some(panel) = &self.instance_manager_panel {
-                    if let Some(template) = panel.get_template(&template_id) {
+                if let Some(panel) = &self.instance_manager_panel
+                    && let Some(template) = panel.get_template(&template_id) {
                         let instance = self.create_instance_from_template(template);
                         self.app_state.set_current_template(Some(template.clone()));
                         self.app_state.set_current_instance(Some(instance));
@@ -243,12 +238,11 @@ impl FormFactorApp {
                             self.instance_manager_panel = None;
                         }
                     }
-                }
             }
             InstanceManagerAction::LoadInstance { instance_id } => {
                 tracing::info!(instance_id, "Loading instance for editing");
-                if let Some(panel) = &self.instance_manager_panel {
-                    if let Some(instance) = panel.get_instance(&instance_id) {
+                if let Some(panel) = &self.instance_manager_panel
+                    && let Some(instance) = panel.get_instance(&instance_id) {
                         let template_id = instance.template_id();
                         if let Some(template) = panel.get_template(template_id) {
                             self.app_state.set_current_template(Some(template.clone()));
@@ -269,7 +263,6 @@ impl FormFactorApp {
                             }
                         }
                     }
-                }
             }
             InstanceManagerAction::DeleteInstance { instance_id } => {
                 tracing::info!(instance_id, "Deleting instance");
@@ -467,6 +460,56 @@ impl App for FormFactorApp {
                             }
                         }
                     }
+                    AppEvent::ObjectDeleteRequested {
+                        layer_type,
+                        object_index,
+                    } => {
+                        use form_factor::LayerType;
+                        tracing::info!(
+                            ?layer_type,
+                            object_index,
+                            "Deleting object from layer"
+                        );
+                        match layer_type {
+                            LayerType::Shapes => {
+                                self.canvas.delete_shape(*object_index);
+                            }
+                            LayerType::Detections => {
+                                self.canvas.delete_detection(*object_index);
+                            }
+                            _ => {
+                                tracing::warn!(?layer_type, "Layer does not support object deletion");
+                            }
+                        }
+                    }
+                    AppEvent::ObjectVisibilityChanged {
+                        layer_type,
+                        object_index,
+                        visible,
+                    } => {
+                        use form_factor::LayerType;
+                        tracing::info!(
+                            ?layer_type,
+                            object_index,
+                            visible,
+                            "Changing object visibility"
+                        );
+                        match layer_type {
+                            LayerType::Shapes => {
+                                if let Err(e) = self.canvas.set_shape_visibility(*object_index, *visible) {
+                                    tracing::error!("Failed to set shape visibility: {}", e);
+                                }
+                            }
+                            LayerType::Detections => {
+                                if let Err(e) = self.canvas.set_detection_visibility(*object_index, *visible) {
+                                    tracing::error!("Failed to set detection visibility: {}", e);
+                                }
+                            }
+                            _ => {
+                                tracing::warn!(?layer_type, "Layer does not support object visibility");
+                            }
+                        }
+                    }
                     AppEvent::OpenFileRequested => {
                         if let Some(path) = rfd::FileDialog::new()
                             .add_filter("Form Factor Project", &["ffp"])
@@ -553,7 +596,7 @@ impl App for FormFactorApp {
                         self.toasts.info("Text detection started...");
 
                         // Get form image path for background thread
-                        if let Some(form_path) = self.canvas.form_image_path().as_ref().map(|s| s.clone()) {
+                        if let Some(form_path) = self.canvas.form_image_path().clone() {
                             let sender = self.plugin_manager.event_bus().sender();
 
                             // Spawn background thread for text detection
@@ -643,7 +686,7 @@ impl App for FormFactorApp {
                         self.toasts.info("Logo detection started...");
 
                         // Get form image path for background thread
-                        if let Some(form_path) = self.canvas.form_image_path().as_ref().map(|s| s.clone()) {
+                        if let Some(form_path) = self.canvas.form_image_path().clone() {
                             let sender = self.plugin_manager.event_bus().sender();
 
                             // Spawn background thread for logo detection
@@ -678,8 +721,8 @@ impl App for FormFactorApp {
                                         let entry = entry
                                             .map_err(|e| format!("Failed to read directory entry: {}", e))?;
                                         let path = entry.path();
-                                        if path.is_file() {
-                                            if let Some(ext) = path.extension() {
+                                        if path.is_file()
+                                            && let Some(ext) = path.extension() {
                                                 let ext_str = ext.to_string_lossy().to_lowercase();
                                                 if ext_str == "png" || ext_str == "jpg" || ext_str == "jpeg" || ext_str == "webp" {
                                                     let logo_name = path
@@ -693,7 +736,6 @@ impl App for FormFactorApp {
                                                     }
                                                 }
                                             }
-                                        }
                                     }
 
                                     if logo_count == 0 {
@@ -847,7 +889,7 @@ impl App for FormFactorApp {
                         shapes_json,
                     } => {
                         // Deserialize shapes and add to canvas detections
-                        match serde_json::from_str::<Vec<form_factor::Shape>>(&shapes_json) {
+                        match serde_json::from_str::<Vec<form_factor::Shape>>(shapes_json) {
                             Ok(shapes) => {
                                 tracing::info!(
                                     "Received {} {} detection results",

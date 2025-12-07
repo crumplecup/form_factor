@@ -20,7 +20,7 @@ fn test_builder_fluent_api() {
     assert_eq!(template.id(), "test_template");
     assert_eq!(template.name(), "Test Template");
     assert_eq!(template.version(), "1.0.0");
-    assert_eq!(template.description(), Some("A test template"));
+    assert_eq!(template.description().as_deref(), Some("A test template"));
     assert_eq!(template.page_count(), 1);
     assert_eq!(template.metadata().get("author"), Some(&"test".to_string()));
     assert_eq!(
@@ -110,7 +110,7 @@ fn test_page_builder() {
     assert_eq!(page.page_index, 0);
     assert_eq!(page.dimensions, Some((800, 1100)));
     assert_eq!(page.fields.len(), 1);
-    assert_eq!(page.fields[0].id, "test_field");
+    assert_eq!(page.fields[0].id(), "test_field");
 }
 
 #[test]
@@ -247,8 +247,8 @@ fn test_template_with_fields_across_pages() {
     assert_eq!(template.fields().len(), 2);
     assert_eq!(template.fields_for_page(0).len(), 1);
     assert_eq!(template.fields_for_page(1).len(), 1);
-    assert_eq!(template.fields_for_page(0)[0].id, "field_page_0");
-    assert_eq!(template.fields_for_page(1)[0].id, "field_page_1");
+    assert_eq!(template.fields_for_page(0)[0].id(), "field_page_0");
+    assert_eq!(template.fields_for_page(1)[0].id(), "field_page_1");
 }
 
 #[test]
@@ -273,7 +273,7 @@ fn test_field_by_id() {
         .unwrap();
 
     assert!(template.field_by_id("test_field").is_some());
-    assert_eq!(template.field_by_id("test_field").unwrap().id, "test_field");
+    assert_eq!(template.field_by_id("test_field").unwrap().id(), "test_field");
     assert!(template.field_by_id("nonexistent").is_none());
 }
 

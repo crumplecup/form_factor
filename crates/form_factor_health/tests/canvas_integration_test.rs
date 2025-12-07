@@ -109,7 +109,7 @@ fn test_zoom_level_modification() {
 }
 
 #[test]
-fn test_shape_addition() {
+fn test_shape_addition() -> Result<(), Box<dyn std::error::Error>> {
     use egui::{Color32, Pos2, Stroke};
     use form_factor_drawing::{Circle, Rectangle};
 
@@ -122,8 +122,7 @@ fn test_shape_addition() {
         Pos2::new(110.0, 70.0),
         Stroke::new(2.0, Color32::RED),
         Color32::from_rgba_premultiplied(255, 0, 0, 50),
-    )
-    .expect("Valid rectangle");
+    )?;
 
     canvas.test_add_shape(Shape::Rectangle(rect));
     assert_shape_count(&canvas, 1);
@@ -134,11 +133,11 @@ fn test_shape_addition() {
         25.0,
         Stroke::new(2.0, Color32::BLUE),
         Color32::from_rgba_premultiplied(0, 0, 255, 50),
-    )
-    .expect("Valid circle");
+    )?;
 
     canvas.test_add_shape(Shape::Circle(circle));
     assert_shape_count(&canvas, 2);
+    Ok(())
 }
 
 #[test]
@@ -146,10 +145,10 @@ fn test_project_name_modification() {
     let mut canvas = create_test_canvas();
     assert_eq!(canvas.project_name(), "Test Canvas");
 
-    canvas.set_project_name("My Project");
+    canvas.with_project_name("My Project".to_string());
     assert_eq!(canvas.project_name(), "My Project");
 
-    canvas.set_project_name("Another Name");
+    canvas.with_project_name("Another Name".to_string());
     assert_eq!(canvas.project_name(), "Another Name");
 }
 
@@ -169,7 +168,7 @@ fn test_shapes_on_shapes_layer() {
 }
 
 #[test]
-fn test_detections_separate_from_shapes() {
+fn test_detections_separate_from_shapes() -> Result<(), Box<dyn std::error::Error>> {
     use egui::{Color32, Pos2, Stroke};
     use form_factor_drawing::Rectangle;
 
@@ -181,8 +180,7 @@ fn test_detections_separate_from_shapes() {
         Pos2::new(550.0, 530.0),
         Stroke::new(2.0, Color32::BLUE),
         Color32::from_rgba_premultiplied(0, 0, 255, 50),
-    )
-    .expect("Valid rectangle");
+    )?;
 
     canvas.test_add_detection(Shape::Rectangle(detection_rect));
 
@@ -195,6 +193,7 @@ fn test_detections_separate_from_shapes() {
 
     let detections_layer = get_shapes_on_layer(&canvas, LayerType::Detections);
     assert_eq!(detections_layer.len(), 1);
+    Ok(())
 }
 
 // ============================================================================

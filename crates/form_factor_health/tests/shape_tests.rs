@@ -208,7 +208,7 @@ fn rectangle_creates_from_corners() {
     let fill = Color32::BLUE;
 
     let rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 20.0), stroke, fill)
-        .expect("Valid rectangle should be created");
+        ?;
 
     let corners = rect.corners();
     assert_eq!(corners.len(), 4);
@@ -233,7 +233,7 @@ fn rectangle_creates_from_four_corners() {
     ];
 
     let rect = Rectangle::from_four_corners(corners, stroke, fill)
-        .expect("Valid rectangle should be created");
+        ?;
 
     assert_eq!(rect.corners(), &corners);
 }
@@ -245,7 +245,7 @@ fn rectangle_normalizes_corners() {
 
     // Create rectangle with corners in "wrong" order (bottom-right to top-left)
     let rect = Rectangle::from_corners(Pos2::new(10.0, 20.0), Pos2::new(0.0, 0.0), stroke, fill)
-        .expect("Rectangle should normalize corners");
+        ?;
 
     let corners = rect.corners();
     // Should still produce correctly ordered corners
@@ -260,7 +260,7 @@ fn circle_creates_with_valid_params() {
     let center = Pos2::new(50.0, 75.0);
     let radius = 25.0;
 
-    let circle = Circle::new(center, radius, stroke, fill).expect("Valid circle should be created");
+    let circle = Circle::new(center, radius, stroke, fill)?;
 
     assert_eq!(*circle.center(), center);
     assert_eq!(*circle.radius(), radius);
@@ -280,7 +280,7 @@ fn polygon_creates_with_three_points() {
     ];
 
     let poly = PolygonShape::from_points(points.clone(), stroke, fill)
-        .expect("Valid triangle should be created");
+        ?;
 
     let result_points = poly.to_egui_points();
     // geo crate closes polygons by adding first point at end
@@ -302,7 +302,7 @@ fn polygon_creates_with_many_points() {
     }
 
     let poly = PolygonShape::from_points(points.clone(), stroke, fill)
-        .expect("Valid octagon should be created");
+        ?;
 
     // geo crate closes polygons by adding first point at end
     assert_eq!(poly.to_egui_points().len(), 9);
@@ -321,7 +321,7 @@ fn circle_translates_correctly() {
 
     circle
         .translate(egui::Vec2::new(5.0, -3.0))
-        .expect("Translation should succeed");
+        ?;
 
     assert_eq!(*circle.center(), Pos2::new(15.0, 7.0));
     assert_eq!(*circle.radius(), 5.0); // Radius unchanged
@@ -336,7 +336,7 @@ fn rectangle_translates_correctly() {
         Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
 
     rect.translate(egui::Vec2::new(5.0, 5.0))
-        .expect("Translation should succeed");
+        ?;
 
     let corners = rect.corners();
     assert_eq!(corners[0], Pos2::new(5.0, 5.0));
@@ -357,7 +357,7 @@ fn polygon_translates_correctly() {
     let mut poly = PolygonShape::from_points(points, stroke, fill).unwrap();
 
     poly.translate(egui::Vec2::new(10.0, 10.0))
-        .expect("Translation should succeed");
+        ?;
 
     let result = poly.to_egui_points();
     assert_eq!(result[0], Pos2::new(10.0, 10.0));
@@ -375,7 +375,7 @@ fn circle_rotates_around_pivot() {
     // Rotate 90 degrees around origin
     circle
         .rotate(PI / 2.0, Pos2::new(0.0, 0.0))
-        .expect("Rotation should succeed");
+        ?;
 
     // After 90° rotation around origin, (10, 0) -> (0, 10)
     let center = circle.center();
@@ -394,7 +394,7 @@ fn rectangle_rotates_90_degrees() {
 
     // Rotate 90 degrees around origin
     rect.rotate(PI / 2.0, Pos2::new(0.0, 0.0))
-        .expect("Rotation should succeed");
+        ?;
 
     let corners = rect.corners();
 
@@ -419,7 +419,7 @@ fn polygon_rotates_180_degrees() {
 
     // Rotate 180 degrees around origin
     poly.rotate(PI, Pos2::new(0.0, 0.0))
-        .expect("Rotation should succeed");
+        ?;
 
     let result = poly.to_egui_points();
 
@@ -440,7 +440,7 @@ fn rotation_360_degrees_returns_to_original() {
 
     circle
         .rotate(2.0 * PI, Pos2::new(0.0, 0.0))
-        .expect("Rotation should succeed");
+        ?;
 
     let center = circle.center();
     assert!((center.x - original_center.x).abs() < 0.001);
@@ -456,7 +456,7 @@ fn rectangle_set_corner_updates_shape() {
         Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill).unwrap();
 
     rect.set_corner(0, Pos2::new(1.0, 1.0))
-        .expect("Setting corner should succeed");
+        ?;
 
     let corners = rect.corners();
     assert_eq!(corners[0], Pos2::new(1.0, 1.0));
@@ -476,7 +476,7 @@ fn polygon_set_vertex_updates_shape() {
     let mut poly = PolygonShape::from_points(points, stroke, fill).unwrap();
 
     poly.set_vertex(1, Pos2::new(15.0, 0.0))
-        .expect("Setting vertex should succeed");
+        ?;
 
     let result = poly.to_egui_points();
     assert_eq!(result[1], Pos2::new(15.0, 0.0));
@@ -503,7 +503,7 @@ fn polygon_set_vertices_replaces_all() {
     ];
 
     poly.set_vertices(new_points.clone())
-        .expect("Setting vertices should succeed");
+        ?;
 
     let result = poly.to_egui_points();
     // geo crate closes polygons by adding first point at end
@@ -523,7 +523,7 @@ fn circle_set_radius_updates_radius() {
 
     circle
         .set_radius(10.0)
-        .expect("Setting radius should succeed");
+        ?;
     assert_eq!(*circle.radius(), 10.0);
 
     // Invalid radius should fail
@@ -540,7 +540,7 @@ fn circle_set_center_updates_center() {
 
     circle
         .set_center(Pos2::new(20.0, 30.0))
-        .expect("Setting center should succeed");
+        ?;
     assert_eq!(*circle.center(), Pos2::new(20.0, 30.0));
 }
 
@@ -677,7 +677,7 @@ fn circle_builder_creates_valid_circle() {
         .fill(Color32::BLUE)
         .name("test circle")
         .build()
-        .expect("Builder should create valid circle");
+        ?;
 
     assert_eq!(*circle.center(), Pos2::new(10.0, 10.0));
     assert_eq!(*circle.radius(), 5.0);
@@ -694,7 +694,7 @@ fn circle_builder_uses_default_name() {
         .stroke(Stroke::new(1.0, Color32::BLACK))
         .fill(Color32::TRANSPARENT)
         .build()
-        .expect("Builder should create circle with default name");
+        ?;
 
     assert_eq!(circle.name(), "");
 }

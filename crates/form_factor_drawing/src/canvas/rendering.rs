@@ -1064,7 +1064,7 @@ impl DrawingCanvas {
             painter.text(
                 label_pos,
                 egui::Align2::LEFT_TOP,
-                &field.label(),
+                field.label(),
                 egui::FontId::proportional(12.0),
                 Color32::from_rgb(0, 100, 200),
             );
@@ -1357,7 +1357,7 @@ impl DrawingCanvas {
             painter.text(
                 label_pos,
                 egui::Align2::LEFT_TOP,
-                &field.label(),
+                field.label(),
                 egui::FontId::proportional(12.0),
                 Color32::from_rgb(20, 80, 20),
             );

@@ -7,6 +7,7 @@
 //! 4. Grid (alignment grid overlay) - top
 
 use derive_getters::Getters;
+use derive_setters::Setters;
 use enum_map::{Enum, EnumMap};
 use serde::{Deserialize, Serialize};
 use strum::IntoEnumIterator;
@@ -53,7 +54,8 @@ pub enum LayerType {
 
 
 /// A layer with visibility and lock control
-#[derive(Debug, Clone, Serialize, Deserialize, Getters)]
+#[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
+#[setters(prefix = "set_", borrow_self)]
 pub struct Layer {
     /// Display name of the layer
     name: String,
@@ -86,29 +88,14 @@ impl Layer {
         }
     }
 
-    /// Set visibility
-    pub fn set_visible(&mut self, visible: bool) {
-        self.visible = visible;
-    }
-
     /// Toggle visibility
     pub fn toggle_visibility(&mut self) {
         self.visible = !self.visible;
     }
 
-    /// Set locked state
-    pub fn set_locked(&mut self, locked: bool) {
-        self.locked = locked;
-    }
-
     /// Toggle locked state
     pub fn toggle_locked(&mut self) {
         self.locked = !self.locked;
-    }
-
-    /// Set the display name
-    pub fn set_name(&mut self, name: impl Into<String>) {
-        self.name = name.into();
     }
 }
 
