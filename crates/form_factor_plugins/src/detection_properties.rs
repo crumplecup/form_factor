@@ -107,113 +107,111 @@ impl DetectionPropertiesPanel {
                     });
 
                     // Show field type selector popup when enabled
-                    if self.show_field_selector {
-                        if self.field_type_selector.is_some() {
-                            ui.separator();
-                            // TODO: Convert between form_factor_core::FieldType and FormFieldType
-                            // For now, use basic combo box until types are unified
-                            egui::ComboBox::from_label("Select Field Type")
-                                .selected_text(
-                                    metadata
-                                        .form_field_type()
-                                        .as_ref()
-                                        .map(|ft| format!("{:?}", ft))
-                                        .unwrap_or_else(|| "None".to_string()),
-                                )
-                                .show_ui(ui, |ui| {
-                                    let mut selected = metadata.form_field_type().clone();
-                                    let current = selected.clone();
+                    if self.show_field_selector && self.field_type_selector.is_some() {
+                        ui.separator();
+                        // TODO: Convert between form_factor_core::FieldType and FormFieldType
+                        // For now, use basic combo box until types are unified
+                        egui::ComboBox::from_label("Select Field Type")
+                            .selected_text(
+                                metadata
+                                    .form_field_type()
+                                    .as_ref()
+                                    .map(|ft| format!("{:?}", ft))
+                                    .unwrap_or_else(|| "None".to_string()),
+                            )
+                            .show_ui(ui, |ui| {
+                                let mut selected = metadata.form_field_type().clone();
+                                let current = selected.clone();
 
-                                    if ui
-                                        .selectable_value(
-                                            &mut selected,
-                                            Some(FormFieldType::Text),
-                                            "Text",
-                                        )
-                                        .clicked()
-                                    {
-                                        metadata.with_form_field_type(selected.clone());
-                                    }
-                                    if ui
-                                        .selectable_value(
-                                            &mut selected,
-                                            Some(FormFieldType::TextArea),
-                                            "Text Area",
-                                        )
-                                        .clicked()
-                                    {
-                                        metadata.with_form_field_type(selected.clone());
-                                    }
-                                    if ui
-                                        .selectable_value(
-                                            &mut selected,
-                                            Some(FormFieldType::Date),
-                                            "Date",
-                                        )
-                                        .clicked()
-                                    {
-                                        metadata.with_form_field_type(selected.clone());
-                                    }
-                                    if ui
-                                        .selectable_value(
-                                            &mut selected,
-                                            Some(FormFieldType::Number),
-                                            "Number",
-                                        )
-                                        .clicked()
-                                    {
-                                        metadata.with_form_field_type(selected.clone());
-                                    }
-                                    if ui
-                                        .selectable_value(
-                                            &mut selected,
-                                            Some(FormFieldType::Checkbox),
-                                            "Checkbox",
-                                        )
-                                        .clicked()
-                                    {
-                                        metadata.with_form_field_type(selected.clone());
-                                    }
-                                    if ui
-                                        .selectable_value(
-                                            &mut selected,
-                                            Some(FormFieldType::Radio),
-                                            "Radio",
-                                        )
-                                        .clicked()
-                                    {
-                                        metadata.with_form_field_type(selected.clone());
-                                    }
-                                    if ui
-                                        .selectable_value(
-                                            &mut selected,
-                                            Some(FormFieldType::Dropdown),
-                                            "Dropdown",
-                                        )
-                                        .clicked()
-                                    {
-                                        metadata.with_form_field_type(selected.clone());
-                                    }
-                                    if ui
-                                        .selectable_value(
-                                            &mut selected,
-                                            Some(FormFieldType::Signature),
-                                            "Signature",
-                                        )
-                                        .clicked()
-                                    {
-                                        metadata.with_form_field_type(selected.clone());
-                                    }
-                                    if ui.selectable_value(&mut selected, None, "None").clicked() {
-                                        metadata.with_form_field_type(None);
-                                    }
+                                if ui
+                                    .selectable_value(
+                                        &mut selected,
+                                        Some(FormFieldType::Text),
+                                        "Text",
+                                    )
+                                    .clicked()
+                                {
+                                    metadata.with_form_field_type(selected.clone());
+                                }
+                                if ui
+                                    .selectable_value(
+                                        &mut selected,
+                                        Some(FormFieldType::TextArea),
+                                        "Text Area",
+                                    )
+                                    .clicked()
+                                {
+                                    metadata.with_form_field_type(selected.clone());
+                                }
+                                if ui
+                                    .selectable_value(
+                                        &mut selected,
+                                        Some(FormFieldType::Date),
+                                        "Date",
+                                    )
+                                    .clicked()
+                                {
+                                    metadata.with_form_field_type(selected.clone());
+                                }
+                                if ui
+                                    .selectable_value(
+                                        &mut selected,
+                                        Some(FormFieldType::Number),
+                                        "Number",
+                                    )
+                                    .clicked()
+                                {
+                                    metadata.with_form_field_type(selected.clone());
+                                }
+                                if ui
+                                    .selectable_value(
+                                        &mut selected,
+                                        Some(FormFieldType::Checkbox),
+                                        "Checkbox",
+                                    )
+                                    .clicked()
+                                {
+                                    metadata.with_form_field_type(selected.clone());
+                                }
+                                if ui
+                                    .selectable_value(
+                                        &mut selected,
+                                        Some(FormFieldType::Radio),
+                                        "Radio",
+                                    )
+                                    .clicked()
+                                {
+                                    metadata.with_form_field_type(selected.clone());
+                                }
+                                if ui
+                                    .selectable_value(
+                                        &mut selected,
+                                        Some(FormFieldType::Dropdown),
+                                        "Dropdown",
+                                    )
+                                    .clicked()
+                                {
+                                    metadata.with_form_field_type(selected.clone());
+                                }
+                                if ui
+                                    .selectable_value(
+                                        &mut selected,
+                                        Some(FormFieldType::Signature),
+                                        "Signature",
+                                    )
+                                    .clicked()
+                                {
+                                    metadata.with_form_field_type(selected.clone());
+                                }
+                                if ui.selectable_value(&mut selected, None, "None").clicked() {
+                                    metadata.with_form_field_type(None);
+                                }
 
-                                    if selected != current {
-                                        debug!(?selected, "Updated form field type");
-                                        self.show_field_selector = false;
-                                    }
-                                });
-                        }
+                                if selected != current {
+                                    debug!(?selected, "Updated form field type");
+                                    self.show_field_selector = false;
+                                }
+                            });
                     }
 
                     // Field configuration when type is selected

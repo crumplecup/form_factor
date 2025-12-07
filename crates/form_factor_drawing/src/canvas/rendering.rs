@@ -1083,7 +1083,7 @@ impl DrawingCanvas {
         let transformed_size = size * self.zoom_level;
 
         // Calculate font size to fit the box (adjust based on box height)
-        let font_size = (transformed_size.y * 0.7).min(24.0).max(8.0);
+        let font_size = (transformed_size.y * 0.7).clamp(8.0, 24.0);
 
         // Create text with appropriate font
         let font_id = egui::FontId::proportional(font_size);
