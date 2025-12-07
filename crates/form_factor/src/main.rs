@@ -20,6 +20,7 @@ use detection_tasks::TextDetectionTask;
 use detection_tasks::LogoDetectionTask;
 #[cfg(feature = "ocr")]
 use detection_tasks::OcrExtractionTask;
+use event_handlers::FileEventHandler;
 use file_dialogs::FileDialogs;
 #[cfg(feature = "plugins")]
 use plugin_setup::PluginSetup;
@@ -305,74 +306,31 @@ impl App for FormFactorApp {
                         }
                     }
                     AppEvent::OpenFileRequested => {
-                        if let Some(path) = FileDialogs::open_project()
-                            && let Some(path_str) = path.to_str()
-                        {
-                            match self.canvas.load_from_file(path_str, ctx.egui_ctx()) {
-                                Ok(()) => {
-                                    tracing::info!("Loaded project from {}", path_str);
-                                    // Emit FileOpened event
-                                    self.plugin_manager
-                                        .event_bus()
-                                        .sender()
-                                        .emit(AppEvent::FileOpened { path });
-                                }
-                                Err(e) => {
-                                    tracing::error!("Failed to load project: {}", e);
-                                }
-                            }
-                        }
+                        FileEventHandler::handle_open_requested(
+                            &mut self.canvas,
+                            self.plugin_manager.event_bus().sender(),
+                            ctx.egui_ctx(),
+                        );
                     }
                     AppEvent::SaveFileRequested => {
-                        // Save to current file or show save dialog
-                        if let Some(path) = FileDialogs::save_project(self.canvas.project_name())
-                            && let Some(path_str) = path.to_str()
-                        {
-                            match self.canvas.save_to_file(path_str) {
-                                Ok(()) => {
-                                    tracing::info!("Saved project to {}", path_str);
-                                    self.plugin_manager
-                                        .event_bus()
-                                        .sender()
-                                        .emit(AppEvent::FileSaved { path });
-                                }
-                                Err(e) => {
-                                    tracing::error!("Failed to save project: {}", e);
-                                }
-                            }
-                        }
+                        FileEventHandler::handle_save_requested(
+                            &mut self.canvas,
+                            self.plugin_manager.event_bus().sender(),
+                            self.canvas.project_name(),
+                        );
                     }
                     AppEvent::SaveAsRequested => {
-                        if let Some(path) = FileDialogs::save_project(self.canvas.project_name())
-                            && let Some(path_str) = path.to_str()
-                        {
-                            match self.canvas.save_to_file(path_str) {
-                                Ok(()) => {
-                                    tracing::info!("Saved project to {}", path_str);
-                                    self.plugin_manager
-                                        .event_bus()
-                                        .sender()
-                                        .emit(AppEvent::FileSaved { path });
-                                }
-                                Err(e) => {
-                                    tracing::error!("Failed to save project: {}", e);
-                                }
-                            }
-                        }
+                        FileEventHandler::handle_save_as_requested(
+                            &mut self.canvas,
+                            self.plugin_manager.event_bus().sender(),
+                            self.canvas.project_name(),
+                        );
                     }
                     AppEvent::LoadImageRequested => {
-                        if let Some(path) = FileDialogs::load_image()
-                            && let Some(path_str) = path.to_str()
-                        {
-                            match self.canvas.load_form_image(path_str, ctx.egui_ctx()) {
-                                Ok(()) => {
-                                    tracing::info!("Loaded image from {}", path_str);
-                                }
-                                Err(e) => {
-                                    tracing::error!("Failed to load image: {}", e);
-                                }
-                            }
-                        }
+                        FileEventHandler::handle_load_image_requested(
+                            &mut self.canvas,
+                            ctx.egui_ctx(),
+                        );
                     }
                     #[cfg(feature = "text-detection")]
                     AppEvent::TextDetectionRequested => {
