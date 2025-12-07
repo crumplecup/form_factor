@@ -29,6 +29,12 @@ pub enum AppEvent {
         index: usize,
     },
 
+    /// A detection was selected
+    DetectionSelected {
+        /// ID of the selected detection
+        detection_id: String,
+    },
+
     /// Shape selection was cleared
     SelectionCleared,
 
@@ -205,6 +211,13 @@ pub enum AppEvent {
     OcrComplete {
         /// Serialized OCR results (JSON array of shape-text pairs)
         results_json: String,
+    },
+
+    /// Detection metadata was updated
+    #[cfg(feature = "plugin-layers")]
+    DetectionMetadataUpdated {
+        /// ID of the detection
+        detection_id: String,
     },
 
     /// A tool was selected

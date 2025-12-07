@@ -1,7 +1,8 @@
 //! Property inspector plugin for editing shape and field properties.
 
-use crate::{AppEvent, Plugin, PluginContext};
+use crate::{detection_properties::DetectionPropertiesPanel, AppEvent, Plugin, PluginContext};
 use egui::{Color32, Ui};
+use form_factor_drawing::DetectionMetadata;
 use tracing::instrument;
 
 /// Property inspector plugin for editing selected shape/field properties.
@@ -10,6 +11,7 @@ pub struct PropertiesPlugin {
     name: String,
     enabled: bool,
     selected_item: Option<SelectedItem>,
+    detection_panel: DetectionPropertiesPanel,
 }
 
 /// Type of item currently selected for property editing.
@@ -30,6 +32,11 @@ enum SelectedItem {
         /// Label text
         label: String,
     },
+    /// A detection (logo, text, OCR)
+    Detection {
+        /// Detection metadata
+        metadata: DetectionMetadata,
+    },
 }
 
 impl PropertiesPlugin {
@@ -41,6 +48,7 @@ impl PropertiesPlugin {
             name: "Properties".to_string(),
             enabled: true,
             selected_item: None,
+            detection_panel: DetectionPropertiesPanel::new(),
         }
     }
 
@@ -49,6 +57,18 @@ impl PropertiesPlugin {
         // Listen for selection events from other plugins
         // For now, we'll poll for selection state from events
         // TODO: Implement proper selection tracking
+    }
+    
+    /// Fetches detection metadata from application state.
+    fn fetch_detection_metadata(
+        &self,
+        _detection_id: &str,
+        _ctx: &PluginContext,
+    ) -> Option<DetectionMetadata> {
+        // TODO: Implement proper metadata fetching from app state
+        // For now, return None - this needs to be wired to actual detection storage
+        tracing::warn!("Detection metadata fetching not yet implemented");
+        None
     }
 
     /// Renders property editor for a shape.
@@ -140,15 +160,24 @@ impl Plugin for PropertiesPlugin {
             }) => {
                 Self::render_shape_properties(ui, *id, shape_type, position, size, color, label);
             }
+            Some(SelectedItem::Detection { metadata }) => {
+                // Show detection properties panel
+                self.detection_panel.set_metadata(Some(metadata.clone()));
+                if let Some(_updated) = self.detection_panel.ui(ui) {
+                    // TODO: Emit event with updated metadata
+                    // For now, just log that an update happened
+                    tracing::debug!("Detection metadata updated");
+                }
+            }
             None => {
                 ui.label("No selection");
                 ui.separator();
-                ui.label("Select a shape to edit its properties.");
+                ui.label("Select a shape or detection to edit its properties.");
             }
         }
     }
 
-    fn on_event(&mut self, event: &AppEvent, _ctx: &PluginContext) -> Option<AppEvent> {
+    fn on_event(&mut self, event: &AppEvent, ctx: &PluginContext) -> Option<AppEvent> {
         // Handle selection events
         match event {
             AppEvent::ShapeSelected { index } => {
@@ -163,9 +192,17 @@ impl Plugin for PropertiesPlugin {
                     label: String::new(),
                 });
             }
+            AppEvent::DetectionSelected { detection_id } => {
+                tracing::debug!(detection_id, "Detection selected, fetching metadata");
+                // Fetch detection metadata from state
+                if let Some(metadata) = self.fetch_detection_metadata(detection_id, ctx) {
+                    self.selected_item = Some(SelectedItem::Detection { metadata });
+                }
+            }
             AppEvent::SelectionCleared => {
                 tracing::debug!("Selection cleared");
                 self.selected_item = None;
+                self.detection_panel.set_metadata(None);
             }
             AppEvent::Custom {
                 plugin, event_type, ..
@@ -179,6 +216,8 @@ impl Plugin for PropertiesPlugin {
         }
         None
     }
+    
+
 
     fn is_enabled(&self) -> bool {
         self.enabled
