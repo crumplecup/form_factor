@@ -1,8 +1,11 @@
 //! File event handlers
 
-use crate::file_dialogs::FileDialogs;
-use form_factor_drawing::DrawingCanvas;
 use tracing::instrument;
+
+#[cfg(feature = "plugins")]
+use crate::file_dialogs::FileDialogs;
+#[cfg(feature = "plugins")]
+use form_factor_drawing::DrawingCanvas;
 
 #[cfg(feature = "plugins")]
 use form_factor_plugins::{AppEvent, EventSender};

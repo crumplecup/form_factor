@@ -1,7 +1,8 @@
 use crate::AppContext;
-use form_factor_drawing::AppState;
 use tracing::instrument;
 
+#[cfg(feature = "plugins")]
+use form_factor_drawing::AppState;
 #[cfg(feature = "plugins")]
 use form_factor_plugins::TemplateBrowserPlugin;
 

@@ -1,7 +1,9 @@
 //! Detection result processing
 
-use form_factor_drawing::DrawingCanvas;
 use tracing::instrument;
+
+#[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
+use form_factor_drawing::DrawingCanvas;
 
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
 use form_factor_drawing::Shape;
