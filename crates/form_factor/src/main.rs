@@ -15,25 +15,12 @@ use form_factor::{App, AppContext, DrawingCanvas};
 use form_factor_drawing::Shape;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use file_dialogs::FileDialogs;
+#[cfg(feature = "plugins")]
+use plugin_setup::PluginSetup;
 use ui_properties::PropertyRenderer;
 
 #[cfg(feature = "backend-eframe")]
 use form_factor::{Backend, BackendConfig, EframeBackend};
-
-#[cfg(all(feature = "plugins", feature = "plugin-canvas"))]
-use form_factor_plugins::CanvasPlugin;
-
-#[cfg(all(feature = "plugins", feature = "plugin-layers"))]
-use form_factor_plugins::LayersPlugin;
-
-#[cfg(all(feature = "plugins", feature = "plugin-file"))]
-use form_factor_plugins::FilePlugin;
-
-#[cfg(all(feature = "plugins", feature = "plugin-detection"))]
-use form_factor_plugins::DetectionPlugin;
-
-#[cfg(all(feature = "plugins", feature = "plugin-properties"))]
-use form_factor_plugins::PropertiesPlugin;
 
 #[cfg(feature = "plugins")]
 use form_factor_plugins::TemplateBrowserPlugin;
@@ -68,41 +55,7 @@ struct FormFactorApp {
 impl FormFactorApp {
     fn new() -> Self {
         #[cfg(feature = "plugins")]
-        let plugin_manager = {
-            let mut manager = form_factor::PluginManager::new();
-
-            #[cfg(feature = "plugin-canvas")]
-            {
-                manager.register(Box::new(CanvasPlugin::new()));
-                tracing::info!("Registered canvas plugin");
-            }
-
-            #[cfg(feature = "plugin-layers")]
-            {
-                manager.register(Box::new(LayersPlugin::new()));
-                tracing::info!("Registered layers plugin");
-            }
-
-            #[cfg(feature = "plugin-file")]
-            {
-                manager.register(Box::new(FilePlugin::new()));
-                tracing::info!("Registered file plugin");
-            }
-
-            #[cfg(feature = "plugin-detection")]
-            {
-                manager.register(Box::new(DetectionPlugin::new()));
-                tracing::info!("Registered detection plugin");
-            }
-
-            #[cfg(feature = "plugin-properties")]
-            {
-                manager.register(Box::new(PropertiesPlugin::new()));
-                tracing::info!("Registered properties plugin");
-            }
-
-            manager
-        };
+        let plugin_manager = PluginSetup::create_manager();
 
         Self {
             name: String::from("Form Factor"),
