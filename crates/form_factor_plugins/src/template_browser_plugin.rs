@@ -8,6 +8,8 @@ use tracing::instrument;
 #[derive(Debug, Clone, Getters, Setters)]
 #[setters(prefix = "with_", borrow_self)]
 pub struct TemplateBrowserPlugin {
+    /// Template browser instance
+    #[setters(doc = "Sets the template browser")]
     browser: TemplateBrowser,
 }
 
