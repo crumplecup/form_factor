@@ -12,7 +12,7 @@ use crate::{
     event::AppEvent,
     plugin::{Plugin, PluginContext},
 };
-use form_factor_drawing::LayerType;
+use form_factor_drawing::{DetectionSubtype, LayerType};
 use strum::IntoEnumIterator;
 use tracing::{debug, instrument};
 
@@ -44,8 +44,12 @@ pub struct LayersPlugin {
     selected_layer: Option<LayerType>,
     /// Whether the Shapes layer is expanded to show individual shapes
     shapes_expanded: bool,
-    /// Whether the Detections layer is expanded to show individual detections
+    /// Whether the Detections layer is expanded to show detection subtypes
     detections_expanded: bool,
+    /// Whether the Logos subtype is expanded
+    logos_expanded: bool,
+    /// Whether the Text subtype is expanded
+    text_expanded: bool,
 }
 
 impl LayersPlugin {
@@ -68,6 +72,8 @@ impl LayersPlugin {
             selected_layer: None,
             shapes_expanded: false,
             detections_expanded: false,
+            logos_expanded: false,
+            text_expanded: false,
         }
     }
 
@@ -182,13 +188,18 @@ impl LayersPlugin {
     }
 
     /// Renders individual objects within an expanded layer.
-    fn render_layer_objects(&self, ui: &mut egui::Ui, layer_type: LayerType, ctx: &PluginContext) {
+    fn render_layer_objects(&mut self, ui: &mut egui::Ui, layer_type: LayerType, ctx: &PluginContext) {
+        match layer_type {
+            LayerType::Shapes => self.render_shapes_list(ui, ctx),
+            LayerType::Detections => self.render_detections_groups(ui, ctx),
+            _ => {}
+        }
+    }
+
+    /// Renders the shapes list with individual shape entries.
+    fn render_shapes_list(&self, ui: &mut egui::Ui, ctx: &PluginContext) {
         if let Some(canvas) = ctx.canvas {
-            let shapes = match layer_type {
-                LayerType::Shapes => canvas.shapes(),
-                LayerType::Detections => canvas.detections(),
-                _ => return,
-            };
+            let shapes = canvas.shapes();
 
             if shapes.is_empty() {
                 ui.horizontal(|ui| {
@@ -199,58 +210,127 @@ impl LayersPlugin {
             }
 
             for (i, shape) in shapes.iter().enumerate() {
-                ui.horizontal(|ui| {
-                    ui.add_space(40.0); // Indent to show hierarchy
-
-                    // Get shape name and visibility
-                    let (shape_name, is_visible) = match shape {
-                        form_factor_drawing::Shape::Rectangle(r) => (r.name(), r.visible()),
-                        form_factor_drawing::Shape::Circle(c) => (c.name(), c.visible()),
-                        form_factor_drawing::Shape::Polygon(p) => (p.name(), p.visible()),
-                    };
-
-                    // Display shape with index and name
-                    ui.label(format!("{}. {}", i + 1, shape_name));
-
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        // Delete button
-                        if ui.button("🗑").on_hover_text("Delete object").clicked() {
-                            debug!(
-                                layer = ?layer_type,
-                                index = i,
-                                name = shape_name,
-                                "Object delete requested"
-                            );
-                            ctx.events.emit(AppEvent::ObjectDeleteRequested {
-                                layer_type,
-                                object_index: i,
-                            });
-                        }
-
-                        // Visibility toggle
-                        let eye_icon = if *is_visible { "👁" } else { "⚫" };
-                        if ui
-                            .button(eye_icon)
-                            .on_hover_text("Toggle visibility")
-                            .clicked()
-                        {
-                            debug!(
-                                layer = ?layer_type,
-                                index = i,
-                                name = shape_name,
-                                visible = !is_visible,
-                                "Object visibility toggled"
-                            );
-                            ctx.events.emit(AppEvent::ObjectVisibilityChanged {
-                                layer_type,
-                                object_index: i,
-                                visible: !is_visible,
-                            });
-                        }
-                    });
-                });
+                self.render_shape_entry(ui, i, shape, ctx);
             }
         }
+    }
+
+    /// Renders detection groups (Logos and Text) with expandable subtypes.
+    fn render_detections_groups(&mut self, ui: &mut egui::Ui, ctx: &PluginContext) {
+        if let Some(canvas) = ctx.canvas {
+            let detections = canvas.detections();
+
+            // Separate detections by type
+            let logos: Vec<_> = detections
+                .iter()
+                .enumerate()
+                .filter(|(_, shape)| {
+                    matches!(shape, form_factor_drawing::Shape::Rectangle(r) if r.name().starts_with("Logo:"))
+                })
+                .collect();
+            
+            let text: Vec<_> = detections
+                .iter()
+                .enumerate()
+                .filter(|(_, shape)| {
+                    matches!(shape, form_factor_drawing::Shape::Rectangle(r) if r.name().starts_with("Text Region"))
+                })
+                .collect();
+
+            // Render Logos group
+            self.render_detection_subtype(ui, "Logos", &logos, &mut self.logos_expanded, ctx);
+
+            // Render Text group
+            self.render_detection_subtype(ui, "Text", &text, &mut self.text_expanded, ctx);
+        }
+    }
+
+    /// Renders a detection subtype group (e.g., "Logos" or "Text").
+    fn render_detection_subtype(
+        &self,
+        ui: &mut egui::Ui,
+        label: &str,
+        items: &[(usize, &form_factor_drawing::Shape)],
+        is_expanded: &mut bool,
+        ctx: &PluginContext,
+    ) {
+        ui.horizontal(|ui| {
+            ui.add_space(40.0); // Indent to show hierarchy under Detections
+
+            // Expansion caret
+            let caret = if *is_expanded { "▼" } else { "▶" };
+            if ui.button(caret).on_hover_text("Expand/collapse").clicked() {
+                *is_expanded = !*is_expanded;
+            }
+
+            // Group label with count
+            ui.label(format!("{} ({})", label, items.len()));
+        });
+
+        // Render individual items if expanded
+        if *is_expanded && !items.is_empty() {
+            for &(index, shape) in items {
+                self.render_shape_entry(ui, index, shape, ctx);
+            }
+        }
+    }
+
+    /// Renders a single shape entry (used for both Shapes and Detections).
+    fn render_shape_entry(
+        &self,
+        ui: &mut egui::Ui,
+        index: usize,
+        shape: &form_factor_drawing::Shape,
+        ctx: &PluginContext,
+    ) {
+        ui.horizontal(|ui| {
+            ui.add_space(60.0); // Deeper indent for individual items
+
+            // Get shape name and visibility
+            let (shape_name, is_visible) = match shape {
+                form_factor_drawing::Shape::Rectangle(r) => (r.name(), r.visible()),
+                form_factor_drawing::Shape::Circle(c) => (c.name(), c.visible()),
+                form_factor_drawing::Shape::Polygon(p) => (p.name(), p.visible()),
+            };
+
+            // Display shape with index and name
+            ui.label(format!("{}. {}", index + 1, shape_name));
+
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                // Delete button
+                if ui.button("🗑").on_hover_text("Delete object").clicked() {
+                    debug!(
+                        index = index,
+                        name = shape_name,
+                        "Object delete requested"
+                    );
+                    ctx.events.emit(AppEvent::ObjectDeleteRequested {
+                        layer_type: LayerType::Detections,
+                        object_index: index,
+                    });
+                }
+
+                // Visibility toggle
+                let eye_icon = if *is_visible { "👁" } else { "⚫" };
+                if ui
+                    .button(eye_icon)
+                    .on_hover_text("Toggle visibility")
+                    .clicked()
+                {
+                    debug!(
+                        index = index,
+                        name = shape_name,
+                        visible = !is_visible,
+                        "Object visibility toggled"
+                    );
+                    ctx.events.emit(AppEvent::ObjectVisibilityChanged {
+                        layer_type: LayerType::Detections,
+                        object_index: index,
+                        visible: !is_visible,
+                    });
+                }
+            });
+        });
     }
 }
 
