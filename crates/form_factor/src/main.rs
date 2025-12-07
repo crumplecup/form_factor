@@ -1,5 +1,12 @@
 //! Form Factor - GUI application for tagging scanned forms with OCR metadata
 
+mod detection_results;
+mod detection_tasks;
+mod event_handlers;
+mod file_dialogs;
+mod plugin_setup;
+mod type_conversions;
+mod ui_properties;
 mod ui_template;
 mod ui_update;
 

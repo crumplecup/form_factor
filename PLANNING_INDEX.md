@@ -10,6 +10,12 @@ This index tracks all planning documents in the workspace. When documents are co
 
 ## Active Planning Documents
 
+### Refactoring
+- **MAIN_REFACTOR_PLAN.md** - `current` (2025-12-07)
+  - Refactoring main.rs from "dumping ground" to maintainable structure
+  - Extract event handlers, detection tasks, file dialogs, plugin setup
+  - Phase-by-phase plan with testing strategy
+
 ### Template/Instance System
 - **TEMPLATE_UI_PLAN.md** - `current` (2025-12-05)
   - Visual template editor implementation plan
@@ -70,15 +76,15 @@ This index tracks all planning documents in the workspace. When documents are co
 
 ## Document Categories Summary
 
-- **Active Planning**: 2 documents
+- **Active Planning**: 3 documents
 - **Development Guidelines**: 1 document
 - **Build & Workspace**: 2 documents
 - **Feature Guides**: 4 documents
 - **Archived**: 2 documents
 
-**Total**: 11 markdown documents tracked (9 active, 2 archived)
+**Total**: 12 markdown documents tracked (10 active, 2 archived)
 
 ---
 
-*Last Updated: 2025-12-06*
+*Last Updated: 2025-12-07*
 *Generated automatically - see git log for detailed history*
