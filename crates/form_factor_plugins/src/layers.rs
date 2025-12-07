@@ -188,7 +188,12 @@ impl LayersPlugin {
     }
 
     /// Renders individual objects within an expanded layer.
-    fn render_layer_objects(&mut self, ui: &mut egui::Ui, layer_type: LayerType, ctx: &PluginContext) {
+    fn render_layer_objects(
+        &mut self,
+        ui: &mut egui::Ui,
+        layer_type: LayerType,
+        ctx: &PluginContext,
+    ) {
         match layer_type {
             LayerType::Shapes => self.render_shapes_list(ui, ctx),
             LayerType::Detections => self.render_detections_groups(ui, ctx),
@@ -228,7 +233,7 @@ impl LayersPlugin {
                     matches!(shape, form_factor_drawing::Shape::Rectangle(r) if r.name().starts_with("Logo:"))
                 })
                 .collect();
-            
+
             let text: Vec<_> = detections
                 .iter()
                 .enumerate()
@@ -242,7 +247,7 @@ impl LayersPlugin {
             self.render_detection_subtype(ui, "Logos", &logos, &mut logos_exp.clone(), ctx);
             self.logos_expanded = logos_exp;
 
-            // Render Text group  
+            // Render Text group
             let text_exp = self.text_expanded;
             self.render_detection_subtype(ui, "Text", &text, &mut text_exp.clone(), ctx);
             self.text_expanded = text_exp;
@@ -303,11 +308,7 @@ impl LayersPlugin {
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 // Delete button
                 if ui.button("🗑").on_hover_text("Delete object").clicked() {
-                    debug!(
-                        index = index,
-                        name = shape_name,
-                        "Object delete requested"
-                    );
+                    debug!(index = index, name = shape_name, "Object delete requested");
                     ctx.events.emit(AppEvent::ObjectDeleteRequested {
                         layer_type: LayerType::Detections,
                         object_index: index,
