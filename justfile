@@ -180,24 +180,25 @@ check-features:
     #!/usr/bin/env bash
     set -e
     command -v cargo-hack >/dev/null 2>&1 || (echo "❌ cargo-hack not installed. Run: cargo install cargo-hack" && exit 1)
-
+    
     LOG_FILE="/tmp/form_factor-check-features.log"
     rm -f "$LOG_FILE"
-
+    
     echo "🔍 Checking workspace libraries with no-default-features..."
     for crate in form_factor_core form_factor_drawing form_factor_cv form_factor_ocr form_factor_backends form_factor_plugins; do
+        echo "  📦 Checking $crate --no-default-features..."
         if ! cargo check -p "$crate" --no-default-features 2>&1 | tee -a "$LOG_FILE"; then
             echo "❌ No-default-features check failed for $crate. See: $LOG_FILE"
             exit 1
         fi
     done
-
+    
     echo "🔍 Checking all-features..."
     if ! cargo check --all-features 2>&1 | tee -a "$LOG_FILE"; then
         echo "❌ All-features check failed. See: $LOG_FILE"
         exit 1
     fi
-
+    
     echo "🔍 Checking feature powerset (excluding form_factor binary)..."
     # Check workspace libraries with feature powerset
     # Exclude form_factor binary since it requires at least one backend
@@ -205,15 +206,15 @@ check-features:
         echo "❌ Feature powerset check failed. See: $LOG_FILE"
         exit 1
     fi
-
+    
     echo "🔍 Checking form_factor with default features (includes backend)..."
     if ! cargo check -p form_factor 2>&1 | tee -a "$LOG_FILE"; then
         echo "❌ form_factor check failed. See: $LOG_FILE"
         exit 1
     fi
-
-    # Check for any errors/warnings in the log (excluding expected compile_error from no-backend case)
-    if [ -s "$LOG_FILE" ] && grep -qE "^(warning:|error:|\s+\^|error\[)" "$LOG_FILE" | grep -v "At least one backend feature must be enabled"; then
+    
+    # Check for any errors/warnings in the log
+    if [ -s "$LOG_FILE" ] && grep -qE "^(warning:|error:|\s+\^|error\[)" "$LOG_FILE"; then
         echo "⚠️  Feature gate checks completed with warnings/errors. See: $LOG_FILE"
         exit 1
     else

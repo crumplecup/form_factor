@@ -5,6 +5,10 @@
 //! - Layer lock status
 //! - Layer selection
 //! - Layer z-order display
+//!
+//! Available with the `plugin-layers` feature.
+
+#![cfg(feature = "plugin-layers")]
 
 use crate::{
     event::AppEvent,

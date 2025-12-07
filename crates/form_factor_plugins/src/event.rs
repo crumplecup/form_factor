@@ -53,6 +53,7 @@ pub enum AppEvent {
     },
 
     /// Request to delete a specific object from a layer
+    #[cfg(feature = "plugin-layers")]
     ObjectDeleteRequested {
         /// Type of the layer containing the object
         layer_type: form_factor_drawing::LayerType,
@@ -61,6 +62,7 @@ pub enum AppEvent {
     },
 
     /// Visibility of a specific object changed
+    #[cfg(feature = "plugin-layers")]
     ObjectVisibilityChanged {
         /// Type of the layer containing the object
         layer_type: form_factor_drawing::LayerType,

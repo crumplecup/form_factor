@@ -228,6 +228,9 @@ pub struct ConfigError {
 
     /// File where the error occurred
     pub file: &'static str,
+
+    /// Source error message (e.g., from serde_json)
+    pub source_error: Option<String>,
 }
 
 impl ConfigError {
@@ -239,6 +242,7 @@ impl ConfigError {
             expected: None,
             line,
             file,
+            source_error: None,
         }
     }
 
@@ -251,6 +255,12 @@ impl ConfigError {
     /// Specify what was expected
     pub fn with_expected(mut self, expected: impl Into<String>) -> Self {
         self.expected = Some(expected.into());
+        self
+    }
+
+    /// Add the source error message
+    pub fn with_source(mut self, source: impl Into<String>) -> Self {
+        self.source_error = Some(source.into());
         self
     }
 }
@@ -371,6 +381,9 @@ impl fmt::Display for ConfigError {
         }
         if let Some(exp) = &self.expected {
             write!(f, " (expected: {})", exp)?;
+        }
+        if let Some(src) = &self.source_error {
+            write!(f, " (source: {})", src)?;
         }
         Ok(())
     }
@@ -516,12 +529,9 @@ impl From<std::io::Error> for FormError {
 // Convert from serde_json::Error
 impl From<serde_json::Error> for FormError {
     fn from(err: serde_json::Error) -> Self {
-        ConfigError::new(
-            format!("JSON error: {}", err),
-            line!(),
-            file!(),
-        )
-        .into()
+        ConfigError::new("JSON serialization/deserialization failed", line!(), file!())
+            .with_source(err.to_string())
+            .into()
     }
 }
 

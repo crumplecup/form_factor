@@ -9,6 +9,7 @@
 use form_factor::FormError;
 use form_factor_core::{
     FieldBounds, FieldDefinition, FieldType, FieldValue, FormInstance, FormTemplate,
+    instance::FieldValueBuilder,
 };
 use form_factor_drawing::{DrawingInstance, DrawingTemplate, TemplatePage};
 
@@ -183,7 +184,7 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
     assert_eq!(page2_values.len(), 3);
 
     // Step 5: Fill out page 3 (Signature)
-    use form_factor_core::{FieldContent, FieldValueBuilder};
+    use form_factor_core::FieldContent;
 
     let signature_value = FieldValueBuilder::default()
         .field_id("signature")
@@ -273,6 +274,8 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
     ] {
         assert!(deserialized.field_value(field_id).is_some());
     }
+    
+    Ok(())
 }
 
 #[test]
@@ -319,7 +322,7 @@ fn test_page_navigation() {
 }
 
 #[test]
-fn test_field_distribution_across_pages() {
+fn test_field_distribution_across_pages() -> Result<(), FormError> {
     let mut page1 = TemplatePage::new(0);
     let mut page2 = TemplatePage::new(1);
 

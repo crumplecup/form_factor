@@ -6,6 +6,7 @@ use crate::{bus::EventSender, event::AppEvent};
 ///
 /// The plugin context gives plugins access to application state and
 /// the ability to send events to other plugins.
+#[cfg(feature = "plugin-canvas")]
 pub struct PluginContext<'a> {
     /// Event sender for publishing events
     pub events: EventSender,
@@ -13,6 +14,17 @@ pub struct PluginContext<'a> {
     pub canvas: Option<&'a form_factor_drawing::DrawingCanvas>,
 }
 
+/// Context provided to plugins during rendering and event handling.
+///
+/// The plugin context gives plugins access to application state and
+/// the ability to send events to other plugins.
+#[cfg(not(feature = "plugin-canvas"))]
+pub struct PluginContext {
+    /// Event sender for publishing events
+    pub events: EventSender,
+}
+
+#[cfg(feature = "plugin-canvas")]
 impl<'a> PluginContext<'a> {
     /// Creates a new plugin context for event handling (without canvas access).
     pub fn new(events: EventSender) -> Self {
@@ -28,6 +40,14 @@ impl<'a> PluginContext<'a> {
             events,
             canvas: Some(canvas),
         }
+    }
+}
+
+#[cfg(not(feature = "plugin-canvas"))]
+impl PluginContext {
+    /// Creates a new plugin context for event handling (without canvas access).
+    pub fn new(events: EventSender) -> Self {
+        Self { events }
     }
 }
 
@@ -49,7 +69,18 @@ pub trait Plugin: Send {
     /// # Arguments
     /// * `ui` - The egui UI context for rendering
     /// * `ctx` - Plugin context with access to events and app state
+    #[cfg(feature = "plugin-canvas")]
     fn ui(&mut self, ui: &mut egui::Ui, ctx: &PluginContext<'_>);
+
+    /// Renders the plugin's UI.
+    ///
+    /// This method is called every frame to allow the plugin to draw its interface.
+    ///
+    /// # Arguments
+    /// * `ui` - The egui UI context for rendering
+    /// * `ctx` - Plugin context with access to events and app state
+    #[cfg(not(feature = "plugin-canvas"))]
+    fn ui(&mut self, ui: &mut egui::Ui, ctx: &PluginContext);
 
     /// Handles an event from the event bus.
     ///
@@ -62,7 +93,24 @@ pub trait Plugin: Send {
     ///
     /// # Returns
     /// The plugin can optionally return a new event to emit in response.
+    #[cfg(feature = "plugin-canvas")]
     fn on_event(&mut self, _event: &AppEvent, _ctx: &PluginContext<'_>) -> Option<AppEvent> {
+        None
+    }
+
+    /// Handles an event from the event bus.
+    ///
+    /// Plugins can react to events from other plugins or the application.
+    /// They can also emit new events in response.
+    ///
+    /// # Arguments
+    /// * `event` - The event to handle
+    /// * `ctx` - Plugin context with access to events
+    ///
+    /// # Returns
+    /// The plugin can optionally return a new event to emit in response.
+    #[cfg(not(feature = "plugin-canvas"))]
+    fn on_event(&mut self, _event: &AppEvent, _ctx: &PluginContext) -> Option<AppEvent> {
         None
     }
 
@@ -72,7 +120,17 @@ pub trait Plugin: Send {
     ///
     /// # Arguments
     /// * `ctx` - Plugin context with access to events
+    #[cfg(feature = "plugin-canvas")]
     fn on_load(&mut self, _ctx: &PluginContext<'_>) {}
+
+    /// Called when the plugin is first loaded.
+    ///
+    /// Use this to initialize plugin state or subscribe to events.
+    ///
+    /// # Arguments
+    /// * `ctx` - Plugin context with access to events
+    #[cfg(not(feature = "plugin-canvas"))]
+    fn on_load(&mut self, _ctx: &PluginContext) {}
 
     /// Called before the application saves state.
     ///
@@ -80,7 +138,17 @@ pub trait Plugin: Send {
     ///
     /// # Arguments
     /// * `ctx` - Plugin context with access to events
+    #[cfg(feature = "plugin-canvas")]
     fn on_save(&mut self, _ctx: &PluginContext<'_>) {}
+
+    /// Called before the application saves state.
+    ///
+    /// Plugins can use this to persist their state or clean up resources.
+    ///
+    /// # Arguments
+    /// * `ctx` - Plugin context with access to events
+    #[cfg(not(feature = "plugin-canvas"))]
+    fn on_save(&mut self, _ctx: &PluginContext) {}
 
     /// Called when the application is shutting down.
     ///
@@ -88,7 +156,17 @@ pub trait Plugin: Send {
     ///
     /// # Arguments
     /// * `ctx` - Plugin context with access to events
+    #[cfg(feature = "plugin-canvas")]
     fn on_shutdown(&mut self, _ctx: &PluginContext<'_>) {}
+
+    /// Called when the application is shutting down.
+    ///
+    /// Plugins should clean up any resources they hold.
+    ///
+    /// # Arguments
+    /// * `ctx` - Plugin context with access to events
+    #[cfg(not(feature = "plugin-canvas"))]
+    fn on_shutdown(&mut self, _ctx: &PluginContext) {}
 
     /// Returns whether this plugin should be displayed in the UI.
     ///

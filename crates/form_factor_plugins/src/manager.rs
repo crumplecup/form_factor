@@ -59,6 +59,7 @@ impl PluginManager {
     /// Renders all enabled plugins.
     ///
     /// This should be called once per frame from the main UI loop.
+    #[cfg(feature = "plugin-canvas")]
     #[instrument(skip(self, ui, canvas))]
     pub fn render_plugins(
         &mut self,
@@ -66,6 +67,21 @@ impl PluginManager {
         canvas: &form_factor_drawing::DrawingCanvas,
     ) {
         let ctx = PluginContext::with_canvas(self.event_bus.sender(), canvas);
+
+        for plugin in &mut self.plugins {
+            if plugin.is_enabled() {
+                plugin.ui(ui, &ctx);
+            }
+        }
+    }
+
+    /// Renders all enabled plugins without canvas context.
+    ///
+    /// This should be called once per frame from the main UI loop.
+    #[cfg(not(feature = "plugin-canvas"))]
+    #[instrument(skip(self, ui))]
+    pub fn render_plugins_no_canvas(&mut self, ui: &mut egui::Ui) {
+        let ctx = PluginContext::new(self.event_bus.sender());
 
         for plugin in &mut self.plugins {
             if plugin.is_enabled() {
@@ -148,7 +164,14 @@ impl PluginManager {
     }
 
     /// Creates a plugin context for event handling.
+    #[cfg(feature = "plugin-canvas")]
     fn create_context(&self) -> PluginContext<'_> {
+        PluginContext::new(self.event_bus.sender())
+    }
+
+    /// Creates a plugin context for event handling.
+    #[cfg(not(feature = "plugin-canvas"))]
+    fn create_context(&self) -> PluginContext {
         PluginContext::new(self.event_bus.sender())
     }
 }

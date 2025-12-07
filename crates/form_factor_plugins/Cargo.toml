@@ -28,7 +28,7 @@ form_factor_drawing = { workspace = true, optional = true }
 default = []
 # Plugin features - enable specific plugins at compile time
 plugin-canvas = ["dep:form_factor_drawing"]
-plugin-layers = ["dep:form_factor_drawing"]
+plugin-layers = ["plugin-canvas"]  # Layers requires canvas context
 plugin-file = []
 plugin-detection = ["dep:form_factor_drawing"]
 plugin-ocr = ["dep:form_factor_drawing"]

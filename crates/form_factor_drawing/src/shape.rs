@@ -29,6 +29,10 @@ pub enum ShapeErrorKind {
     /// Shape has zero area or all points are collinear
     #[display("Degenerate shape: all points are collinear or coincident")]
     DegenerateShape,
+
+    /// Builder validation failed
+    #[display("Builder validation failed: {}", _0)]
+    BuilderError(String),
 }
 
 /// Error wrapper that captures the error kind along with location information
