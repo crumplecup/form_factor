@@ -94,7 +94,7 @@ mod template_ui;
 pub use canvas::CanvasPlugin;
 
 #[cfg(feature = "plugin-canvas")]
-pub use canvas_field_interaction::CanvasFieldInteractionPlugin;
+pub use canvas_field_interaction::CanvasFieldInteraction;
 
 #[cfg(feature = "plugin-layers")]
 pub use layers::LayersPlugin;

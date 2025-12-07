@@ -100,6 +100,15 @@ pub use form_factor_drawing::{Layer, LayerError, LayerManager, LayerType};
 /// Recent projects tracking
 pub use form_factor_drawing::RecentProjects;
 
+/// Instance data entry panel and actions
+pub use form_factor_drawing::{DataEntryAction, DataEntryPanel};
+
+/// Instance management panel and actions
+pub use form_factor_drawing::{InstanceManagerAction, InstanceManagerPanel};
+
+/// Template and instance types
+pub use form_factor_drawing::{DrawingInstance, DrawingTemplate};
+
 // ============================================================================
 // Text Detection
 // ============================================================================
@@ -219,25 +228,6 @@ pub use form_factor_plugins::AppEvent;
 #[cfg(feature = "plugins")]
 /// Plugin builder trait
 pub use form_factor_plugins::PluginBuilder;
-
-// Plugin implementations (feature-gated)
-#[cfg(feature = "plugin-canvas")]
-pub use form_factor_plugins::canvas;
-
-#[cfg(feature = "plugin-layers")]
-pub use form_factor_plugins::layers;
-
-#[cfg(feature = "plugin-file")]
-pub use form_factor_plugins::file;
-
-#[cfg(feature = "plugin-detection")]
-pub use form_factor_plugins::detection;
-
-#[cfg(feature = "plugin-ocr")]
-pub use form_factor_plugins::ocr;
-
-#[cfg(feature = "plugin-properties")]
-pub use form_factor_plugins::properties;
 
 // ============================================================================
 // Advanced: Direct module access for backend implementations

@@ -6,12 +6,34 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 #[cfg(feature = "backend-eframe")]
 use form_factor::{Backend, BackendConfig, EframeBackend};
 
+#[cfg(all(feature = "plugins", feature = "plugin-canvas"))]
+use form_factor_plugins::CanvasPlugin;
+
+#[cfg(all(feature = "plugins", feature = "plugin-layers"))]
+use form_factor_plugins::LayersPlugin;
+
+#[cfg(all(feature = "plugins", feature = "plugin-file"))]
+use form_factor_plugins::FilePlugin;
+
+#[cfg(all(feature = "plugins", feature = "plugin-detection"))]
+use form_factor_plugins::DetectionPlugin;
+
+#[cfg(all(feature = "plugins", feature = "plugin-ocr"))]
+use form_factor_plugins::OcrPlugin;
+
+#[cfg(all(feature = "plugins", feature = "plugin-properties"))]
+use form_factor_plugins::PropertiesPlugin;
+
 /// Main application struct
 struct FormFactorApp {
     name: String,
     canvas: DrawingCanvas,
     app_state: form_factor::AppState,
     mode_switcher: form_factor::ModeSwitcher,
+    /// Data entry panel for instance filling (created when entering InstanceFilling mode)
+    data_entry_panel: Option<form_factor::DataEntryPanel>,
+    /// Instance manager panel for creating and managing instances
+    instance_manager_panel: Option<form_factor::InstanceManagerPanel>,
     #[cfg(feature = "plugins")]
     plugin_manager: form_factor::PluginManager,
 }
@@ -24,37 +46,37 @@ impl FormFactorApp {
 
             #[cfg(feature = "plugin-canvas")]
             {
-                manager.register(Box::new(form_factor::canvas::CanvasPlugin::new()));
+                manager.register(Box::new(CanvasPlugin::new()));
                 tracing::info!("Registered canvas plugin");
             }
 
             #[cfg(feature = "plugin-layers")]
             {
-                manager.register(Box::new(form_factor::layers::LayersPlugin::new()));
+                manager.register(Box::new(LayersPlugin::new()));
                 tracing::info!("Registered layers plugin");
             }
 
             #[cfg(feature = "plugin-file")]
             {
-                manager.register(Box::new(form_factor::file::FilePlugin::new()));
+                manager.register(Box::new(FilePlugin::new()));
                 tracing::info!("Registered file plugin");
             }
 
             #[cfg(feature = "plugin-detection")]
             {
-                manager.register(Box::new(form_factor::detection::DetectionPlugin::new()));
+                manager.register(Box::new(DetectionPlugin::new()));
                 tracing::info!("Registered detection plugin");
             }
 
             #[cfg(feature = "plugin-ocr")]
             {
-                manager.register(Box::new(form_factor::ocr::OcrPlugin::new()));
+                manager.register(Box::new(OcrPlugin::new()));
                 tracing::info!("Registered OCR plugin");
             }
 
             #[cfg(feature = "plugin-properties")]
             {
-                manager.register(Box::new(form_factor::properties::PropertiesPlugin::new()));
+                manager.register(Box::new(PropertiesPlugin::new()));
                 tracing::info!("Registered properties plugin");
             }
 
@@ -66,9 +88,224 @@ impl FormFactorApp {
             canvas: DrawingCanvas::new(),
             app_state: form_factor::AppState::new(),
             mode_switcher: form_factor::ModeSwitcher::new(),
+            data_entry_panel: None,
+            instance_manager_panel: None,
             #[cfg(feature = "plugins")]
             plugin_manager,
         }
+    }
+
+    /// Render the instance filling mode layout
+    fn render_instance_filling_mode(&mut self, ctx: &AppContext) {
+        use form_factor::{DataEntryAction, DataEntryPanel};
+
+        // Create data entry panel if it doesn't exist
+        if self.data_entry_panel.is_none() {
+            if let (Some(template), Some(instance)) = (
+                self.app_state.current_template(),
+                self.app_state.current_instance(),
+            ) {
+                self.data_entry_panel = Some(DataEntryPanel::new(
+                    template.clone(),
+                    instance.clone(),
+                ));
+                tracing::info!("Created data entry panel");
+            } else {
+                // No template/instance, return to canvas mode
+                tracing::warn!("No template or instance available for filling");
+                self.app_state.set_mode(form_factor::AppMode::Canvas);
+                return;
+            }
+        }
+
+        // Render data entry panel and handle actions
+        let mut action = DataEntryAction::None;
+        if let Some(panel) = &mut self.data_entry_panel {
+            egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
+                action = panel.ui(ui);
+            });
+        }
+
+        // Handle data entry actions outside the borrow
+        match action {
+            DataEntryAction::SaveDraft => {
+                tracing::info!("Saving instance draft");
+                if let Some(panel) = &self.data_entry_panel {
+                    let instance_name = panel
+                        .instance()
+                        .instance_name()
+                        .as_ref()
+                        .map(|s| s.clone())
+                        .unwrap_or_else(|| "unnamed".to_string());
+                    self.save_instance_draft(instance_name);
+                }
+            }
+            DataEntryAction::Submit => {
+                tracing::info!("Submitting instance");
+                let (can_submit, instance_name) = if let Some(panel) = &mut self.data_entry_panel {
+                    let valid = panel.validate().is_ok();
+                    let name = panel
+                        .instance()
+                        .instance_name()
+                        .as_ref()
+                        .map(|s| s.clone())
+                        .unwrap_or_else(|| "unnamed".to_string());
+                    (valid, name)
+                } else {
+                    (false, String::new())
+                };
+
+                if can_submit && self.save_instance_final(instance_name) {
+                    // Clear panel and return to canvas
+                    self.data_entry_panel = None;
+                    self.app_state.set_current_instance(None);
+                    self.app_state.set_mode(form_factor::AppMode::Canvas);
+                    self.app_state.mark_clean();
+                }
+            }
+            DataEntryAction::Cancel => {
+                tracing::info!("Cancelling instance filling");
+                // Clear panel and return to previous mode
+                self.data_entry_panel = None;
+                self.app_state.set_current_instance(None);
+                self.app_state.go_back();
+                self.app_state.mark_clean();
+            }
+            DataEntryAction::None => {
+                // No action, update dirty state
+                if let Some(panel) = &self.data_entry_panel {
+                    if panel.is_dirty() {
+                        self.app_state.mark_dirty();
+                    }
+                }
+            }
+        }
+    }
+
+    /// Save instance as draft (incomplete data allowed)
+    fn save_instance_draft(&mut self, instance_name: String) {
+        // TODO: Implement instance draft saving to file system
+        tracing::info!(instance_name, "Saved instance draft");
+        self.app_state.mark_clean();
+    }
+
+    /// Save instance as final (requires validation)
+    fn save_instance_final(&mut self, instance_name: String) -> bool {
+        // TODO: Implement instance final save to file system
+        tracing::info!(instance_name, "Saved final instance");
+        self.app_state.mark_clean();
+        true
+    }
+
+    /// Render the template manager mode layout
+    fn render_template_manager_mode(&mut self, ctx: &AppContext) {
+        use form_factor::{InstanceManagerAction, InstanceManagerPanel};
+        use std::collections::HashMap;
+
+        // Create instance manager panel if it doesn't exist
+        if self.instance_manager_panel.is_none() {
+            // TODO: Load templates and instances from file system
+            let templates = HashMap::new();
+            let instances = HashMap::new();
+
+            self.instance_manager_panel = Some(InstanceManagerPanel::new(templates, instances));
+            tracing::info!("Created instance manager panel");
+        }
+
+        // Render instance manager panel and handle actions
+        let mut action = InstanceManagerAction::None;
+        if let Some(panel) = &mut self.instance_manager_panel {
+            egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
+                action = panel.ui(ui);
+            });
+        }
+
+        // Handle instance manager actions
+        match action {
+            InstanceManagerAction::CreateInstance { template_id } => {
+                tracing::info!(template_id, "Creating new instance from template");
+                if let Some(panel) = &self.instance_manager_panel {
+                    if let Some(template) = panel.get_template(&template_id) {
+                        let instance = self.create_instance_from_template(template);
+                        self.app_state.set_current_template(Some(template.clone()));
+                        self.app_state.set_current_instance(Some(instance));
+
+                        // Transition to instance filling mode
+                        if let Err(e) =
+                            self.app_state.transition_to(form_factor::AppMode::InstanceFilling)
+                        {
+                            tracing::error!("Failed to transition to instance filling mode: {}", e);
+                        } else {
+                            // Clear the instance manager panel for next time
+                            self.instance_manager_panel = None;
+                        }
+                    }
+                }
+            }
+            InstanceManagerAction::LoadInstance { instance_id } => {
+                tracing::info!(instance_id, "Loading instance for editing");
+                if let Some(panel) = &self.instance_manager_panel {
+                    if let Some(instance) = panel.get_instance(&instance_id) {
+                        let template_id = instance.template_id();
+                        if let Some(template) = panel.get_template(template_id) {
+                            self.app_state.set_current_template(Some(template.clone()));
+                            self.app_state.set_current_instance(Some(instance.clone()));
+
+                            // Transition to instance filling mode
+                            if let Err(e) = self
+                                .app_state
+                                .transition_to(form_factor::AppMode::InstanceFilling)
+                            {
+                                tracing::error!(
+                                    "Failed to transition to instance filling mode: {}",
+                                    e
+                                );
+                            } else {
+                                // Clear the instance manager panel for next time
+                                self.instance_manager_panel = None;
+                            }
+                        }
+                    }
+                }
+            }
+            InstanceManagerAction::DeleteInstance { instance_id } => {
+                tracing::info!(instance_id, "Deleting instance");
+                if let Some(panel) = &mut self.instance_manager_panel {
+                    panel.remove_instance(&instance_id);
+                    // TODO: Delete from file system
+                }
+            }
+            InstanceManagerAction::None => {}
+        }
+    }
+
+    /// Create a new instance from a template
+    fn create_instance_from_template(
+        &self,
+        template: &form_factor::DrawingTemplate,
+    ) -> form_factor::DrawingInstance {
+        tracing::info!(
+            template_id = template.id(),
+            template_name = template.name(),
+            "Creating new instance"
+        );
+
+        // Create instance with auto-generated name
+        use std::time::SystemTime;
+        let timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .map(|d| d.as_secs())
+            .unwrap_or(0);
+        let instance_name = format!("{} - New Instance {}", template.name(), timestamp);
+
+        let mut instance = form_factor::DrawingInstance::from_template(
+            template.id(),
+            template.page_count(),
+        );
+        // Set the instance name
+        instance.set_instance_name(instance_name);
+
+        instance
     }
 }
 
@@ -176,12 +413,50 @@ impl App for FormFactorApp {
                                     tracing::info!("Cleared canvas image");
                                 }
                                 LayerType::Template => {
-                                    // TODO: Implement template layer clearing
-                                    tracing::info!("Template layer clear not yet implemented");
+                                    tracing::info!("Clearing template layer");
+
+                                    // Clear current template from app state
+                                    self.app_state.set_current_template(None);
+
+                                    // If in template-related mode, return to Canvas
+                                    match self.app_state.mode() {
+                                        form_factor::AppMode::TemplateEditor
+                                        | form_factor::AppMode::TemplateManager => {
+                                            tracing::info!(
+                                                "Exiting template mode due to layer clear"
+                                            );
+                                            self.app_state.set_mode(form_factor::AppMode::Canvas);
+                                            self.app_state.mark_clean();
+                                        }
+                                        _ => {}
+                                    }
+
+                                    // Clear template manager panel if it exists
+                                    if self.instance_manager_panel.is_some() {
+                                        tracing::debug!("Clearing instance manager panel");
+                                        self.instance_manager_panel = None;
+                                    }
                                 }
                                 LayerType::Instance => {
-                                    // TODO: Implement instance layer clearing
-                                    tracing::info!("Instance layer clear not yet implemented");
+                                    tracing::info!("Clearing instance layer");
+
+                                    // Clear current instance from app state
+                                    self.app_state.set_current_instance(None);
+
+                                    // Clear data entry panel if it exists
+                                    if self.data_entry_panel.is_some() {
+                                        tracing::debug!("Clearing data entry panel");
+                                        self.data_entry_panel = None;
+                                    }
+
+                                    // If in instance filling mode, return to previous mode
+                                    if *self.app_state.mode() == form_factor::AppMode::InstanceFilling {
+                                        tracing::info!(
+                                            "Exiting instance filling mode due to layer clear"
+                                        );
+                                        self.app_state.go_back();
+                                        self.app_state.mark_clean();
+                                    }
                                 }
                                 LayerType::Grid => {
                                     // Grid doesn't need clearing
@@ -344,20 +619,30 @@ impl App for FormFactorApp {
             ui.add_space(4.0);
         });
 
-        // Plugin sidebar (if plugins feature is enabled)
-        #[cfg(feature = "plugins")]
-        egui::SidePanel::right("plugin_panel")
-            .default_width(280.0)
-            .show(ctx.egui_ctx(), |ui| {
-                egui::ScrollArea::vertical().show(ui, |ui| {
-                    self.plugin_manager.render_plugins(ui);
-                });
-            });
+        // Render mode-specific layout
+        match self.app_state.mode() {
+            form_factor::AppMode::InstanceFilling => {
+                self.render_instance_filling_mode(ctx);
+            }
+            form_factor::AppMode::TemplateManager => {
+                self.render_template_manager_mode(ctx);
+            }
+            _ => {
+                // Default layout: plugin sidebar + canvas
+                #[cfg(feature = "plugins")]
+                egui::SidePanel::right("plugin_panel")
+                    .default_width(280.0)
+                    .show(ctx.egui_ctx(), |ui| {
+                        egui::ScrollArea::vertical().show(ui, |ui| {
+                            self.plugin_manager.render_plugins(ui);
+                        });
+                    });
 
-        // Main canvas area
-        egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
-            self.canvas.ui(ui);
-        });
+                egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
+                    self.canvas.ui(ui);
+                });
+            }
+        }
     }
 
     fn on_exit(&mut self) {

@@ -1575,7 +1575,9 @@ dependencies = [
 name = "form_factor_plugins"
 version = "0.1.0"
 dependencies = [
+ "derive-getters",
  "derive_more",
+ "derive_setters",
  "egui",
  "form_factor_core",
  "form_factor_drawing",

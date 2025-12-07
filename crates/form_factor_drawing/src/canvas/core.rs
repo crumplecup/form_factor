@@ -168,100 +168,132 @@ pub enum InstanceMode {
 pub struct DrawingCanvas {
     /// File format version (for migration compatibility)
     #[serde(default)]
+    #[setters(doc = "Sets the file format version")]
     pub(super) version: u32,
     /// Project name
+    #[setters(doc = "Sets the project name")]
     pub(super) project_name: String,
     /// All completed shapes
+    #[setters(doc = "Sets the completed shapes")]
     pub(super) shapes: Vec<Shape>,
     /// Detected text regions
+    #[setters(doc = "Sets the detected text regions")]
     pub(super) detections: Vec<Shape>,
     /// Currently active tool
+    #[setters(doc = "Sets the currently active tool")]
     pub(super) current_tool: ToolMode,
     /// Layer management
+    #[setters(doc = "Sets the layer manager")]
     pub(super) layer_manager: LayerManager,
     /// Path to the loaded form image (for serialization)
+    #[setters(doc = "Sets the form image path")]
     pub(super) form_image_path: Option<String>,
     /// Template ID for this canvas (if associated with a template)
+    #[setters(doc = "Sets the template ID")]
     pub(super) template_id: Option<String>,
 
     // Template and instance state (not serialized for now - will be handled separately)
     /// Current template being created or edited
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) current_template: Option<crate::DrawingTemplateBuilder>,
     /// Current template editing mode
     #[serde(skip)]
     #[serde(default)]
+    #[setters(skip)]
     pub(super) template_mode: TemplateMode,
 
     /// Current page index when editing templates (0-based)
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) current_page: usize,
 
     /// Current instance being filled or viewed
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) current_instance: Option<crate::DrawingInstance>,
     /// Current instance mode
     #[serde(skip)]
     #[serde(default)]
+    #[setters(skip)]
     pub(super) instance_mode: InstanceMode,
 
     /// Selected field index (when Template or Instance layer is active)
     #[serde(skip)]
+    #[setters(doc = "Sets the selected field index")]
     pub(super) selected_field: Option<usize>,
 
     // Interaction state (not serialized)
     /// Current user interaction state (drawing, rotating, etc.)
     #[serde(skip)]
     #[serde(default)]
+    #[setters(skip)]
     pub(super) state: CanvasState,
 
     // Selection state (not serialized)
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) selected_shape: Option<usize>,
     /// Currently selected layer type
     #[serde(skip)]
+    #[setters(doc = "Sets the selected layer type")]
     pub(super) selected_layer: Option<LayerType>,
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) show_properties: bool,
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) focus_name_field: bool,
     /// Whether the project name is currently being edited
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) editing_project_name: bool,
     /// Whether the Detections layer dropdown is expanded
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) detections_expanded: bool,
     /// Selected detection sub-type (Logos or Text)
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) selected_detection_subtype: Option<DetectionSubtype>,
 
     // Form image state (not serialized)
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) form_image: Option<egui::TextureHandle>,
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) form_image_size: Option<egui::Vec2>,
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) pending_image_load: Option<String>,
 
     // Zoom and pan state
     /// Current zoom level for the canvas
     #[serde(default = "default_zoom_level")]
+    #[setters(doc = "Sets the zoom level")]
     pub(super) zoom_level: f32,
     /// Current pan offset for the canvas view
     #[serde(default)]
+    #[setters(doc = "Sets the pan offset")]
     pub(super) pan_offset: egui::Vec2,
 
     // Settings state (not serialized)
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) show_settings: bool,
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) zoom_sensitivity: f32,
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) grid_spacing_horizontal: f32,
     #[serde(skip)]
+    #[setters(skip)]
     pub(super) grid_spacing_vertical: f32,
     /// Rotation angle of the grid overlay in radians
     #[serde(default)]
+    #[setters(doc = "Sets the grid rotation angle")]
     pub(super) grid_rotation_angle: f32,
 
     // Form image rotation
