@@ -182,6 +182,9 @@ pub struct DrawingCanvas {
     /// Detected text regions
     #[setters(doc = "Sets the detected text regions")]
     pub(super) detections: Vec<Shape>,
+    /// OCR detection results with text
+    #[setters(doc = "Sets OCR detections")]
+    pub(super) ocr_detections: Vec<(Shape, String)>,
     /// Currently active tool
     #[setters(doc = "Sets the currently active tool")]
     pub(super) current_tool: ToolMode,
@@ -318,6 +321,7 @@ impl Default for DrawingCanvas {
             project_name: String::from("Untitled"),
             shapes: Vec::new(),
             detections: Vec::new(),
+            ocr_detections: Vec::new(),
             current_tool: ToolMode::default(),
             layer_manager: LayerManager::new(),
             form_image_path: None,
@@ -420,6 +424,11 @@ impl DrawingCanvas {
     /// Add a detection shape to the detections vector
     pub fn add_detection(&mut self, shape: Shape) {
         self.detections.push(shape);
+    }
+
+    /// Add an OCR detection with its extracted text
+    pub fn add_ocr_detection(&mut self, shape: Shape, text: String) {
+        self.ocr_detections.push((shape, text));
     }
 
     /// Get a mutable reference to the shapes vector (for use within canvas module)

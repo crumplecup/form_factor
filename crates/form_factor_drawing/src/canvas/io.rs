@@ -55,6 +55,12 @@ impl DrawingCanvas {
         self.detections.clear();
     }
 
+    /// Clear all OCR detections
+    pub fn clear_ocr_detections(&mut self) {
+        debug!("Clearing OCR detections: count={}", self.ocr_detections.len());
+        self.ocr_detections.clear();
+    }
+
     /// Clear the canvas image (form image)
     pub fn clear_canvas_image(&mut self) {
         debug!("Clearing canvas image: path={:?}", self.form_image_path);

@@ -105,6 +105,22 @@ pub enum AppEvent {
     /// OCR text extraction was requested
     OcrExtractionRequested,
 
+    /// Request to delete an OCR detection
+    #[cfg(feature = "plugin-layers")]
+    OcrObjectDeleteRequested {
+        /// Index of the OCR detection to delete
+        index: usize,
+    },
+
+    /// Visibility of an OCR detection changed
+    #[cfg(feature = "plugin-layers")]
+    OcrObjectVisibilityChanged {
+        /// Index of the OCR detection
+        index: usize,
+        /// Whether the detection is visible
+        visible: bool,
+    },
+
     /// Detection operation has started
     DetectionStarted {
         /// Type of detection starting

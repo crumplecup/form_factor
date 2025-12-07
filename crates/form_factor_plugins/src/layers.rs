@@ -50,6 +50,8 @@ pub struct LayersPlugin {
     logos_expanded: bool,
     /// Whether the Text subtype is expanded
     text_expanded: bool,
+    /// Whether the OCR subtype is expanded
+    ocr_expanded: bool,
 }
 
 impl LayersPlugin {
@@ -74,6 +76,7 @@ impl LayersPlugin {
             detections_expanded: false,
             logos_expanded: false,
             text_expanded: false,
+            ocr_expanded: false,
         }
     }
 
@@ -220,7 +223,7 @@ impl LayersPlugin {
         }
     }
 
-    /// Renders detection groups (Logos and Text) with expandable subtypes.
+    /// Renders detection groups (Logos, Text, and OCR) with expandable subtypes.
     fn render_detections_groups(&mut self, ui: &mut egui::Ui, ctx: &PluginContext) {
         if let Some(canvas) = ctx.canvas {
             let detections = canvas.detections();
@@ -242,11 +245,22 @@ impl LayersPlugin {
                 })
                 .collect();
 
+            // Get OCR detections (stored separately with text)
+            let ocr_detections = canvas.ocr_detections();
+            let ocr: Vec<_> = ocr_detections
+                .iter()
+                .enumerate()
+                .map(|(i, (shape, _text))| (i, shape))
+                .collect();
+
             // Render Logos group
             Self::render_detection_subtype_static(ui, "Logos", &logos, &mut self.logos_expanded, ctx);
 
             // Render Text group
             Self::render_detection_subtype_static(ui, "Text", &text, &mut self.text_expanded, ctx);
+
+            // Render OCR group
+            Self::render_ocr_subtype(ui, "OCR", ocr_detections, &mut self.ocr_expanded, ctx);
         }
     }
 
@@ -277,6 +291,89 @@ impl LayersPlugin {
                 LayersPlugin::render_shape_entry_static(ui, index, shape, ctx);
             }
         }
+    }
+
+    /// Renders OCR detection subtype group with text.
+    fn render_ocr_subtype(
+        ui: &mut egui::Ui,
+        label: &str,
+        items: &[(form_factor_drawing::Shape, String)],
+        is_expanded: &mut bool,
+        ctx: &PluginContext,
+    ) {
+        ui.horizontal(|ui| {
+            ui.add_space(40.0); // Indent to show hierarchy under Detections
+
+            // Expansion caret
+            let caret = if *is_expanded { "▼" } else { "▶" };
+            if ui.button(caret).on_hover_text("Expand/collapse").clicked() {
+                *is_expanded = !*is_expanded;
+            }
+
+            // Group label with count
+            ui.label(format!("{} ({})", label, items.len()));
+        });
+
+        // Render individual OCR items if expanded
+        if *is_expanded && !items.is_empty() {
+            for (index, (shape, text)) in items.iter().enumerate() {
+                Self::render_ocr_entry_static(ui, index, shape, text, ctx);
+            }
+        }
+    }
+
+    /// Renders a single OCR entry with its extracted text.
+    fn render_ocr_entry_static(
+        ui: &mut egui::Ui,
+        index: usize,
+        shape: &form_factor_drawing::Shape,
+        text: &str,
+        ctx: &PluginContext,
+    ) {
+        ui.horizontal(|ui| {
+            ui.add_space(60.0); // Deeper indent for individual items
+
+            // Get shape visibility
+            let is_visible = match shape {
+                form_factor_drawing::Shape::Rectangle(r) => r.visible(),
+                form_factor_drawing::Shape::Circle(c) => c.visible(),
+                form_factor_drawing::Shape::Polygon(p) => p.visible(),
+            };
+
+            // Display OCR result: index and first 30 chars of text
+            let display_text = if text.len() > 30 {
+                format!("{}...", &text[..30])
+            } else {
+                text.to_string()
+            };
+            ui.label(format!("{}. {}", index + 1, display_text));
+
+            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                // Delete button
+                if ui.button("🗑").on_hover_text("Delete OCR result").clicked() {
+                    debug!(index = index, text = text, "OCR delete requested");
+                    ctx.events.emit(AppEvent::OcrObjectDeleteRequested { index });
+                }
+
+                // Visibility toggle
+                let eye_icon = if *is_visible { "👁" } else { "⚫" };
+                if ui
+                    .button(eye_icon)
+                    .on_hover_text("Toggle visibility")
+                    .clicked()
+                {
+                    debug!(
+                        index = index,
+                        visible = !is_visible,
+                        "OCR visibility toggled"
+                    );
+                    ctx.events.emit(AppEvent::OcrObjectVisibilityChanged {
+                        index,
+                        visible: !is_visible,
+                    });
+                }
+            });
+        });
     }
 
     /// Renders a single shape entry (used for both Shapes and Detections).
