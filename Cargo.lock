@@ -1478,6 +1478,7 @@ dependencies = [
  "form_factor_drawing",
  "form_factor_ocr",
  "form_factor_plugins",
+ "image",
  "rfd",
  "serde_json",
  "strum",

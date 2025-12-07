@@ -1,6 +1,6 @@
 //! Form Factor - GUI application for tagging scanned forms with OCR metadata
 
-use form_factor::{App, AppContext, DrawingCanvas};
+use form_factor::{App, AppContext, DrawingCanvas, Shape};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[cfg(feature = "backend-eframe")]
@@ -855,50 +855,155 @@ impl App for FormFactorApp {
                     }
                     #[cfg(feature = "ocr")]
                     AppEvent::OcrExtractionRequested => {
-                        use form_factor::{OCRConfig, OCREngine, PageSegmentationMode};
-
                         // Show toast immediately that OCR started
                         self.toasts.info("OCR extraction started...");
 
-                        match OCREngine::new(
-                            OCRConfig::new()
-                                .with_psm(PageSegmentationMode::Auto)
-                                .with_min_confidence(60),
-                        ) {
-                            Ok(ocr) => match self.canvas.extract_text_from_detections(&ocr) {
-                                Ok(results) => {
-                                    tracing::info!(
-                                        "Extracted text from {} detections",
-                                        results.len()
-                                    );
+                        // Get form image path and detections for background thread
+                        if let Some(form_path) = self.canvas.form_image_path().clone() {
+                            // Clone detections to pass to background thread
+                            let detections: Vec<Shape> = self
+                                .canvas
+                                .detections()
+                                .iter()
+                                .cloned()
+                                .collect();
 
-                                    // Clear old OCR detections and add new ones with text
-                                    self.canvas.clear_ocr_detections();
-                                    for (shape, result) in results {
-                                        let text = result.text().trim().to_string();
-                                        self.canvas.add_ocr_detection(shape, text);
+                            let sender = self.plugin_manager.event_bus().sender();
+
+                            // Spawn background thread for OCR extraction
+                            std::thread::spawn(move || {
+                                use form_factor::{OCRConfig, OCREngine, PageSegmentationMode};
+                                use image;
+
+                                tracing::info!("Starting OCR extraction in background thread");
+
+                                // Perform OCR in background
+                                let result = (|| -> Result<String, String> {
+                                    // Load the image
+                                    let img = image::open(&form_path)
+                                        .map_err(|e| format!("Failed to load image: {}", e))?;
+
+                                    // Create OCR engine
+                                    let ocr = OCREngine::new(
+                                        OCRConfig::new()
+                                            .with_psm(PageSegmentationMode::Auto)
+                                            .with_min_confidence(60),
+                                    )
+                                    .map_err(|e| format!("Failed to create OCR engine: {}", e))?;
+
+                                    // Extract text from each detection
+                                    let mut results = Vec::new();
+                                    for shape in detections {
+                                        // Get bounding box from shape
+                                        let bbox = match &shape {
+                                            Shape::Rectangle(rect) => {
+                                                let xs: Vec<f32> = rect.corners().iter().map(|p| p.x).collect();
+                                                let ys: Vec<f32> = rect.corners().iter().map(|p| p.y).collect();
+
+                                                let x_min = xs.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                                                let y_min = ys.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                                                let x_max = xs.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+                                                let y_max = ys.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+
+                                                let width = x_max.saturating_sub(x_min);
+                                                let height = y_max.saturating_sub(y_min);
+
+                                                (x_min, y_min, width, height)
+                                            }
+                                            Shape::Circle(circle) => {
+                                                let center = circle.center();
+                                                let radius = circle.radius();
+                                                let x_min = (center.x - radius) as u32;
+                                                let y_min = (center.y - radius) as u32;
+                                                let width = (radius * 2.0) as u32;
+                                                let height = (radius * 2.0) as u32;
+
+                                                (x_min, y_min, width, height)
+                                            }
+                                            Shape::Polygon(poly) => {
+                                                // Get coords from geo polygon
+                                                let coords: Vec<_> = poly.polygon().exterior().coords().collect();
+                                                let xs: Vec<f32> = coords.iter().map(|c| c.x as f32).collect();
+                                                let ys: Vec<f32> = coords.iter().map(|c| c.y as f32).collect();
+
+                                                let x_min = xs.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                                                let y_min = ys.iter().fold(f32::INFINITY, |a, &b| a.min(b)) as u32;
+                                                let x_max = xs.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+                                                let y_max = ys.iter().fold(f32::NEG_INFINITY, |a, &b| a.max(b)) as u32;
+
+                                                let width = x_max.saturating_sub(x_min);
+                                                let height = y_max.saturating_sub(y_min);
+
+                                                (x_min, y_min, width, height)
+                                            }
+                                        };
+
+                                        match ocr.extract_text_from_region(&img, bbox) {
+                                            Ok(result) => {
+                                                let text = result.text().trim().to_string();
+                                                if !text.is_empty() {
+                                                    results.push((shape, text));
+                                                }
+                                            }
+                                            Err(e) => {
+                                                tracing::warn!("Failed to extract text from region: {}", e);
+                                            }
+                                        }
                                     }
 
-                                    // Show success toast
-                                    self.toasts.success(format!(
-                                        "OCR complete: extracted text from {} region{}",
-                                        self.canvas.ocr_detections().len(),
-                                        if self.canvas.ocr_detections().len() == 1 {
-                                            ""
-                                        } else {
-                                            "s"
-                                        }
-                                    ));
+                                    // Serialize results to JSON
+                                    serde_json::to_string(&results)
+                                        .map_err(|e| format!("Failed to serialize results: {}", e))
+                                })();
+
+                                // Send result back to main thread
+                                match result {
+                                    Ok(results_json) => {
+                                        tracing::info!("OCR extraction complete");
+                                        let _ = sender.send(AppEvent::OcrComplete {
+                                            results_json,
+                                        });
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("OCR extraction failed: {}", e);
+                                        let _ = sender.send(AppEvent::DetectionFailed {
+                                            detection_type: "ocr".to_string(),
+                                            error: e,
+                                        });
+                                    }
                                 }
-                                Err(e) => {
-                                    tracing::error!("Failed to extract text: {}", e);
-                                    self.toasts.error(format!("OCR extraction failed: {}", e));
+                            });
+                        } else {
+                            self.toasts.error("No image loaded");
+                        }
+                    }
+                    #[cfg(feature = "ocr")]
+                    AppEvent::OcrComplete { results_json } => {
+                        // Deserialize results from JSON
+                        match serde_json::from_str::<Vec<(Shape, String)>>(&results_json) {
+                            Ok(results) => {
+                                tracing::info!("Extracted text from {} detections", results.len());
+
+                                // Clear old OCR detections and add new ones with text
+                                self.canvas.clear_ocr_detections();
+                                for (shape, text) in results {
+                                    self.canvas.add_ocr_detection(shape, text);
                                 }
-                            },
+
+                                // Show success toast
+                                self.toasts.success(format!(
+                                    "OCR complete: extracted text from {} region{}",
+                                    self.canvas.ocr_detections().len(),
+                                    if self.canvas.ocr_detections().len() == 1 {
+                                        ""
+                                    } else {
+                                        "s"
+                                    }
+                                ));
+                            }
                             Err(e) => {
-                                tracing::error!("Failed to initialize OCR engine: {}", e);
-                                self.toasts
-                                    .error(format!("OCR initialization failed: {}", e));
+                                tracing::error!("Failed to deserialize OCR results: {}", e);
+                                self.toasts.error(format!("OCR processing failed: {}", e));
                             }
                         }
                     }

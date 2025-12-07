@@ -166,6 +166,12 @@ pub enum AppEvent {
         shapes_json: String,
     },
 
+    /// OCR extraction completed
+    OcrComplete {
+        /// Serialized OCR results (JSON array of shape-text pairs)
+        results_json: String,
+    },
+
     /// A tool was selected
     ToolSelected {
         /// Name of the selected tool
