@@ -773,6 +773,9 @@ impl App for FormFactorApp {
                     AppEvent::OcrExtractionRequested => {
                         use form_factor::{OCRConfig, OCREngine, PageSegmentationMode};
 
+                        // Show toast immediately that OCR started
+                        self.toasts.info("OCR extraction started...");
+
                         match OCREngine::new(
                             OCRConfig::new()
                                 .with_psm(PageSegmentationMode::Auto)
@@ -789,6 +792,13 @@ impl App for FormFactorApp {
                                         .map(|(_, result)| result.text().trim().to_string())
                                         .collect();
 
+                                    // Show success toast
+                                    self.toasts.success(format!(
+                                        "OCR complete: extracted text from {} region{}",
+                                        results.len(),
+                                        if results.len() == 1 { "" } else { "s" }
+                                    ));
+
                                     // Emit custom event with extracted text
                                     if let Ok(event) =
                                         AppEvent::custom("ocr", "text_extracted", &texts)
@@ -798,10 +808,12 @@ impl App for FormFactorApp {
                                 }
                                 Err(e) => {
                                     tracing::error!("Failed to extract text: {}", e);
+                                    self.toasts.error(format!("OCR extraction failed: {}", e));
                                 }
                             },
                             Err(e) => {
                                 tracing::error!("Failed to initialize OCR engine: {}", e);
+                                self.toasts.error(format!("OCR initialization failed: {}", e));
                             }
                         }
                     }
