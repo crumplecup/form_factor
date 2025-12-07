@@ -312,10 +312,61 @@ impl DrawingCanvas {
                 }
             }
         } else if shapes_visible && !self.shapes.is_empty() {
+            // Render shapes without image transform (treat shape coordinates as canvas coordinates)
             debug!(
-                "Shapes layer visible but image not loaded: {} shapes not rendered",
+                "Rendering {} shapes without image (using canvas coordinates)",
                 self.shapes.len()
             );
+
+            for (idx, shape) in self.shapes.iter().enumerate() {
+                // Shape coordinates are treated as canvas coordinates when no image is loaded
+                self.render_shape_transformed(shape, &painter, &to_screen);
+
+                // Draw selection highlight
+                if Some(idx) == self.selected_shape {
+                    let highlight_stroke = Stroke::new(4.0, Color32::from_rgb(255, 215, 0));
+
+                    match shape {
+                        Shape::Rectangle(rect) => {
+                            let transformed_corners: Vec<Pos2> = rect
+                                .corners()
+                                .iter()
+                                .map(|p| to_screen.mul_pos(*p))
+                                .collect();
+                            painter.add(egui::Shape::closed_line(
+                                transformed_corners,
+                                highlight_stroke,
+                            ));
+                        }
+                        Shape::Circle(circle) => {
+                            let transformed_center = to_screen.mul_pos(*circle.center());
+                            let transformed_radius = circle.radius() * self.zoom_level;
+                            painter.circle_stroke(
+                                transformed_center,
+                                transformed_radius,
+                                highlight_stroke,
+                            );
+                        }
+                        Shape::Polygon(poly) => {
+                            let points: Vec<Pos2> = poly
+                                .to_egui_points()
+                                .iter()
+                                .map(|p| to_screen.mul_pos(*p))
+                                .collect();
+                            painter.add(egui::Shape::closed_line(points, highlight_stroke));
+                        }
+                    }
+
+                    // Draw edit vertices if in Edit mode
+                    if self.current_tool == ToolMode::Edit && Some(idx) == self.selected_shape {
+                        self.draw_edit_vertices_transformed(
+                            shape,
+                            &painter,
+                            &to_screen,
+                        );
+                    }
+                }
+            }
         }
 
         // Draw template fields if Template layer is visible
