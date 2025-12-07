@@ -232,6 +232,31 @@ impl DrawingCanvas {
                 let detection_in_canvas_space =
                     self.map_detection_to_canvas(detection, scale, image_offset);
                 self.render_shape_transformed(&detection_in_canvas_space, &painter, &to_screen);
+
+                // Draw selection highlight if this detection is selected
+                // Note: selected_detection is Option<(DetectionType, usize)>
+                // For logo/text detections, check if it matches (DetectionType::Logo/Text, idx)
+                let is_selected = self.selected_detection.map_or(false, |(det_type, det_idx)| {
+                    det_idx == idx && matches!(det_type, crate::DetectionType::Logo | crate::DetectionType::Text)
+                });
+                
+                if is_selected {
+                    let highlight_stroke = Stroke::new(4.0, Color32::from_rgb(255, 215, 0));
+                    match &detection_in_canvas_space {
+                        Shape::Rectangle(rect) => {
+                            let transformed_corners: Vec<Pos2> = rect
+                                .corners()
+                                .iter()
+                                .map(|p| to_screen.mul_pos(*p))
+                                .collect();
+                            painter.add(egui::Shape::closed_line(
+                                transformed_corners,
+                                highlight_stroke,
+                            ));
+                        }
+                        _ => {}
+                    }
+                }
             }
         } else if detections_visible && !self.detections.is_empty() {
             debug!(
@@ -259,7 +284,7 @@ impl DrawingCanvas {
             let offset_y = (canvas_size.y - fitted_size.y) / 2.0;
             let image_offset = response.rect.min + egui::vec2(offset_x, offset_y);
 
-            for (shape, text) in &self.ocr_detections {
+            for (idx, (shape, text)) in self.ocr_detections.iter().enumerate() {
                 // Convert detection from image pixel coordinates to canvas coordinates
                 let detection_in_canvas_space =
                     self.map_detection_to_canvas(shape, scale, image_offset);
@@ -269,6 +294,29 @@ impl DrawingCanvas {
 
                 // Render text overlay on the detection box
                 self.render_ocr_text(&detection_in_canvas_space, text, &painter, &to_screen);
+
+                // Draw selection highlight if this OCR detection is selected
+                let is_selected = self.selected_detection.map_or(false, |(det_type, det_idx)| {
+                    det_idx == idx && matches!(det_type, crate::DetectionType::Ocr)
+                });
+                
+                if is_selected {
+                    let highlight_stroke = Stroke::new(4.0, Color32::from_rgb(255, 215, 0));
+                    match &detection_in_canvas_space {
+                        Shape::Rectangle(rect) => {
+                            let transformed_corners: Vec<Pos2> = rect
+                                .corners()
+                                .iter()
+                                .map(|p| to_screen.mul_pos(*p))
+                                .collect();
+                            painter.add(egui::Shape::closed_line(
+                                transformed_corners,
+                                highlight_stroke,
+                            ));
+                        }
+                        _ => {}
+                    }
+                }
             }
         }
 
