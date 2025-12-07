@@ -37,6 +37,10 @@ struct FormFactorApp {
     toasts: egui_notify::Toasts,
     #[cfg(feature = "plugins")]
     plugin_manager: form_factor::PluginManager,
+    /// Previous selected shape index for change detection
+    prev_selected_shape: Option<usize>,
+    /// Previous selected detection for change detection
+    prev_selected_detection: Option<(form_factor_drawing::DetectionType, usize)>,
 }
 
 impl FormFactorApp {
@@ -88,6 +92,8 @@ impl FormFactorApp {
             toasts: egui_notify::Toasts::default(),
             #[cfg(feature = "plugins")]
             plugin_manager,
+            prev_selected_shape: None,
+            prev_selected_detection: None,
         }
     }
 
@@ -1142,6 +1148,10 @@ impl App for FormFactorApp {
             }
         }
 
+        // Check for selection changes and emit events
+        #[cfg(feature = "plugins")]
+        self.handle_selection_changes();
+
         // Render toast notifications (shown on top of everything)
         self.toasts.show(ctx.egui_ctx());
     }
@@ -1158,6 +1168,63 @@ impl App for FormFactorApp {
 
     fn name(&self) -> &str {
         &self.name
+    }
+}
+
+// Helper methods for FormFactorApp
+impl FormFactorApp {
+    /// Check for selection changes and emit appropriate events
+    #[cfg(feature = "plugins")]
+    fn handle_selection_changes(&mut self) {
+        use form_factor::AppEvent;
+
+        let current_shape = *self.canvas.selected_shape();
+        let current_detection = *self.canvas.selected_detection();
+
+        // Check if shape selection changed
+        if current_shape != self.prev_selected_shape {
+            if let Some(index) = current_shape {
+                tracing::debug!(index, "Shape selection changed, emitting event");
+                self.plugin_manager
+                    .event_bus()
+                    .sender()
+                    .emit(AppEvent::ShapeSelected { index });
+            } else if self.prev_selected_shape.is_some() {
+                tracing::debug!("Shape deselected, emitting clear event");
+                self.plugin_manager
+                    .event_bus()
+                    .sender()
+                    .emit(AppEvent::SelectionCleared);
+            }
+            self.prev_selected_shape = current_shape;
+        }
+
+        // Check if detection selection changed
+        if current_detection != self.prev_selected_detection {
+            if let Some((detection_type, index)) = current_detection {
+                let detection_id = format!(
+                    "{}_{}",
+                    match detection_type {
+                        form_factor_drawing::DetectionType::Logo => "logo",
+                        form_factor_drawing::DetectionType::Text => "text",
+                        form_factor_drawing::DetectionType::Ocr => "ocr",
+                    },
+                    index
+                );
+                tracing::debug!(detection_id, "Detection selection changed, emitting event");
+                self.plugin_manager
+                    .event_bus()
+                    .sender()
+                    .emit(AppEvent::DetectionSelected { detection_id });
+            } else if self.prev_selected_detection.is_some() {
+                tracing::debug!("Detection deselected, emitting clear event");
+                self.plugin_manager
+                    .event_bus()
+                    .sender()
+                    .emit(AppEvent::SelectionCleared);
+            }
+            self.prev_selected_detection = current_detection;
+        }
     }
 }
 

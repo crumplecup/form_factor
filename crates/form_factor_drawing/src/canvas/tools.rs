@@ -16,6 +16,21 @@ use tracing::{debug, instrument, trace, warn};
 
 use super::core::DrawingCanvas;
 
+/// Result of a selection operation
+#[derive(Debug, Clone)]
+pub enum SelectionResult {
+    /// A shape was selected
+    Shape {
+        /// Index of the selected shape
+        index: usize,
+    },
+    /// A detection was selected
+    Detection {
+        /// ID of the selected detection
+        detection_id: String,
+    },
+}
+
 impl DrawingCanvas {
     /// Handle input events for the current tool mode
     ///
@@ -250,8 +265,10 @@ impl DrawingCanvas {
     /// Performs hit testing on all shapes to find the topmost shape
     /// that contains the click point. Updates selection state and
     /// automatically selects the Shapes layer if a shape is selected.
+    ///
+    /// Returns the selected item (shape index or detection ID) for event emission.
     #[instrument(skip(self), fields(pos = ?pos, total_shapes = self.shapes().len()))]
-    pub(super) fn handle_selection_click(&mut self, pos: Pos2) {
+    pub(super) fn handle_selection_click(&mut self, pos: Pos2) -> Option<SelectionResult> {
         let _span = tracing::debug_span!("hit_testing").entered();
 
         // Check if we're in template mode
@@ -260,7 +277,7 @@ impl DrawingCanvas {
             super::core::TemplateMode::Creating | super::core::TemplateMode::Editing
         ) {
             self.handle_field_selection_click(pos);
-            return;
+            return None;
         }
 
         // First check detection boxes (they should be on top)
@@ -270,7 +287,9 @@ impl DrawingCanvas {
                 debug!(idx, "OCR detection selected");
                 self.with_selected_detection(Some((crate::DetectionType::Ocr, idx)));
                 self.set_show_properties(true);
-                return;
+                return Some(SelectionResult::Detection {
+                    detection_id: format!("ocr_{}", idx),
+                });
             }
         }
 
@@ -282,7 +301,9 @@ impl DrawingCanvas {
                 debug!(idx, "Detection selected");
                 self.with_selected_detection(Some((crate::DetectionType::Text, idx)));
                 self.set_show_properties(true);
-                return;
+                return Some(SelectionResult::Detection {
+                    detection_id: format!("text_{}", idx),
+                });
             }
         }
 
@@ -337,9 +358,13 @@ impl DrawingCanvas {
         self.set_show_properties(selected.is_some());
 
         // When a shape is selected, also select the Shapes layer for rotation
-        if selected.is_some() {
+        if let Some(idx) = selected {
             debug!("Shape selected - setting selected_layer to Shapes");
             self.with_selected_layer(Some(LayerType::Shapes));
+            Some(SelectionResult::Shape { index: idx })
+        } else {
+            debug!("No shape selected - clearing selection");
+            None
         }
     }
 

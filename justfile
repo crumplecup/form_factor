@@ -125,8 +125,8 @@ test-package package test_name="":
         cargo test -p {{package}} --lib --tests
     fi
 
-# Run the full test suite: tests + doc tests
-test-all: test test-doc
+# Run the full test suite: tests + doc tests (legacy alias, use test-full)
+test-full: test test-doc
 
 # Run tests and show coverage (requires cargo-tarpaulin)
 test-coverage:
@@ -223,7 +223,7 @@ check-features:
     fi
 
 # Run all checks (lint, format check, tests)
-check-all package='':
+test-all package='':
     #!/usr/bin/env bash
     set -uo pipefail  # Removed -e so we can capture exit codes
     LOG_FILE="/tmp/form_factor_check_all.log"
@@ -243,7 +243,7 @@ check-all package='':
         fi
 
         # Run tests (show output and log failures)
-        if ! cargo test --workspace --lib --tests 2>&1 | tee -a "$LOG_FILE"; then
+        if ! cargo test --workspace --features dev --lib --tests 2>&1 | tee -a "$LOG_FILE"; then
             EXIT_CODE=1
         fi
 
@@ -470,7 +470,7 @@ alias b := build
 alias t := test
 alias l := lint
 alias f := fmt
-alias c := check-all
+alias c := test-all
 alias r := run
 alias d := docs
 
