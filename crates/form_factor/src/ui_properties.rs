@@ -1,6 +1,6 @@
 //! Property rendering for shapes and detections
 
-use form_factor::{DrawingCanvas, Shape};
+use form_factor_drawing::{DrawingCanvas, Shape};
 use form_factor_drawing::DetectionType;
 use tracing::instrument;
 

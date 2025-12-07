@@ -3,7 +3,7 @@
 use tracing::instrument;
 
 #[cfg(feature = "plugins")]
-use form_factor::PluginManager;
+use form_factor_plugins::PluginManager;
 
 #[cfg(all(feature = "plugins", feature = "plugin-canvas"))]
 use form_factor_plugins::CanvasPlugin;

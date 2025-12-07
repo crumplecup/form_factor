@@ -1,7 +1,7 @@
 //! Layer event handlers
 
 use crate::type_conversions::LayerParser;
-use form_factor::{AppState, DrawingCanvas, LayerType};
+use form_factor_drawing::{AppMode, AppState, DrawingCanvas, DataEntryPanel, InstanceManagerPanel, LayerType};
 use tracing::instrument;
 
 /// Layer event handler
@@ -39,8 +39,8 @@ impl LayerEventHandler {
         canvas: &mut DrawingCanvas,
         app_state: &mut AppState,
         layer_name: &str,
-        instance_manager_panel: &mut Option<form_factor::InstanceManagerPanel>,
-        data_entry_panel: &mut Option<form_factor::DataEntryPanel>,
+        instance_manager_panel: &mut Option<InstanceManagerPanel>,
+        data_entry_panel: &mut Option<DataEntryPanel>,
     ) {
         tracing::debug!(layer_name, "Layer clear requested");
 
@@ -66,10 +66,9 @@ impl LayerEventHandler {
 
                     // If in template-related mode, return to Canvas
                     match app_state.mode() {
-                        form_factor::AppMode::TemplateEditor
-                        | form_factor::AppMode::TemplateManager => {
+                        AppMode::TemplateEditor | AppMode::TemplateManager => {
                             tracing::info!("Exiting template mode due to layer clear");
-                            app_state.set_mode(form_factor::AppMode::Canvas);
+                            app_state.set_mode(AppMode::Canvas);
                             app_state.mark_clean();
                         }
                         _ => {}
@@ -94,7 +93,7 @@ impl LayerEventHandler {
                     }
 
                     // If in instance filling mode, return to previous mode
-                    if *app_state.mode() == form_factor::AppMode::InstanceFilling {
+                    if *app_state.mode() == AppMode::InstanceFilling {
                         tracing::info!("Exiting instance filling mode due to layer clear");
                         app_state.go_back();
                         app_state.mark_clean();

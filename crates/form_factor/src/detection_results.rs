@@ -1,10 +1,10 @@
 //! Detection result processing
 
-use form_factor::DrawingCanvas;
+use form_factor_drawing::DrawingCanvas;
 use tracing::instrument;
 
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
-use form_factor::Shape;
+use form_factor_drawing::Shape;
 
 /// Detection result handler
 pub struct DetectionResultHandler;

@@ -33,6 +33,16 @@
 // Top-level modules
 mod error;
 
+// UI helper modules (from main binary refactoring)
+mod ui_properties;
+mod file_dialogs;
+#[cfg(feature = "plugins")]
+mod plugin_setup;
+mod type_conversions;
+mod detection_tasks;
+mod detection_results;
+mod event_handlers;
+
 // ============================================================================
 // Core Application Types
 // ============================================================================
@@ -225,6 +235,42 @@ pub use form_factor_plugins::AppEvent;
 #[cfg(feature = "plugins")]
 /// Plugin builder trait
 pub use form_factor_plugins::PluginBuilder;
+
+// ============================================================================
+// UI Helpers (from main binary refactoring)
+// ============================================================================
+
+/// Property rendering for shapes and detections
+pub use ui_properties::PropertyRenderer;
+
+/// File dialog utilities
+pub use file_dialogs::FileDialogs;
+
+/// Plugin setup and registration
+#[cfg(feature = "plugins")]
+pub use plugin_setup::PluginSetup;
+
+/// Type conversion utilities
+pub use type_conversions::{LayerParser, ToolParser};
+
+/// Detection task spawning
+#[cfg(feature = "text-detection")]
+pub use detection_tasks::TextDetectionTask;
+
+#[cfg(feature = "logo-detection")]
+pub use detection_tasks::LogoDetectionTask;
+
+#[cfg(feature = "ocr")]
+pub use detection_tasks::OcrExtractionTask;
+
+/// Detection result processing
+pub use detection_results::DetectionResultHandler;
+
+/// Event handlers
+pub use event_handlers::{
+    CanvasEventHandler, DetectionEventHandler, FileEventHandler, LayerEventHandler,
+    ObjectEventHandler, SelectionEventHandler,
+};
 
 // ============================================================================
 // Advanced: Direct module access for backend implementations

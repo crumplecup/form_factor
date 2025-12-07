@@ -1,6 +1,6 @@
 //! Object event handlers
 
-use form_factor::{DrawingCanvas, LayerType};
+use form_factor_drawing::{DrawingCanvas, LayerType};
 use tracing::instrument;
 
 /// Object event handler

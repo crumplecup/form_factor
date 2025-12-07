@@ -1,6 +1,6 @@
 //! Type-safe conversions from string names
 
-use form_factor::{LayerType, ToolMode};
+use form_factor_drawing::{LayerType, ToolMode};
 use tracing::instrument;
 
 /// Tool name parser

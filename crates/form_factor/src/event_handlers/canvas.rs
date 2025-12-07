@@ -1,7 +1,7 @@
 //! Canvas event handlers
 
 use crate::type_conversions::ToolParser;
-use form_factor::DrawingCanvas;
+use form_factor_drawing::DrawingCanvas;
 use tracing::instrument;
 
 /// Canvas event handler

@@ -1,5 +1,5 @@
 use crate::AppContext;
-use form_factor::{AppState, DataEntryAction, DataEntryPanel};
+use form_factor_drawing::{AppState, DataEntryAction, DataEntryPanel};
 use tracing::instrument;
 
 /// Handles UI updates for instance filling mode

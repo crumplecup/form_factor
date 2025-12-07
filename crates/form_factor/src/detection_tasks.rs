@@ -1,7 +1,7 @@
 //! Background detection task spawning
 
 #[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
-use form_factor::AppEvent;
+use form_factor_plugins::AppEvent;
 #[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
 use form_factor_plugins::EventSender;
 use tracing::instrument;
@@ -53,7 +53,7 @@ impl TextDetectionTask {
     #[instrument(fields(form_path))]
     fn run_detection(form_path: &str) -> Result<Vec<form_factor::Shape>, String> {
         use egui::{Color32, Pos2, Stroke};
-        use form_factor::{Rectangle, Shape};
+        use form_factor_drawing::{Rectangle, Shape};
         use form_factor_cv::TextDetector;
 
         tracing::debug!("Creating text detector");
@@ -148,7 +148,7 @@ impl LogoDetectionTask {
     #[instrument(fields(form_path))]
     fn run_detection(form_path: &str) -> Result<Vec<form_factor::Shape>, String> {
         use egui::{Color32, Pos2, Stroke};
-        use form_factor::{Rectangle, Shape};
+        use form_factor_drawing::{Rectangle, Shape};
         use form_factor_cv::LogoDetector;
 
         tracing::debug!("Creating logo detector");
@@ -276,7 +276,8 @@ impl OcrExtractionTask {
         form_path: &str,
         detections: Vec<form_factor::Shape>,
     ) -> Result<String, String> {
-        use form_factor::{OCRConfig, OCREngine, PageSegmentationMode, Shape};
+        use form_factor_drawing::Shape;
+        use form_factor_ocr::{OCRConfig, OCREngine, PageSegmentationMode};
         use image;
 
         tracing::debug!("Loading image");
@@ -335,7 +336,7 @@ impl OcrExtractionTask {
 
     /// Convert shape to bounding box (x, y, width, height)
     fn shape_to_bbox(shape: &form_factor::Shape) -> (u32, u32, u32, u32) {
-        use form_factor::Shape;
+        use form_factor_drawing::Shape;
 
         match shape {
             Shape::Rectangle(rect) => {
