@@ -170,6 +170,27 @@ impl FieldValue {
         }
     }
 
+    /// Create a new field value with signature content
+    pub fn new_signature(
+        field_id: impl Into<String>,
+        present: bool,
+        shape_index: Option<usize>,
+        bounds: FieldBounds,
+        page_index: usize,
+    ) -> Self {
+        Self {
+            field_id: field_id.into(),
+            content: FieldContent::Signature {
+                present,
+                shape_index,
+            },
+            bounds,
+            page_index,
+            confidence: None,
+            verified: false,
+        }
+    }
+
     /// Set the confidence score
     pub fn with_confidence(mut self, confidence: f32) -> Self {
         self.confidence = Some(confidence.clamp(0.0, 1.0));

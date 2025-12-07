@@ -863,8 +863,7 @@ impl App for FormFactorApp {
                         // Get form image path and detections for background thread
                         if let Some(form_path) = self.canvas.form_image_path().clone() {
                             // Clone detections to pass to background thread
-                            let detections: Vec<Shape> =
-                                self.canvas.detections().iter().cloned().collect();
+                            let detections: Vec<Shape> = self.canvas.detections().to_vec();
 
                             let sender = self.plugin_manager.event_bus().sender();
 
@@ -1004,7 +1003,7 @@ impl App for FormFactorApp {
                     #[cfg(feature = "ocr")]
                     AppEvent::OcrComplete { results_json } => {
                         // Deserialize results from JSON
-                        match serde_json::from_str::<Vec<(Shape, String)>>(&results_json) {
+                        match serde_json::from_str::<Vec<(Shape, String)>>(results_json) {
                             Ok(results) => {
                                 tracing::info!("Extracted text from {} detections", results.len());
 

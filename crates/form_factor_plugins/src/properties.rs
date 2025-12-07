@@ -40,7 +40,7 @@ enum SelectedItem {
     /// A detection (logo, text, OCR)
     Detection {
         /// Detection metadata
-        metadata: DetectionMetadata,
+        metadata: Box<DetectionMetadata>,
     },
 }
 
@@ -170,7 +170,8 @@ impl Plugin for PropertiesPlugin {
             #[cfg(feature = "plugin-detection")]
             Some(SelectedItem::Detection { metadata }) => {
                 // Show detection properties panel
-                self.detection_panel.set_metadata(Some(metadata.clone()));
+                self.detection_panel
+                    .set_metadata(Some((**metadata).clone()));
                 if let Some(_updated) = self.detection_panel.ui(ui) {
                     // TODO: Emit event with updated metadata
                     // For now, just log that an update happened
@@ -205,7 +206,9 @@ impl Plugin for PropertiesPlugin {
                 tracing::debug!(detection_id, "Detection selected, fetching metadata");
                 // Fetch detection metadata from state
                 if let Some(metadata) = self.fetch_detection_metadata(detection_id, _ctx) {
-                    self.selected_item = Some(SelectedItem::Detection { metadata });
+                    self.selected_item = Some(SelectedItem::Detection {
+                        metadata: Box::new(metadata),
+                    });
                 }
             }
             AppEvent::SelectionCleared => {

@@ -185,24 +185,13 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
     assert_eq!(page2_values.len(), 3);
 
     // Step 5: Fill out page 3 (Signature)
-    use form_factor_core::FieldContent;
-
-    let signature_value = FieldValue::builder()
-        .field_id("signature")
-        .content(FieldContent::Signature {
-            present: true,
-            shape_index: None,
-        })
-        .bounds(FieldBounds::new(100.0, 400.0, 300.0, 60.0))
-        .page_index(2_usize)
-        .confidence(None)
-        .verified(true)
-        .build()
-        .map_err(|e| {
-            FormError::new(form_factor_drawing::FormErrorKind::BuilderFailed(
-                e.to_string(),
-            ))
-        })?;
+    let signature_value = FieldValue::new_signature(
+        "signature",
+        true,
+        None,
+        FieldBounds::new(100.0, 400.0, 300.0, 60.0),
+        2,
+    );
 
     let date_value = FieldValue::new_text(
         "date_signed",
@@ -232,6 +221,14 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
 
     // Step 8: Validate the complete instance
     let validation_result = template.validate_instance(&instance);
+    if !validation_result.is_valid() {
+        eprintln!("Validation failed!");
+        eprintln!(
+            "Missing required: {:?}",
+            validation_result.missing_required()
+        );
+        eprintln!("Field errors: {:?}", validation_result.field_errors());
+    }
     assert!(validation_result.is_valid());
     assert!(validation_result.missing_required().is_empty());
     assert!(validation_result.field_errors().is_empty());
@@ -328,7 +325,7 @@ fn test_page_navigation() {
 }
 
 #[test]
-fn test_field_distribution_across_pages() -> Result<(), FieldValueBuilderError> {
+fn test_field_distribution_across_pages() -> Result<(), FormError> {
     let mut page1 = TemplatePage::new(0);
     let mut page2 = TemplatePage::new(1);
 

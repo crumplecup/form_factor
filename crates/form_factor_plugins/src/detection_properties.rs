@@ -292,11 +292,11 @@ impl DetectionPropertiesPanel {
                                         .form_field_min()
                                         .map(|v| v.to_string())
                                         .unwrap_or_default();
-                                    if ui.text_edit_singleline(&mut min_str).changed() {
-                                        if let Ok(min) = min_str.parse::<f64>() {
-                                            metadata.with_form_field_min(Some(min));
-                                            debug!(min, "Updated min value");
-                                        }
+                                    if ui.text_edit_singleline(&mut min_str).changed()
+                                        && let Ok(min) = min_str.parse::<f64>()
+                                    {
+                                        metadata.with_form_field_min(Some(min));
+                                        debug!(min, "Updated min value");
                                     }
                                 });
                                 ui.horizontal(|ui| {
@@ -305,11 +305,11 @@ impl DetectionPropertiesPanel {
                                         .form_field_max()
                                         .map(|v| v.to_string())
                                         .unwrap_or_default();
-                                    if ui.text_edit_singleline(&mut max_str).changed() {
-                                        if let Ok(max) = max_str.parse::<f64>() {
-                                            metadata.with_form_field_max(Some(max));
-                                            debug!(max, "Updated max value");
-                                        }
+                                    if ui.text_edit_singleline(&mut max_str).changed()
+                                        && let Ok(max) = max_str.parse::<f64>()
+                                    {
+                                        metadata.with_form_field_max(Some(max));
+                                        debug!(max, "Updated max value");
                                     }
                                 });
                             }
