@@ -1,32 +1,24 @@
 //! Form Factor - GUI application for tagging scanned forms with OCR metadata
 
-mod detection_results;
-mod detection_tasks;
-mod event_handlers;
-mod file_dialogs;
-mod plugin_setup;
-mod type_conversions;
-mod ui_properties;
 mod ui_template;
 mod ui_update;
 
-use form_factor::{App, AppContext, DrawingCanvas};
+use form_factor::{
+    App, AppContext, CanvasEventHandler, DetectionResultHandler, DrawingCanvas, FileDialogs,
+    FileEventHandler, LayerEventHandler, LayerParser, ObjectEventHandler, PropertyRenderer,
+    ToolParser,
+};
+#[cfg(feature = "text-detection")]
+use form_factor::TextDetectionTask;
+#[cfg(feature = "logo-detection")]
+use form_factor::LogoDetectionTask;
+#[cfg(feature = "ocr")]
+use form_factor::OcrExtractionTask;
+#[cfg(feature = "plugins")]
+use form_factor::PluginSetup;
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]
 use form_factor_drawing::Shape;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use detection_results::DetectionResultHandler;
-#[cfg(feature = "text-detection")]
-use detection_tasks::TextDetectionTask;
-#[cfg(feature = "logo-detection")]
-use detection_tasks::LogoDetectionTask;
-#[cfg(feature = "ocr")]
-use detection_tasks::OcrExtractionTask;
-use event_handlers::{CanvasEventHandler, FileEventHandler, LayerEventHandler, ObjectEventHandler};
-use file_dialogs::FileDialogs;
-#[cfg(feature = "plugins")]
-use plugin_setup::PluginSetup;
-use type_conversions::{LayerParser, ToolParser};
-use ui_properties::PropertyRenderer;
 
 #[cfg(feature = "backend-eframe")]
 use form_factor::{Backend, BackendConfig, EframeBackend};
