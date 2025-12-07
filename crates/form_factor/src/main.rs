@@ -3,11 +3,7 @@
 mod ui_template;
 mod ui_update;
 
-use form_factor::{
-    App, AppContext, CanvasEventHandler, DetectionResultHandler, DrawingCanvas, FileDialogs,
-    FileEventHandler, LayerEventHandler, LayerParser, ObjectEventHandler, PropertyRenderer,
-    ToolParser,
-};
+use form_factor::{App, AppContext, DrawingCanvas};
 #[cfg(feature = "text-detection")]
 use form_factor::TextDetectionTask;
 #[cfg(feature = "logo-detection")]
@@ -134,29 +130,29 @@ impl App for FormFactorApp {
                 use form_factor::AppEvent;
                 match event {
                     AppEvent::CanvasZoomChanged { zoom } => {
-                        CanvasEventHandler::handle_zoom_changed(&mut self.canvas, *zoom);
+                        form_factor::CanvasEventHandler::handle_zoom_changed(&mut self.canvas, *zoom);
                     }
                     AppEvent::CanvasPanChanged { x, y } => {
-                        CanvasEventHandler::handle_pan_changed(&mut self.canvas, *x, *y);
+                        form_factor::CanvasEventHandler::handle_pan_changed(&mut self.canvas, *x, *y);
                     }
                     AppEvent::ToolSelected { tool_name } => {
-                        CanvasEventHandler::handle_tool_selected(&mut self.canvas, tool_name);
+                        form_factor::CanvasEventHandler::handle_tool_selected(&mut self.canvas, tool_name);
                     }
                     AppEvent::LayerVisibilityChanged {
                         layer_name,
                         visible,
                     } => {
-                        LayerEventHandler::handle_visibility_changed(
+                        form_factor::LayerEventHandler::handle_visibility_changed(
                             &mut self.canvas,
                             layer_name,
                             *visible,
                         );
                     }
                     AppEvent::LayerSelected { layer_name } => {
-                        LayerEventHandler::handle_selected(&mut self.canvas, layer_name);
+                        form_factor::LayerEventHandler::handle_selected(&mut self.canvas, layer_name);
                     }
                     AppEvent::LayerClearRequested { layer_name } => {
-                        LayerEventHandler::handle_clear_requested(
+                        form_factor::LayerEventHandler::handle_clear_requested(
                             &mut self.canvas,
                             &mut self.app_state,
                             layer_name,
@@ -168,7 +164,7 @@ impl App for FormFactorApp {
                         layer_type,
                         object_index,
                     } => {
-                        ObjectEventHandler::handle_delete_requested(
+                        form_factor::ObjectEventHandler::handle_delete_requested(
                             &mut self.canvas,
                             layer_type,
                             *object_index,
@@ -179,7 +175,7 @@ impl App for FormFactorApp {
                         object_index,
                         visible,
                     } => {
-                        ObjectEventHandler::handle_visibility_changed(
+                        form_factor::ObjectEventHandler::handle_visibility_changed(
                             &mut self.canvas,
                             layer_type,
                             *object_index,
@@ -188,18 +184,18 @@ impl App for FormFactorApp {
                     }
                     #[cfg(feature = "plugin-layers")]
                     AppEvent::OcrObjectDeleteRequested { index } => {
-                        ObjectEventHandler::handle_ocr_delete_requested(&mut self.canvas, *index);
+                        form_factor::ObjectEventHandler::handle_ocr_delete_requested(&mut self.canvas, *index);
                     }
                     #[cfg(feature = "plugin-layers")]
                     AppEvent::OcrObjectVisibilityChanged { index, visible } => {
-                        ObjectEventHandler::handle_ocr_visibility_changed(
+                        form_factor::ObjectEventHandler::handle_ocr_visibility_changed(
                             &mut self.canvas,
                             *index,
                             *visible,
                         );
                     }
                     AppEvent::OpenFileRequested => {
-                        FileEventHandler::handle_open_requested(
+                        form_factor::FileEventHandler::handle_open_requested(
                             &mut self.canvas,
                             &self.plugin_manager.event_bus().sender(),
                             ctx.egui_ctx(),
@@ -207,7 +203,7 @@ impl App for FormFactorApp {
                     }
                     AppEvent::SaveFileRequested => {
                         let project_name = self.canvas.project_name().to_string();
-                        FileEventHandler::handle_save_requested(
+                        form_factor::FileEventHandler::handle_save_requested(
                             &mut self.canvas,
                             &self.plugin_manager.event_bus().sender(),
                             &project_name,
@@ -215,14 +211,14 @@ impl App for FormFactorApp {
                     }
                     AppEvent::SaveAsRequested => {
                         let project_name = self.canvas.project_name().to_string();
-                        FileEventHandler::handle_save_as_requested(
+                        form_factor::FileEventHandler::handle_save_as_requested(
                             &mut self.canvas,
                             &self.plugin_manager.event_bus().sender(),
                             &project_name,
                         );
                     }
                     AppEvent::LoadImageRequested => {
-                        FileEventHandler::handle_load_image_requested(
+                        form_factor::FileEventHandler::handle_load_image_requested(
                             &mut self.canvas,
                             ctx.egui_ctx(),
                         );
@@ -283,7 +279,7 @@ impl App for FormFactorApp {
                     }
                     #[cfg(feature = "ocr")]
                     AppEvent::OcrComplete { results_json } => {
-                        DetectionResultHandler::handle_ocr_complete(
+                        form_factor::DetectionResultHandler::handle_ocr_complete(
                             &mut self.canvas,
                             &mut self.toasts,
                             results_json,
@@ -293,7 +289,7 @@ impl App for FormFactorApp {
                         count,
                         detection_type,
                     } => {
-                        DetectionResultHandler::handle_detection_complete(
+                        form_factor::DetectionResultHandler::handle_detection_complete(
                             &mut self.toasts,
                             detection_type,
                             *count,
@@ -303,7 +299,7 @@ impl App for FormFactorApp {
                         detection_type,
                         error,
                     } => {
-                        DetectionResultHandler::handle_detection_failed(
+                        form_factor::DetectionResultHandler::handle_detection_failed(
                             &mut self.toasts,
                             detection_type,
                             error,
@@ -314,23 +310,23 @@ impl App for FormFactorApp {
                         detection_type,
                         shapes_json,
                     } => {
-                        DetectionResultHandler::handle_detection_results_ready(
+                        form_factor::DetectionResultHandler::handle_detection_results_ready(
                             &mut self.canvas,
                             detection_type,
                             shapes_json,
                         );
                     }
                     AppEvent::CanvasImageVisibilityChanged { visible } => {
-                        CanvasEventHandler::handle_image_visibility_changed(
+                        form_factor::CanvasEventHandler::handle_image_visibility_changed(
                             &mut self.canvas,
                             *visible,
                         );
                     }
                     AppEvent::CanvasImageLockChanged { locked } => {
-                        CanvasEventHandler::handle_image_lock_changed(&mut self.canvas, *locked);
+                        form_factor::CanvasEventHandler::handle_image_lock_changed(&mut self.canvas, *locked);
                     }
                     AppEvent::CanvasImageClearRequested => {
-                        CanvasEventHandler::handle_image_clear_requested(&mut self.canvas);
+                        form_factor::CanvasEventHandler::handle_image_clear_requested(&mut self.canvas);
                     }
                     _ => {
                         // Ignore other events
@@ -378,7 +374,7 @@ impl App for FormFactorApp {
                                 ui.heading("Properties");
 
                                 if let Some(shape_idx) = *self.canvas.selected_shape() {
-                                    if let Err(e) = PropertyRenderer::render_shape_properties(
+                                    if let Err(e) = form_factor::PropertyRenderer::render_shape_properties(
                                         ui,
                                         &self.canvas,
                                         shape_idx,
@@ -398,7 +394,7 @@ impl App for FormFactorApp {
                                 } else if let Some((det_type, det_idx)) =
                                     *self.canvas.selected_detection()
                                 {
-                                    if let Err(e) = PropertyRenderer::render_detection_properties(
+                                    if let Err(e) = form_factor::PropertyRenderer::render_detection_properties(
                                         ui,
                                         &self.canvas,
                                         det_type,

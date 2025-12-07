@@ -276,7 +276,6 @@ impl OcrExtractionTask {
         form_path: &str,
         detections: Vec<form_factor_drawing::Shape>,
     ) -> Result<String, String> {
-        use form_factor_drawing::Shape;
         use form_factor_ocr::{OCRConfig, OCREngine, PageSegmentationMode};
         use image;
 
