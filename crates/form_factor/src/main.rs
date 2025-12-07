@@ -528,6 +528,22 @@ impl App for FormFactorApp {
                             }
                         }
                     }
+                    AppEvent::LoadImageRequested => {
+                        if let Some(path) = rfd::FileDialog::new()
+                            .add_filter("Images", &["png", "jpg", "jpeg", "webp"])
+                            .pick_file()
+                            && let Some(path_str) = path.to_str()
+                        {
+                            match self.canvas.load_form_image(path_str, ctx.egui_ctx()) {
+                                Ok(()) => {
+                                    tracing::info!("Loaded image from {}", path_str);
+                                }
+                                Err(e) => {
+                                    tracing::error!("Failed to load image: {}", e);
+                                }
+                            }
+                        }
+                    }
                     #[cfg(feature = "text-detection")]
                     AppEvent::TextDetectionRequested => {
                         match self.canvas.detect_text_regions(0.5) {

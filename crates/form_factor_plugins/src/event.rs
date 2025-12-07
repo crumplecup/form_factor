@@ -73,6 +73,9 @@ pub enum AppEvent {
     /// User requested to save file with new name
     SaveAsRequested,
 
+    /// User requested to load an image onto the canvas
+    LoadImageRequested,
+
     /// Text detection was requested
     TextDetectionRequested,
 

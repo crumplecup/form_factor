@@ -70,6 +70,13 @@ impl FilePlugin {
                 ctx.events.emit(AppEvent::SaveAsRequested);
             }
         });
+
+        ui.horizontal(|ui| {
+            if ui.button("Load Image...").clicked() {
+                debug!("Load image requested");
+                ctx.events.emit(AppEvent::LoadImageRequested);
+            }
+        });
     }
 
     /// Renders the current file path display.
