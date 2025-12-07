@@ -285,6 +285,13 @@ impl App for FormFactorApp {
     }
 
     fn update(&mut self, ctx: &AppContext) {
+        // Show mode switcher in top panel
+        egui::TopBottomPanel::top("mode_panel").show(ctx.egui_ctx(), |ui| {
+            ui.horizontal(|ui| {
+                self.mode_switcher.ui(ui, &mut self.app_state);
+            });
+        });
+        
         // Process plugin events and wire them to canvas operations
         #[cfg(feature = "plugins")]
         {
