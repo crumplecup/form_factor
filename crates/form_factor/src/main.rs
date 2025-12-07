@@ -23,6 +23,7 @@ use detection_tasks::OcrExtractionTask;
 use file_dialogs::FileDialogs;
 #[cfg(feature = "plugins")]
 use plugin_setup::PluginSetup;
+use type_conversions::{LayerParser, ToolParser};
 use ui_properties::PropertyRenderer;
 
 #[cfg(feature = "backend-eframe")]
@@ -146,17 +147,7 @@ impl App for FormFactorApp {
                     }
                     AppEvent::ToolSelected { tool_name } => {
                         // Parse tool name and set tool mode
-                        use form_factor::ToolMode;
-                        let tool = match tool_name.as_str() {
-                            "Select" => Some(ToolMode::Select),
-                            "Rectangle" => Some(ToolMode::Rectangle),
-                            "Circle" => Some(ToolMode::Circle),
-                            "Freehand" => Some(ToolMode::Freehand),
-                            "Edit" => Some(ToolMode::Edit),
-                            "Rotate" => Some(ToolMode::Rotate),
-                            _ => None,
-                        };
-                        if let Some(tool) = tool {
+                        if let Some(tool) = ToolParser::from_name(tool_name) {
                             self.canvas.set_tool(tool);
                         }
                     }
@@ -165,41 +156,18 @@ impl App for FormFactorApp {
                         visible,
                     } => {
                         // Find layer by name and toggle
-                        use form_factor::LayerType;
-                        let layer_type = match layer_name.as_str() {
-                            "Canvas" => Some(LayerType::Canvas),
-                            "Detections" => Some(LayerType::Detections),
-                            "Shapes" => Some(LayerType::Shapes),
-                            "Grid" => Some(LayerType::Grid),
-                            _ => None,
-                        };
-                        if let Some(layer_type) = layer_type
+                        if let Some(layer_type) = LayerParser::from_name(layer_name)
                             && self.canvas.layer_manager().is_visible(layer_type) != *visible
                         {
                             self.canvas.layer_manager_mut().toggle_layer(layer_type);
                         }
                     }
                     AppEvent::LayerSelected { layer_name } => {
-                        use form_factor::LayerType;
-                        let layer_type = match layer_name.as_str() {
-                            "Canvas" => Some(LayerType::Canvas),
-                            "Detections" => Some(LayerType::Detections),
-                            "Shapes" => Some(LayerType::Shapes),
-                            "Grid" => Some(LayerType::Grid),
-                            _ => None,
-                        };
+                        let layer_type = LayerParser::from_name(layer_name);
                         self.canvas.with_selected_layer(layer_type);
                     }
                     AppEvent::LayerClearRequested { layer_name } => {
-                        use form_factor::LayerType;
-                        let layer_type = match layer_name.as_str() {
-                            "Canvas" => Some(LayerType::Canvas),
-                            "Detections" => Some(LayerType::Detections),
-                            "Shapes" => Some(LayerType::Shapes),
-                            "Grid" => Some(LayerType::Grid),
-                            _ => None,
-                        };
-                        if let Some(layer_type) = layer_type {
+                        if let Some(layer_type) = LayerParser::from_name(layer_name) {
                             match layer_type {
                                 LayerType::Shapes => {
                                     self.canvas.clear_shapes();
