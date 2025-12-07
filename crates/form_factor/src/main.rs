@@ -20,7 +20,7 @@ use detection_tasks::TextDetectionTask;
 use detection_tasks::LogoDetectionTask;
 #[cfg(feature = "ocr")]
 use detection_tasks::OcrExtractionTask;
-use event_handlers::{CanvasEventHandler, FileEventHandler};
+use event_handlers::{CanvasEventHandler, FileEventHandler, LayerEventHandler};
 use file_dialogs::FileDialogs;
 #[cfg(feature = "plugins")]
 use plugin_setup::PluginSetup;
@@ -153,85 +153,23 @@ impl App for FormFactorApp {
                         layer_name,
                         visible,
                     } => {
-                        // Find layer by name and toggle
-                        if let Some(layer_type) = LayerParser::from_name(layer_name)
-                            && self.canvas.layer_manager().is_visible(layer_type) != *visible
-                        {
-                            self.canvas.layer_manager_mut().toggle_layer(layer_type);
-                        }
+                        LayerEventHandler::handle_visibility_changed(
+                            &mut self.canvas,
+                            layer_name,
+                            *visible,
+                        );
                     }
                     AppEvent::LayerSelected { layer_name } => {
-                        let layer_type = LayerParser::from_name(layer_name);
-                        self.canvas.with_selected_layer(layer_type);
+                        LayerEventHandler::handle_selected(&mut self.canvas, layer_name);
                     }
                     AppEvent::LayerClearRequested { layer_name } => {
-                        if let Some(layer_type) = LayerParser::from_name(layer_name) {
-                            match layer_type {
-                                LayerType::Shapes => {
-                                    self.canvas.clear_shapes();
-                                    tracing::info!("Cleared shapes layer");
-                                }
-                                LayerType::Detections => {
-                                    self.canvas.clear_detections();
-                                    tracing::info!("Cleared detections layer");
-                                }
-                                LayerType::Canvas => {
-                                    self.canvas.clear_canvas_image();
-                                    tracing::info!("Cleared canvas image");
-                                }
-                                LayerType::Template => {
-                                    tracing::info!("Clearing template layer");
-
-                                    // Clear current template from app state
-                                    self.app_state.set_current_template(None);
-
-                                    // If in template-related mode, return to Canvas
-                                    match self.app_state.mode() {
-                                        form_factor::AppMode::TemplateEditor
-                                        | form_factor::AppMode::TemplateManager => {
-                                            tracing::info!(
-                                                "Exiting template mode due to layer clear"
-                                            );
-                                            self.app_state.set_mode(form_factor::AppMode::Canvas);
-                                            self.app_state.mark_clean();
-                                        }
-                                        _ => {}
-                                    }
-
-                                    // Clear template manager panel if it exists
-                                    if self.instance_manager_panel.is_some() {
-                                        tracing::debug!("Clearing instance manager panel");
-                                        self.instance_manager_panel = None;
-                                    }
-                                }
-                                LayerType::Instance => {
-                                    tracing::info!("Clearing instance layer");
-
-                                    // Clear current instance from app state
-                                    self.app_state.set_current_instance(None);
-
-                                    // Clear data entry panel if it exists
-                                    if self.data_entry_panel.is_some() {
-                                        tracing::debug!("Clearing data entry panel");
-                                        self.data_entry_panel = None;
-                                    }
-
-                                    // If in instance filling mode, return to previous mode
-                                    if *self.app_state.mode()
-                                        == form_factor::AppMode::InstanceFilling
-                                    {
-                                        tracing::info!(
-                                            "Exiting instance filling mode due to layer clear"
-                                        );
-                                        self.app_state.go_back();
-                                        self.app_state.mark_clean();
-                                    }
-                                }
-                                LayerType::Grid => {
-                                    // Grid doesn't need clearing
-                                }
-                            }
-                        }
+                        LayerEventHandler::handle_clear_requested(
+                            &mut self.canvas,
+                            &mut self.app_state,
+                            layer_name,
+                            &mut self.instance_manager_panel,
+                            &mut self.data_entry_panel,
+                        );
                     }
                     AppEvent::ObjectDeleteRequested {
                         layer_type,
