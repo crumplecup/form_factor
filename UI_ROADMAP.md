@@ -3,24 +3,25 @@
 **Status:** Phase 2 In Progress 🚧
 **Created:** 2024-12-05
 **Updated:** 2024-12-07
-**Last Commit:** 4f88de3
+**Last Commit:** 463cce0
 **Goal:** Transform Form Factor from a partially-integrated application into a polished, user-friendly form processing tool with complete template creation and instance filling workflows
 
 ## Executive Summary
 
 Form Factor now has **integrated UI with template management exposed**! Users can switch between Canvas and Template Manager modes, browse/create templates, and edit shape/detection properties through the UI.
 
-**Current State:** 75% complete
+**Current State:** 80% complete
 - ✅ Plugin UI working (canvas, layers, files, detection, OCR)
 - ✅ Template backend fully implemented
 - ✅ Template browser exposed in Template Manager mode
 - ✅ Mode switcher visible in top panel
 - ✅ Property inspector for shapes and detections
-- ✅ Selection highlighting and controls
-- ✅ OCR integrated into detections system
-- ✅ Image layer management (hide/show/delete)
-- ⚠️ Field type selector built but not yet exposed
-- ⚠️ Page navigation built but not yet shown
+- ✅ Selection highlighting and controls for shapes AND detections
+- ✅ OCR integrated into detections system with text overlay
+- ✅ Image layer management (hide/show/delete) with dropdown
+- ✅ Detection subgroups (Logos/Text/OCR) with individual controls
+- ✅ Field type selector accessible via "Assign to Field..." button
+- ⚠️ Page navigation built but needs integration
 - ❌ Instance data entry UI needs completion
 - ❌ Template-to-instance workflow needs wiring
 
