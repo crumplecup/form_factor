@@ -137,7 +137,10 @@ fn test_load_instance_format_unchanged() {
     let loaded_instance = format.into_instance();
 
     assert_eq!(loaded_instance.template_id(), "custom_template");
-    assert_eq!(loaded_instance.instance_name().as_deref(), Some("Test Instance"));
+    assert_eq!(
+        loaded_instance.instance_name().as_deref(),
+        Some("Test Instance")
+    );
     assert_eq!(loaded_instance.page_count(), 2);
 }
 

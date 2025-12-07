@@ -8,7 +8,9 @@ use derive_getters::Getters;
 use serde::{Deserialize, Serialize};
 
 /// Application modes defining the current UI state and available operations.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default, derive_more::Display)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default, derive_more::Display,
+)]
 pub enum AppMode {
     /// Default canvas mode with drawing tools and plugins
     #[default]

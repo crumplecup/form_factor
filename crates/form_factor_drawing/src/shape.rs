@@ -268,8 +268,6 @@ impl Rectangle {
         self.stroke = stroke;
     }
 
-
-
     /// Get the center point of this rectangle
     pub fn center(&self) -> Pos2 {
         let sum_x: f32 = self.corners.iter().map(|p| p.x).sum();
@@ -748,9 +746,15 @@ impl Shape {
     /// Set visibility for this shape
     pub fn set_visible(&mut self, visible: bool) {
         match self {
-            Shape::Rectangle(rect) => { rect.with_visible(visible); },
-            Shape::Circle(circle) => { circle.with_visible(visible); },
-            Shape::Polygon(poly) => { poly.with_visible(visible); },
+            Shape::Rectangle(rect) => {
+                rect.with_visible(visible);
+            }
+            Shape::Circle(circle) => {
+                circle.with_visible(visible);
+            }
+            Shape::Polygon(poly) => {
+                poly.with_visible(visible);
+            }
         }
     }
 }

@@ -109,7 +109,9 @@ impl LayersPlugin {
                     if ui.button(caret).on_hover_text("Expand/collapse").clicked() {
                         match layer.layer_type {
                             LayerType::Shapes => self.shapes_expanded = !self.shapes_expanded,
-                            LayerType::Detections => self.detections_expanded = !self.detections_expanded,
+                            LayerType::Detections => {
+                                self.detections_expanded = !self.detections_expanded
+                            }
                             _ => {}
                         }
                     }

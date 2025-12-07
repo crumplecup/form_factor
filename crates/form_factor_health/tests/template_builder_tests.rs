@@ -273,7 +273,10 @@ fn test_field_by_id() {
         .unwrap();
 
     assert!(template.field_by_id("test_field").is_some());
-    assert_eq!(template.field_by_id("test_field").unwrap().id(), "test_field");
+    assert_eq!(
+        template.field_by_id("test_field").unwrap().id(),
+        "test_field"
+    );
     assert!(template.field_by_id("nonexistent").is_none());
 }
 

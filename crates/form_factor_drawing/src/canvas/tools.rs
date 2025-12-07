@@ -605,7 +605,8 @@ impl DrawingCanvas {
                             0
                         };
                         let field_id = format!("field_{}", field_count + 1);
-                        let bounds = form_factor_core::FieldBounds::new(min_x, min_y, width, height);
+                        let bounds =
+                            form_factor_core::FieldBounds::new(min_x, min_y, width, height);
 
                         Some(
                             form_factor_core::FieldDefinitionBuilder::default()
@@ -638,7 +639,8 @@ impl DrawingCanvas {
                             0
                         };
                         let field_id = format!("field_{}", field_count + 1);
-                        let bounds = form_factor_core::FieldBounds::new(min_x, min_y, width, height);
+                        let bounds =
+                            form_factor_core::FieldBounds::new(min_x, min_y, width, height);
 
                         Some(
                             form_factor_core::FieldDefinitionBuilder::default()

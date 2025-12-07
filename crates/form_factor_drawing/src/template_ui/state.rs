@@ -160,12 +160,16 @@ impl TemplateEditorState {
 
     /// Gets the description of the last undo action.
     pub fn last_undo_description(&self) -> Option<&str> {
-        self.undo_stack.last().map(|s| s.action_description().as_str())
+        self.undo_stack
+            .last()
+            .map(|s| s.action_description().as_str())
     }
 
     /// Gets the description of the last redo action.
     pub fn last_redo_description(&self) -> Option<&str> {
-        self.redo_stack.last().map(|s| s.action_description().as_str())
+        self.redo_stack
+            .last()
+            .map(|s| s.action_description().as_str())
     }
 
     /// Gets the undo stack for browsing history.

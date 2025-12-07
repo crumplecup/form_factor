@@ -359,11 +359,7 @@ impl DrawingCanvas {
 
                     // Draw edit vertices if in Edit mode
                     if self.current_tool == ToolMode::Edit && Some(idx) == self.selected_shape {
-                        self.draw_edit_vertices_transformed(
-                            shape,
-                            &painter,
-                            &to_screen,
-                        );
+                        self.draw_edit_vertices_transformed(shape, &painter, &to_screen);
                     }
                 }
             }
@@ -551,7 +547,8 @@ impl DrawingCanvas {
                 ui.label(format!("Radius: {:.1}", circle.radius()));
                 ui.label(format!(
                     "Center: ({:.1}, {:.1})",
-                    circle.center().x, circle.center().y
+                    circle.center().x,
+                    circle.center().y
                 ));
             }
             Shape::Polygon(poly) => {
@@ -697,7 +694,8 @@ impl DrawingCanvas {
                     ui.label(format!("Radius: {:.1}", circle.radius()));
                     ui.label(format!(
                         "Center: ({:.1}, {:.1})",
-                        circle.center().x, circle.center().y
+                        circle.center().x,
+                        circle.center().y
                     ));
 
                     ui.separator();
@@ -963,7 +961,10 @@ impl DrawingCanvas {
                     egui::Stroke::NONE,
                 ));
                 // Draw outline
-                painter.add(egui::Shape::closed_line(transformed_corners, *rect.stroke()));
+                painter.add(egui::Shape::closed_line(
+                    transformed_corners,
+                    *rect.stroke(),
+                ));
             }
             Shape::Circle(circle) => {
                 // Note: rotation_angle removed - circles are symmetric anyway
@@ -1247,16 +1248,21 @@ impl DrawingCanvas {
 
                 // Circle::new returns Result, but we're mapping from existing valid circle
                 // so this should not fail unless coordinates became invalid during transformation
-                Circle::new(mapped_center, mapped_radius, *circle.stroke(), *circle.fill())
-                    .map(|mut c| {
-                        c.set_name(circle.name().clone());
-                        Shape::Circle(c)
-                    })
-                    .unwrap_or_else(|e| {
-                        warn!("Failed to map circle during serialization: {}", e);
-                        // Fallback to original circle (unscaled)
-                        Shape::Circle(circle.clone())
-                    })
+                Circle::new(
+                    mapped_center,
+                    mapped_radius,
+                    *circle.stroke(),
+                    *circle.fill(),
+                )
+                .map(|mut c| {
+                    c.set_name(circle.name().clone());
+                    Shape::Circle(c)
+                })
+                .unwrap_or_else(|e| {
+                    warn!("Failed to map circle during serialization: {}", e);
+                    // Fallback to original circle (unscaled)
+                    Shape::Circle(circle.clone())
+                })
             }
             Shape::Polygon(poly) => {
                 // Map polygon points from image space to canvas space

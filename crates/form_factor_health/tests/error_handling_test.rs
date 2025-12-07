@@ -1,5 +1,5 @@
-use form_factor_health::{create_circle_shape, create_rectangle_shape, create_test_canvas};
 use form_factor_drawing::ToolMode;
+use form_factor_health::{create_circle_shape, create_rectangle_shape, create_test_canvas};
 
 #[test]
 fn test_invalid_shape_operations() {

@@ -42,7 +42,7 @@ impl CanvasFieldInteraction {
             moving_field: None,
         }
     }
-    
+
     /// Starts creating a new field of the given type.
     #[instrument(skip(self))]
     pub fn start_field_creation(&mut self, field_type: FieldType, start: Pos2) {
@@ -54,25 +54,20 @@ impl CanvasFieldInteraction {
     /// Completes field creation and returns the created shape.
     #[instrument(skip(self))]
     pub fn complete_field_creation(&mut self, end: Pos2) -> Option<Shape> {
-        if let (Some(field_type), Some(start)) = (self.creating_field.clone(), self.creation_start) {
+        if let (Some(field_type), Some(start)) = (self.creating_field.clone(), self.creation_start)
+        {
             debug!(?field_type, ?start, ?end, "Completing field creation");
 
             // Create rectangle with default stroke and transparent fill
             let stroke = Stroke::new(2.0, Color32::from_rgb(100, 100, 255));
             let fill = Color32::TRANSPARENT;
 
-            let rect = Rectangle::from_corners(start, end, stroke, fill)
-                .unwrap_or_else(|e| {
-                    debug!(?e, "Failed to create rectangle, using default");
-                    // Return a minimal valid rectangle as fallback
-                    Rectangle::from_corners(
-                        Pos2::new(0.0, 0.0),
-                        Pos2::new(10.0, 10.0),
-                        stroke,
-                        fill,
-                    )
+            let rect = Rectangle::from_corners(start, end, stroke, fill).unwrap_or_else(|e| {
+                debug!(?e, "Failed to create rectangle, using default");
+                // Return a minimal valid rectangle as fallback
+                Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill)
                     .expect("Default rectangle should be valid")
-                });
+            });
 
             let shape = Shape::Rectangle(rect);
 
@@ -85,7 +80,7 @@ impl CanvasFieldInteraction {
             None
         }
     }
-    
+
     /// Cancels ongoing field creation.
     #[instrument(skip(self))]
     pub fn cancel_field_creation(&mut self) {
@@ -93,7 +88,7 @@ impl CanvasFieldInteraction {
         self.creating_field = None;
         self.creation_start = None;
     }
-    
+
     /// Selects a field by ID.
     #[instrument(skip(self))]
     pub fn select_field(&mut self, field_id: String) {

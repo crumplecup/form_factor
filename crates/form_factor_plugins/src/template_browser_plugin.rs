@@ -103,9 +103,7 @@ impl TemplateBrowserPlugin {
                 // TODO: Emit event to import template
             }
 
-            if self.browser.selected_template().is_some()
-                && ui.button("🗑 Delete").clicked()
-            {
+            if self.browser.selected_template().is_some() && ui.button("🗑 Delete").clicked() {
                 // TODO: Emit event to delete selected template
             }
         });

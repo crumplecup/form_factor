@@ -7,6 +7,13 @@ license.workspace = true
 repository.workspace = true
 description = "Health check, testing helpers, and integration tests for Form Factor"
 
+[features]
+default = []
+text-detection = ["form_factor/text-detection"]
+logo-detection = ["form_factor/logo-detection"]
+ocr = ["form_factor/ocr"]
+dev = ["text-detection", "logo-detection", "ocr"]
+
 [dependencies]
 # Main facade crate
 form_factor = { path = "../form_factor", features = ["dev"] }

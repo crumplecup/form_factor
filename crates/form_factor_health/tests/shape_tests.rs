@@ -4,7 +4,7 @@
 //! focusing on pure business logic without GUI dependencies.
 
 use egui::{Color32, Pos2, Stroke};
-use form_factor::{Circle, FormError, PolygonShape, Rectangle, Shape, ShapeErrorKind};
+use form_factor::{Circle, PolygonShape, Rectangle, Shape, ShapeErrorKind};
 use std::f32::consts::PI;
 
 // ============================================================================
@@ -197,9 +197,9 @@ fn error_captures_location_info() -> Result<(), form_factor::ShapeError> {
 
         // Verify display format includes location
         let error_msg = format!("{}", e);
-        assert!(error_msg.contains("Shape Error:"));
-        assert!(error_msg.contains("at line"));
-        assert!(error_msg.contains("in"));
+        assert!(error_msg.contains("Shape:"));
+        assert!(error_msg.contains("at"));
+        assert!(error_msg.contains("shape.rs"));
     }
     Ok(())
 }
@@ -213,8 +213,7 @@ fn rectangle_creates_from_corners() -> Result<(), form_factor::ShapeError> {
     let stroke = Stroke::new(2.0, Color32::RED);
     let fill = Color32::BLUE;
 
-    let rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 20.0), stroke, fill)
-        ?;
+    let rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 20.0), stroke, fill)?;
 
     let corners = rect.corners();
     assert_eq!(corners.len(), 4);
@@ -239,8 +238,7 @@ fn rectangle_creates_from_four_corners() -> Result<(), form_factor::ShapeError> 
         Pos2::new(0.0, 20.0),
     ];
 
-    let rect = Rectangle::from_four_corners(corners, stroke, fill)
-        ?;
+    let rect = Rectangle::from_four_corners(corners, stroke, fill)?;
 
     assert_eq!(rect.corners(), &corners);
     Ok(())
@@ -252,8 +250,7 @@ fn rectangle_normalizes_corners() -> Result<(), form_factor::ShapeError> {
     let fill = Color32::BLUE;
 
     // Create rectangle with corners in "wrong" order (bottom-right to top-left)
-    let rect = Rectangle::from_corners(Pos2::new(10.0, 20.0), Pos2::new(0.0, 0.0), stroke, fill)
-        ?;
+    let rect = Rectangle::from_corners(Pos2::new(10.0, 20.0), Pos2::new(0.0, 0.0), stroke, fill)?;
 
     let corners = rect.corners();
     // Should still produce correctly ordered corners
@@ -289,8 +286,7 @@ fn polygon_creates_with_three_points() -> Result<(), form_factor::FormError> {
         Pos2::new(5.0, 10.0),
     ];
 
-    let poly = PolygonShape::from_points(points.clone(), stroke, fill)
-        ?;
+    let poly = PolygonShape::from_points(points.clone(), stroke, fill)?;
 
     let result_points = poly.to_egui_points();
     // geo crate closes polygons by adding first point at end
@@ -312,8 +308,7 @@ fn polygon_creates_with_many_points() -> Result<(), form_factor::FormError> {
         points.push(Pos2::new(angle.cos() * 10.0, angle.sin() * 10.0));
     }
 
-    let poly = PolygonShape::from_points(points.clone(), stroke, fill)
-        ?;
+    let poly = PolygonShape::from_points(points.clone(), stroke, fill)?;
 
     // geo crate closes polygons by adding first point at end
     assert_eq!(poly.to_egui_points().len(), 9);
@@ -399,8 +394,7 @@ fn rectangle_rotates_90_degrees() -> Result<(), form_factor::FormError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let mut rect =
-        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(2.0, 1.0), stroke, fill)?;
+    let mut rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(2.0, 1.0), stroke, fill)?;
 
     // Rotate 90 degrees around origin
     rect.rotate(PI / 2.0, Pos2::new(0.0, 0.0))?;
@@ -581,8 +575,7 @@ fn rectangle_contains_interior_point() -> Result<(), form_factor::ShapeError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let rect =
-        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill)?;
+    let rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill)?;
 
     // Point clearly inside
     assert!(rect.contains_point(Pos2::new(5.0, 5.0)));
@@ -626,8 +619,7 @@ fn shape_enum_contains_point() -> Result<(), form_factor::ShapeError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let rect =
-        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill)?;
+    let rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 10.0), stroke, fill)?;
     let shape = Shape::Rectangle(rect);
 
     assert!(shape.contains_point(Pos2::new(5.0, 5.0)));
@@ -665,8 +657,7 @@ fn rectangle_center_calculates_centroid() -> Result<(), form_factor::ShapeError>
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
-    let rect =
-        Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 20.0), stroke, fill)?;
+    let rect = Rectangle::from_corners(Pos2::new(0.0, 0.0), Pos2::new(10.0, 20.0), stroke, fill)?;
 
     let center = rect.center();
     // Centroid should be at (5, 10)
@@ -680,7 +671,7 @@ fn rectangle_center_calculates_centroid() -> Result<(), form_factor::ShapeError>
 // ============================================================================
 
 #[test]
-fn circle_builder_creates_valid_circle() -> Result<(), form_factor::FormError> {
+fn circle_builder_creates_valid_circle() -> Result<(), form_factor_drawing::ShapeError> {
     use form_factor::CircleBuilder;
 
     let circle = CircleBuilder::default()
@@ -690,7 +681,11 @@ fn circle_builder_creates_valid_circle() -> Result<(), form_factor::FormError> {
         .fill(Color32::BLUE)
         .name("test circle")
         .build()
-        ?;
+        .map_err(|e| {
+            form_factor_drawing::ShapeError::new(form_factor_drawing::ShapeErrorKind::BuilderError(
+                e.to_string(),
+            ))
+        })?;
 
     assert_eq!(*circle.center(), Pos2::new(10.0, 10.0));
     assert_eq!(*circle.radius(), 5.0);
@@ -699,7 +694,7 @@ fn circle_builder_creates_valid_circle() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn circle_builder_uses_default_name() -> Result<(), form_factor::FormError> {
+fn circle_builder_uses_default_name() -> Result<(), form_factor_drawing::ShapeError> {
     use form_factor::CircleBuilder;
 
     let circle = CircleBuilder::default()
@@ -708,7 +703,11 @@ fn circle_builder_uses_default_name() -> Result<(), form_factor::FormError> {
         .stroke(Stroke::new(1.0, Color32::BLACK))
         .fill(Color32::TRANSPARENT)
         .build()
-        ?;
+        .map_err(|e| {
+            form_factor_drawing::ShapeError::new(form_factor_drawing::ShapeErrorKind::BuilderError(
+                e.to_string(),
+            ))
+        })?;
 
     assert_eq!(circle.name(), "");
     Ok(())

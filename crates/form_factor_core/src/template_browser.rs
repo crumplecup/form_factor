@@ -40,11 +40,9 @@ impl TemplateBrowser {
     #[instrument]
     pub fn new() -> TemplateBrowserResult<Self> {
         debug!("Creating new template browser");
-        TemplateBrowserBuilder::default()
-            .build()
-            .map_err(|e| {
-                TemplateBrowserError::new(TemplateBrowserErrorKind::BrowserBuilder(e.to_string()))
-            })
+        TemplateBrowserBuilder::default().build().map_err(|e| {
+            TemplateBrowserError::new(TemplateBrowserErrorKind::BrowserBuilder(e.to_string()))
+        })
     }
 
     /// Adds a template to the browser.
@@ -59,7 +57,11 @@ impl TemplateBrowser {
     #[instrument(skip(self), fields(index, template_count = self.templates.len()))]
     pub fn remove_template(&mut self, index: usize) -> TemplateBrowserResult<TemplateEntry> {
         if index >= self.templates.len() {
-            warn!(index, max = self.templates.len() - 1, "Template index out of bounds");
+            warn!(
+                index,
+                max = self.templates.len() - 1,
+                "Template index out of bounds"
+            );
             return Err(TemplateBrowserError::new(
                 TemplateBrowserErrorKind::IndexOutOfBounds {
                     index,
@@ -85,8 +87,7 @@ impl TemplateBrowser {
     /// Gets the currently selected template.
     #[instrument(skip(self))]
     pub fn selected_template(&self) -> Option<&TemplateEntry> {
-        self.selected_index
-            .and_then(|idx| self.templates.get(idx))
+        self.selected_index.and_then(|idx| self.templates.get(idx))
     }
 
     /// Gets filtered templates based on current filter text.
@@ -164,8 +165,6 @@ impl TemplateBrowser {
     pub fn toggle_expanded(&mut self) {
         self.expanded = !self.expanded;
     }
-
-
 }
 
 impl Default for TemplateBrowser {
@@ -216,8 +215,6 @@ impl TemplateEntry {
                 TemplateBrowserError::new(TemplateBrowserErrorKind::EntryBuilder(e.to_string()))
             })
     }
-
-
 }
 
 /// Metadata about a template for browsing and display.

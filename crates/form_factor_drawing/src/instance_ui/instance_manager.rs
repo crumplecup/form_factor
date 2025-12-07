@@ -96,11 +96,15 @@ impl InstanceManagerPanel {
                         )
                         .show_ui(ui, |ui| {
                             for (id, template) in &self.templates {
-                                let label = format!("{} (v{})", template.name(), template.version());
-                                if ui.selectable_label(
-                                    self.selected_template_id.as_ref() == Some(id),
-                                    label,
-                                ).clicked() {
+                                let label =
+                                    format!("{} (v{})", template.name(), template.version());
+                                if ui
+                                    .selectable_label(
+                                        self.selected_template_id.as_ref() == Some(id),
+                                        label,
+                                    )
+                                    .clicked()
+                                {
                                     self.selected_template_id = Some(id.clone());
                                     debug!(template_id = id, "Selected template");
                                 }
@@ -116,12 +120,13 @@ impl InstanceManagerPanel {
                         egui::Button::new("Create Instance"),
                     )
                     .clicked()
-                    && let Some(template_id) = &self.selected_template_id {
-                        info!(template_id, "Creating new instance");
-                        action = InstanceManagerAction::CreateInstance {
-                            template_id: template_id.clone(),
-                        };
-                    }
+                    && let Some(template_id) = &self.selected_template_id
+                {
+                    info!(template_id, "Creating new instance");
+                    action = InstanceManagerAction::CreateInstance {
+                        template_id: template_id.clone(),
+                    };
+                }
             }
         });
 
@@ -165,7 +170,10 @@ impl InstanceManagerPanel {
                                 .as_ref()
                                 .map(|n| n.to_lowercase().contains(&search_lower))
                                 .unwrap_or(false)
-                            || instance.template_id().to_lowercase().contains(&search_lower)
+                            || instance
+                                .template_id()
+                                .to_lowercase()
+                                .contains(&search_lower)
                     })
                     .collect();
 
@@ -177,16 +185,14 @@ impl InstanceManagerPanel {
 
                 ui.add_space(4.0);
 
-                ScrollArea::vertical()
-                    .max_height(400.0)
-                    .show(ui, |ui| {
-                        for (instance_id, instance) in filtered_instances {
-                            let instance_action = self.render_instance_item(ui, instance_id, instance);
-                            if instance_action != InstanceManagerAction::None {
-                                action = instance_action;
-                            }
+                ScrollArea::vertical().max_height(400.0).show(ui, |ui| {
+                    for (instance_id, instance) in filtered_instances {
+                        let instance_action = self.render_instance_item(ui, instance_id, instance);
+                        if instance_action != InstanceManagerAction::None {
+                            action = instance_action;
                         }
-                    });
+                    }
+                });
             }
         });
 
@@ -209,8 +215,7 @@ impl InstanceManagerPanel {
             ui.horizontal(|ui| {
                 ui.vertical(|ui| {
                     // Instance name
-                    let name = FormInstance::instance_name(instance)
-                        .unwrap_or("Unnamed Instance");
+                    let name = FormInstance::instance_name(instance).unwrap_or("Unnamed Instance");
                     ui.label(RichText::new(name).strong());
 
                     // Template and metadata
@@ -229,20 +234,25 @@ impl InstanceManagerPanel {
 
                     // Validation status
                     if instance.is_validated()
-                        && let Some(results) = instance.validation_results() {
-                            let status_text = if *results.valid() {
-                                RichText::new("✓ Valid").color(Color32::GREEN)
-                            } else {
-                                RichText::new(format!("✗ {} errors", results.error_count()))
-                                    .color(Color32::RED)
-                            };
-                            ui.label(status_text.small());
-                        }
+                        && let Some(results) = instance.validation_results()
+                    {
+                        let status_text = if *results.valid() {
+                            RichText::new("✓ Valid").color(Color32::GREEN)
+                        } else {
+                            RichText::new(format!("✗ {} errors", results.error_count()))
+                                .color(Color32::RED)
+                        };
+                        ui.label(status_text.small());
+                    }
                 });
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     // Delete button
-                    if ui.small_button("🗑").on_hover_text("Delete instance").clicked() {
+                    if ui
+                        .small_button("🗑")
+                        .on_hover_text("Delete instance")
+                        .clicked()
+                    {
                         warn!(instance_id, "Delete instance requested");
                         action = InstanceManagerAction::DeleteInstance {
                             instance_id: instance_id.to_string(),
@@ -250,7 +260,11 @@ impl InstanceManagerPanel {
                     }
 
                     // Load button
-                    if ui.small_button("✏").on_hover_text("Edit instance").clicked() {
+                    if ui
+                        .small_button("✏")
+                        .on_hover_text("Edit instance")
+                        .clicked()
+                    {
                         info!(instance_id, "Load instance for editing");
                         action = InstanceManagerAction::LoadInstance {
                             instance_id: instance_id.to_string(),

@@ -6,21 +6,20 @@
 //! - Navigate between pages
 //! - Validate the complete instance
 
-use form_factor::FormError;
 use form_factor_core::{
     FieldBounds, FieldDefinition, FieldType, FieldValue, FormInstance, FormTemplate,
-    instance::FieldValueBuilder,
+    instance::{FieldValueBuilder, FieldValueBuilderError},
 };
 use form_factor_drawing::{DrawingInstance, DrawingTemplate, TemplatePage};
 
 #[test]
-fn test_multi_page_workflow() -> Result<(), FormError> {
+fn test_multi_page_workflow() -> Result<(), FieldValueBuilderError> {
     // Step 1: Create a multi-page template (3 pages)
     let page1_field1 = FieldDefinition::builder()
         .id("employee_name")
         .label("Employee Name")
         .field_type(FieldType::FullName)
-        .page_index(0)
+        .page_index(0_usize)
         .bounds(FieldBounds::new(100.0, 50.0, 300.0, 30.0))
         .required(true)
         .build()
@@ -30,7 +29,7 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
         .id("employee_email")
         .label("Email Address")
         .field_type(FieldType::Email)
-        .page_index(0)
+        .page_index(0_usize)
         .bounds(FieldBounds::new(100.0, 100.0, 300.0, 30.0))
         .required(true)
         .build()
@@ -40,7 +39,7 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
         .id("street_address")
         .label("Street Address")
         .field_type(FieldType::StreetAddress)
-        .page_index(1)
+        .page_index(1_usize)
         .bounds(FieldBounds::new(100.0, 50.0, 300.0, 30.0))
         .required(true)
         .build()
@@ -50,7 +49,7 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
         .id("city")
         .label("City")
         .field_type(FieldType::City)
-        .page_index(1)
+        .page_index(1_usize)
         .bounds(FieldBounds::new(100.0, 100.0, 200.0, 30.0))
         .required(true)
         .build()
@@ -60,7 +59,7 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
         .id("state")
         .label("State")
         .field_type(FieldType::State)
-        .page_index(1)
+        .page_index(1_usize)
         .bounds(FieldBounds::new(320.0, 100.0, 80.0, 30.0))
         .required(true)
         .build()
@@ -70,7 +69,7 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
         .id("signature")
         .label("Employee Signature")
         .field_type(FieldType::Signature)
-        .page_index(2)
+        .page_index(2_usize)
         .bounds(FieldBounds::new(100.0, 400.0, 300.0, 60.0))
         .required(true)
         .build()
@@ -80,7 +79,7 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
         .id("date_signed")
         .label("Date")
         .field_type(FieldType::DateSigned)
-        .page_index(2)
+        .page_index(2_usize)
         .bounds(FieldBounds::new(100.0, 480.0, 150.0, 30.0))
         .required(true)
         .build()
@@ -125,7 +124,10 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
 
     assert_eq!(instance.template_id(), "employee_onboarding");
     assert_eq!(instance.page_count(), 3);
-    assert_eq!(instance.instance_name().as_deref(), Some("John Doe - New Hire"));
+    assert_eq!(
+        instance.instance_name().as_deref(),
+        Some("John Doe - New Hire")
+    );
 
     // Step 3: Fill out page 1 (Personal Information)
     let name_value = FieldValue::new_text(
@@ -193,7 +195,7 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
             shape_index: None,
         })
         .bounds(FieldBounds::new(100.0, 400.0, 300.0, 60.0))
-        .page_index(2)
+        .page_index(2_usize)
         .confidence(None)
         .verified(true)
         .build()?;
@@ -274,7 +276,7 @@ fn test_multi_page_workflow() -> Result<(), FormError> {
     ] {
         assert!(deserialized.field_value(field_id).is_some());
     }
-    
+
     Ok(())
 }
 
@@ -288,7 +290,7 @@ fn test_page_navigation() {
         .id("field1")
         .label("Field 1")
         .field_type(FieldType::TextRegion)
-        .page_index(0)
+        .page_index(0_usize)
         .bounds(FieldBounds::new(10.0, 20.0, 100.0, 30.0))
         .build()
         .unwrap();
@@ -322,7 +324,7 @@ fn test_page_navigation() {
 }
 
 #[test]
-fn test_field_distribution_across_pages() -> Result<(), FormError> {
+fn test_field_distribution_across_pages() -> Result<(), FieldValueBuilderError> {
     let mut page1 = TemplatePage::new(0);
     let mut page2 = TemplatePage::new(1);
 
@@ -331,7 +333,7 @@ fn test_field_distribution_across_pages() -> Result<(), FormError> {
             .id(format!("page1_field{}", i))
             .label(format!("Field {}", i))
             .field_type(FieldType::TextRegion)
-            .page_index(0)
+            .page_index(0_usize)
             .bounds(FieldBounds::new(
                 10.0,
                 20.0 + (i as f32 * 40.0),
@@ -348,7 +350,7 @@ fn test_field_distribution_across_pages() -> Result<(), FormError> {
             .id(format!("page2_field{}", i))
             .label(format!("Field {}", i))
             .field_type(FieldType::TextRegion)
-            .page_index(1)
+            .page_index(1_usize)
             .bounds(FieldBounds::new(
                 10.0,
                 20.0 + (i as f32 * 40.0),

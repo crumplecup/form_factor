@@ -108,10 +108,8 @@ impl FormFactorApp {
                 self.app_state.current_template(),
                 self.app_state.current_instance(),
             ) {
-                self.data_entry_panel = Some(DataEntryPanel::new(
-                    template.clone(),
-                    instance.clone(),
-                ));
+                self.data_entry_panel =
+                    Some(DataEntryPanel::new(template.clone(), instance.clone()));
                 tracing::info!("Created data entry panel");
             } else {
                 // No template/instance, return to canvas mode
@@ -136,7 +134,8 @@ impl FormFactorApp {
                 if let Some(panel) = &self.data_entry_panel {
                     let instance_name = panel
                         .instance()
-                        .instance_name().clone()
+                        .instance_name()
+                        .clone()
                         .unwrap_or_else(|| "unnamed".to_string());
                     self.save_instance_draft(instance_name);
                 }
@@ -147,7 +146,8 @@ impl FormFactorApp {
                     let valid = panel.validate().is_ok();
                     let name = panel
                         .instance()
-                        .instance_name().clone()
+                        .instance_name()
+                        .clone()
                         .unwrap_or_else(|| "unnamed".to_string());
                     (valid, name)
                 } else {
@@ -173,9 +173,10 @@ impl FormFactorApp {
             DataEntryAction::None => {
                 // No action, update dirty state
                 if let Some(panel) = &self.data_entry_panel
-                    && panel.is_dirty() {
-                        self.app_state.mark_dirty();
-                    }
+                    && panel.is_dirty()
+                {
+                    self.app_state.mark_dirty();
+                }
             }
         }
     }
@@ -223,14 +224,38 @@ impl FormFactorApp {
             InstanceManagerAction::CreateInstance { template_id } => {
                 tracing::info!(template_id, "Creating new instance from template");
                 if let Some(panel) = &self.instance_manager_panel
-                    && let Some(template) = panel.get_template(&template_id) {
-                        let instance = self.create_instance_from_template(template);
+                    && let Some(template) = panel.get_template(&template_id)
+                {
+                    let instance = self.create_instance_from_template(template);
+                    self.app_state.set_current_template(Some(template.clone()));
+                    self.app_state.set_current_instance(Some(instance));
+
+                    // Transition to instance filling mode
+                    if let Err(e) = self
+                        .app_state
+                        .transition_to(form_factor::AppMode::InstanceFilling)
+                    {
+                        tracing::error!("Failed to transition to instance filling mode: {}", e);
+                    } else {
+                        // Clear the instance manager panel for next time
+                        self.instance_manager_panel = None;
+                    }
+                }
+            }
+            InstanceManagerAction::LoadInstance { instance_id } => {
+                tracing::info!(instance_id, "Loading instance for editing");
+                if let Some(panel) = &self.instance_manager_panel
+                    && let Some(instance) = panel.get_instance(&instance_id)
+                {
+                    let template_id = instance.template_id();
+                    if let Some(template) = panel.get_template(template_id) {
                         self.app_state.set_current_template(Some(template.clone()));
-                        self.app_state.set_current_instance(Some(instance));
+                        self.app_state.set_current_instance(Some(instance.clone()));
 
                         // Transition to instance filling mode
-                        if let Err(e) =
-                            self.app_state.transition_to(form_factor::AppMode::InstanceFilling)
+                        if let Err(e) = self
+                            .app_state
+                            .transition_to(form_factor::AppMode::InstanceFilling)
                         {
                             tracing::error!("Failed to transition to instance filling mode: {}", e);
                         } else {
@@ -238,31 +263,7 @@ impl FormFactorApp {
                             self.instance_manager_panel = None;
                         }
                     }
-            }
-            InstanceManagerAction::LoadInstance { instance_id } => {
-                tracing::info!(instance_id, "Loading instance for editing");
-                if let Some(panel) = &self.instance_manager_panel
-                    && let Some(instance) = panel.get_instance(&instance_id) {
-                        let template_id = instance.template_id();
-                        if let Some(template) = panel.get_template(template_id) {
-                            self.app_state.set_current_template(Some(template.clone()));
-                            self.app_state.set_current_instance(Some(instance.clone()));
-
-                            // Transition to instance filling mode
-                            if let Err(e) = self
-                                .app_state
-                                .transition_to(form_factor::AppMode::InstanceFilling)
-                            {
-                                tracing::error!(
-                                    "Failed to transition to instance filling mode: {}",
-                                    e
-                                );
-                            } else {
-                                // Clear the instance manager panel for next time
-                                self.instance_manager_panel = None;
-                            }
-                        }
-                    }
+                }
             }
             InstanceManagerAction::DeleteInstance { instance_id } => {
                 tracing::info!(instance_id, "Deleting instance");
@@ -294,10 +295,8 @@ impl FormFactorApp {
             .unwrap_or(0);
         let instance_name = format!("{} - New Instance {}", template.name(), timestamp);
 
-        let mut instance = form_factor::DrawingInstance::from_template(
-            template.id(),
-            template.page_count(),
-        );
+        let mut instance =
+            form_factor::DrawingInstance::from_template(template.id(), template.page_count());
         // Set the instance name
         instance.set_instance_name(instance_name);
 
@@ -446,7 +445,9 @@ impl App for FormFactorApp {
                                     }
 
                                     // If in instance filling mode, return to previous mode
-                                    if *self.app_state.mode() == form_factor::AppMode::InstanceFilling {
+                                    if *self.app_state.mode()
+                                        == form_factor::AppMode::InstanceFilling
+                                    {
                                         tracing::info!(
                                             "Exiting instance filling mode due to layer clear"
                                         );
@@ -465,11 +466,7 @@ impl App for FormFactorApp {
                         object_index,
                     } => {
                         use form_factor::LayerType;
-                        tracing::info!(
-                            ?layer_type,
-                            object_index,
-                            "Deleting object from layer"
-                        );
+                        tracing::info!(?layer_type, object_index, "Deleting object from layer");
                         match layer_type {
                             LayerType::Shapes => {
                                 self.canvas.delete_shape(*object_index);
@@ -478,7 +475,10 @@ impl App for FormFactorApp {
                                 self.canvas.delete_detection(*object_index);
                             }
                             _ => {
-                                tracing::warn!(?layer_type, "Layer does not support object deletion");
+                                tracing::warn!(
+                                    ?layer_type,
+                                    "Layer does not support object deletion"
+                                );
                             }
                         }
                     }
@@ -496,17 +496,25 @@ impl App for FormFactorApp {
                         );
                         match layer_type {
                             LayerType::Shapes => {
-                                if let Err(e) = self.canvas.set_shape_visibility(*object_index, *visible) {
+                                if let Err(e) =
+                                    self.canvas.set_shape_visibility(*object_index, *visible)
+                                {
                                     tracing::error!("Failed to set shape visibility: {}", e);
                                 }
                             }
                             LayerType::Detections => {
-                                if let Err(e) = self.canvas.set_detection_visibility(*object_index, *visible) {
+                                if let Err(e) = self
+                                    .canvas
+                                    .set_detection_visibility(*object_index, *visible)
+                                {
                                     tracing::error!("Failed to set detection visibility: {}", e);
                                 }
                             }
                             _ => {
-                                tracing::warn!(?layer_type, "Layer does not support object visibility");
+                                tracing::warn!(
+                                    ?layer_type,
+                                    "Layer does not support object visibility"
+                                );
                             }
                         }
                     }
@@ -601,17 +609,19 @@ impl App for FormFactorApp {
 
                             // Spawn background thread for text detection
                             std::thread::spawn(move || {
+                                use egui::{Color32, Pos2, Stroke};
                                 use form_factor::{Rectangle, Shape};
                                 use form_factor_cv::TextDetector;
-                                use egui::{Color32, Pos2, Stroke};
 
                                 tracing::info!("Starting text detection in background thread");
 
                                 // Perform detection in background
                                 let result = (|| -> Result<Vec<Shape>, String> {
                                     // Create text detector
-                                    let detector = TextDetector::new("models/DB_TD500_resnet50.onnx".to_string())
-                                        .map_err(|e| format!("Failed to create detector: {}", e))?;
+                                    let detector = TextDetector::new(
+                                        "models/DB_TD500_resnet50.onnx".to_string(),
+                                    )
+                                    .map_err(|e| format!("Failed to create detector: {}", e))?;
 
                                     // Detect text regions
                                     let regions = detector
@@ -621,16 +631,23 @@ impl App for FormFactorApp {
                                     // Convert to shapes
                                     let mut shapes = Vec::new();
                                     for (i, region) in regions.iter().enumerate() {
-                                        let top_left = Pos2::new(*region.x() as f32, *region.y() as f32);
+                                        let top_left =
+                                            Pos2::new(*region.x() as f32, *region.y() as f32);
                                         let bottom_right = Pos2::new(
                                             (*region.x() + *region.width()) as f32,
                                             (*region.y() + *region.height()) as f32,
                                         );
 
-                                        let stroke = Stroke::new(2.0, Color32::from_rgb(255, 165, 0));
+                                        let stroke =
+                                            Stroke::new(2.0, Color32::from_rgb(255, 165, 0));
                                         let fill = Color32::TRANSPARENT;
 
-                                        if let Ok(mut rect) = Rectangle::from_corners(top_left, bottom_right, stroke, fill) {
+                                        if let Ok(mut rect) = Rectangle::from_corners(
+                                            top_left,
+                                            bottom_right,
+                                            stroke,
+                                            fill,
+                                        ) {
                                             rect.set_name(format!(
                                                 "Text Region {} ({:.2}%)",
                                                 i + 1,
@@ -691,9 +708,9 @@ impl App for FormFactorApp {
 
                             // Spawn background thread for logo detection
                             std::thread::spawn(move || {
+                                use egui::{Color32, Pos2, Stroke};
                                 use form_factor::{Rectangle, Shape};
                                 use form_factor_cv::LogoDetector;
-                                use egui::{Color32, Pos2, Stroke};
 
                                 tracing::info!("Starting logo detection in background thread");
 
@@ -704,7 +721,8 @@ impl App for FormFactorApp {
                                         .template_matching()
                                         .with_confidence_threshold(0.5)
                                         .with_scales(vec![
-                                            0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.65, 0.75, 1.0, 1.25, 1.5, 2.0,
+                                            0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.65, 0.75, 1.0, 1.25,
+                                            1.5, 2.0,
                                         ])
                                         .build();
 
@@ -715,31 +733,43 @@ impl App for FormFactorApp {
                                     }
 
                                     let mut logo_count = 0;
-                                    for entry in std::fs::read_dir(logos_dir)
-                                        .map_err(|e| format!("Failed to read logos directory: {}", e))?
-                                    {
-                                        let entry = entry
-                                            .map_err(|e| format!("Failed to read directory entry: {}", e))?;
+                                    for entry in std::fs::read_dir(logos_dir).map_err(|e| {
+                                        format!("Failed to read logos directory: {}", e)
+                                    })? {
+                                        let entry = entry.map_err(|e| {
+                                            format!("Failed to read directory entry: {}", e)
+                                        })?;
                                         let path = entry.path();
                                         if path.is_file()
-                                            && let Some(ext) = path.extension() {
-                                                let ext_str = ext.to_string_lossy().to_lowercase();
-                                                if ext_str == "png" || ext_str == "jpg" || ext_str == "jpeg" || ext_str == "webp" {
-                                                    let logo_name = path
-                                                        .file_stem()
-                                                        .and_then(|s| s.to_str())
-                                                        .unwrap_or("unknown");
-                                                    if let Err(e) = detector.add_logo(logo_name, &path) {
-                                                        tracing::warn!("Failed to load logo {}: {}", logo_name, e);
-                                                    } else {
-                                                        logo_count += 1;
-                                                    }
+                                            && let Some(ext) = path.extension()
+                                        {
+                                            let ext_str = ext.to_string_lossy().to_lowercase();
+                                            if ext_str == "png"
+                                                || ext_str == "jpg"
+                                                || ext_str == "jpeg"
+                                                || ext_str == "webp"
+                                            {
+                                                let logo_name = path
+                                                    .file_stem()
+                                                    .and_then(|s| s.to_str())
+                                                    .unwrap_or("unknown");
+                                                if let Err(e) = detector.add_logo(logo_name, &path)
+                                                {
+                                                    tracing::warn!(
+                                                        "Failed to load logo {}: {}",
+                                                        logo_name,
+                                                        e
+                                                    );
+                                                } else {
+                                                    logo_count += 1;
                                                 }
                                             }
+                                        }
                                     }
 
                                     if logo_count == 0 {
-                                        return Err("No logo templates found in logos directory".to_string());
+                                        return Err("No logo templates found in logos directory"
+                                            .to_string());
                                     }
 
                                     tracing::info!("Loaded {} logo templates", logo_count);
@@ -752,16 +782,25 @@ impl App for FormFactorApp {
                                     // Convert to shapes
                                     let mut shapes = Vec::new();
                                     for result in results.iter() {
-                                        let top_left = Pos2::new(result.location.x as f32, result.location.y as f32);
+                                        let top_left = Pos2::new(
+                                            result.location.x as f32,
+                                            result.location.y as f32,
+                                        );
                                         let bottom_right = Pos2::new(
                                             (result.location.x + result.size.width) as f32,
                                             (result.location.y + result.size.height) as f32,
                                         );
 
-                                        let stroke = Stroke::new(2.0, Color32::from_rgb(0, 128, 255)); // Blue for logos
+                                        let stroke =
+                                            Stroke::new(2.0, Color32::from_rgb(0, 128, 255)); // Blue for logos
                                         let fill = Color32::TRANSPARENT;
 
-                                        if let Ok(mut rect) = Rectangle::from_corners(top_left, bottom_right, stroke, fill) {
+                                        if let Ok(mut rect) = Rectangle::from_corners(
+                                            top_left,
+                                            bottom_right,
+                                            stroke,
+                                            fill,
+                                        ) {
                                             rect.set_name(format!(
                                                 "Logo: {} ({:.2}%)",
                                                 result.logo_name,
@@ -855,11 +894,15 @@ impl App for FormFactorApp {
                             },
                             Err(e) => {
                                 tracing::error!("Failed to initialize OCR engine: {}", e);
-                                self.toasts.error(format!("OCR initialization failed: {}", e));
+                                self.toasts
+                                    .error(format!("OCR initialization failed: {}", e));
                             }
                         }
                     }
-                    AppEvent::DetectionComplete { count, detection_type } => {
+                    AppEvent::DetectionComplete {
+                        count,
+                        detection_type,
+                    } => {
                         // Show success toast with count
                         self.toasts.success(format!(
                             "{} detection complete: found {} region{}",
@@ -872,7 +915,10 @@ impl App for FormFactorApp {
                             if *count == 1 { "" } else { "s" }
                         ));
                     }
-                    AppEvent::DetectionFailed { detection_type, error } => {
+                    AppEvent::DetectionFailed {
+                        detection_type,
+                        error,
+                    } => {
                         // Show error toast
                         self.toasts.error(format!(
                             "{} detection failed: {}",

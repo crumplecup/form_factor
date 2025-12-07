@@ -80,7 +80,11 @@ impl DataEntryPanel {
     #[instrument(skip(self))]
     pub fn set_page(&mut self, page: usize) {
         if page < self.template.page_count() {
-            debug!(old_page = self.current_page, new_page = page, "Changing page");
+            debug!(
+                old_page = self.current_page,
+                new_page = page,
+                "Changing page"
+            );
             self.current_page = page;
         } else {
             warn!(
@@ -103,7 +107,10 @@ impl DataEntryPanel {
 
         // TODO: Implement field validation based on template
         // For now, just check required fields
-        debug!(field_count = self.template.field_count(), "Validating fields");
+        debug!(
+            field_count = self.template.field_count(),
+            "Validating fields"
+        );
 
         Ok(())
     }
@@ -135,7 +142,13 @@ impl DataEntryPanel {
         // Instance name input
         ui.horizontal(|ui| {
             ui.label("Instance Name:");
-            let mut name = self.instance.instance_name().as_ref().map(|s| s.as_str()).unwrap_or_default().to_string();
+            let mut name = self
+                .instance
+                .instance_name()
+                .as_ref()
+                .map(|s| s.as_str())
+                .unwrap_or_default()
+                .to_string();
             if ui.text_edit_singleline(&mut name).changed() {
                 self.instance.set_instance_name(name);
                 self.dirty = true;
@@ -153,10 +166,7 @@ impl DataEntryPanel {
             ));
 
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                ui.label(format!(
-                    "{:.0}% complete",
-                    self.completion_percentage()
-                ));
+                ui.label(format!("{:.0}% complete", self.completion_percentage()));
             });
         });
 
@@ -230,7 +240,9 @@ impl DataEntryPanel {
         use form_factor_core::FormTemplate;
 
         // Clone fields to avoid borrow checker issues
-        let fields: Vec<_> = self.template.fields_for_page(self.current_page)
+        let fields: Vec<_> = self
+            .template
+            .fields_for_page(self.current_page)
             .into_iter()
             .cloned()
             .collect();
@@ -311,7 +323,11 @@ impl DataEntryPanel {
 
                 ui.horizontal(|ui| {
                     if ui.text_edit_singleline(&mut text).changed() {
-                        self.update_field_value(field_id, FieldContent::Text(text.clone()), field_def);
+                        self.update_field_value(
+                            field_id,
+                            FieldContent::Text(text.clone()),
+                            field_def,
+                        );
                         changed = true;
                     }
 
@@ -361,7 +377,7 @@ impl DataEntryPanel {
                     let response = ui.add(
                         egui::TextEdit::singleline(&mut text)
                             .hint_text("###-##-####")
-                            .password(should_mask)
+                            .password(should_mask),
                     );
 
                     if response.changed() {
@@ -385,9 +401,8 @@ impl DataEntryPanel {
                     .unwrap_or("")
                     .to_string();
 
-                let response = ui.add(
-                    egui::TextEdit::singleline(&mut text).hint_text("##-#######")
-                );
+                let response =
+                    ui.add(egui::TextEdit::singleline(&mut text).hint_text("##-#######"));
 
                 if response.changed() {
                     let formatted = self.format_tax_id(&text);
@@ -405,7 +420,7 @@ impl DataEntryPanel {
 
                 ui.horizontal(|ui| {
                     let response = ui.add(
-                        egui::TextEdit::singleline(&mut text).hint_text("##### or #####-####")
+                        egui::TextEdit::singleline(&mut text).hint_text("##### or #####-####"),
                     );
 
                     if response.changed() {
@@ -460,11 +475,12 @@ impl DataEntryPanel {
 
             // Numeric fields
             FieldType::NumericField | FieldType::Amount => {
-                let mut value = current_value
-                    .and_then(|v| v.as_number())
-                    .unwrap_or(0.0);
+                let mut value = current_value.and_then(|v| v.as_number()).unwrap_or(0.0);
 
-                if ui.add(egui::DragValue::new(&mut value).speed(0.1)).changed() {
+                if ui
+                    .add(egui::DragValue::new(&mut value).speed(0.1))
+                    .changed()
+                {
                     self.update_field_value(field_id, FieldContent::Number(value), field_def);
                     changed = true;
                 }
@@ -472,9 +488,7 @@ impl DataEntryPanel {
 
             // Currency fields
             FieldType::Currency => {
-                let mut value = current_value
-                    .and_then(|v| v.as_number())
-                    .unwrap_or(0.0);
+                let mut value = current_value.and_then(|v| v.as_number()).unwrap_or(0.0);
 
                 ui.horizontal(|ui| {
                     if ui
@@ -483,7 +497,7 @@ impl DataEntryPanel {
                                 .prefix("$")
                                 .speed(0.01)
                                 .max_decimals(2)
-                                .min_decimals(2)
+                                .min_decimals(2),
                         )
                         .changed()
                     {
@@ -504,9 +518,7 @@ impl DataEntryPanel {
 
             // Boolean fields (checkbox)
             FieldType::Checkbox | FieldType::RadioButton => {
-                let mut checked = current_value
-                    .and_then(|v| v.as_boolean())
-                    .unwrap_or(false);
+                let mut checked = current_value.and_then(|v| v.as_boolean()).unwrap_or(false);
 
                 if ui.checkbox(&mut checked, "").changed() {
                     self.update_field_value(field_id, FieldContent::Boolean(checked), field_def);
@@ -586,12 +598,13 @@ impl DataEntryPanel {
             form_factor_core::FieldContent::Boolean(value) => {
                 FieldValue::new_boolean(field_id, value, *field_def.bounds(), self.current_page)
             }
-            form_factor_core::FieldContent::Number(value) => {
-                FieldValue::new_text(field_id, value.to_string(), *field_def.bounds(), self.current_page)
-            }
-            _ => {
-                FieldValue::new_empty(field_id, *field_def.bounds(), self.current_page)
-            }
+            form_factor_core::FieldContent::Number(value) => FieldValue::new_text(
+                field_id,
+                value.to_string(),
+                *field_def.bounds(),
+                self.current_page,
+            ),
+            _ => FieldValue::new_empty(field_id, *field_def.bounds(), self.current_page),
         };
 
         if let Err(e) = self.instance.set_field_value(field_id, field_value) {
@@ -617,17 +630,13 @@ impl DataEntryPanel {
         if *field_def.required() {
             if let Some(value) = self.instance.field_value(field_id) {
                 if value.is_empty() {
-                    self.validation_errors.insert(
-                        field_id.to_string(),
-                        "This field is required".to_string(),
-                    );
+                    self.validation_errors
+                        .insert(field_id.to_string(), "This field is required".to_string());
                     return;
                 }
             } else {
-                self.validation_errors.insert(
-                    field_id.to_string(),
-                    "This field is required".to_string(),
-                );
+                self.validation_errors
+                    .insert(field_id.to_string(), "This field is required".to_string());
                 return;
             }
         }
@@ -733,5 +742,4 @@ impl DataEntryPanel {
             _ => input.to_string(),
         }
     }
-
 }

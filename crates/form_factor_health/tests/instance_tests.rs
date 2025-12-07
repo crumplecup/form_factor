@@ -19,7 +19,10 @@ fn test_set_instance_name() {
     assert_eq!(instance.instance_name().as_deref(), None);
 
     instance.set_instance_name("My Form Instance");
-    assert_eq!(instance.instance_name().as_deref(), Some("My Form Instance"));
+    assert_eq!(
+        instance.instance_name().as_deref(),
+        Some("My Form Instance")
+    );
 }
 
 #[test]

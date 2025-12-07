@@ -1,5 +1,5 @@
-use form_factor::{Circle, DrawingCanvas, FormError, Rectangle, Shape};
 use egui::{Color32, Pos2, Stroke};
+use form_factor::{Circle, DrawingCanvas, FormError, Rectangle, Shape};
 
 #[test]
 fn test_shape_creation_and_persistence() -> Result<(), FormError> {
@@ -7,11 +7,7 @@ fn test_shape_creation_and_persistence() -> Result<(), FormError> {
     let mut canvas = DrawingCanvas::new();
 
     // Verify no shapes initially
-    assert_eq!(
-        canvas.shapes().len(),
-        0,
-        "Should start with no shapes"
-    );
+    assert_eq!(canvas.shapes().len(), 0, "Should start with no shapes");
 
     // Create a rectangle shape
     let rect = Rectangle::from_corners(
@@ -56,11 +52,7 @@ fn test_multiple_shape_creation() -> Result<(), FormError> {
     }
 
     // Verify all shapes were added
-    assert_eq!(
-        canvas.shapes().len(),
-        5,
-        "All shapes should be persisted"
-    );
+    assert_eq!(canvas.shapes().len(), 5, "All shapes should be persisted");
     Ok(())
 }
 
@@ -86,11 +78,7 @@ fn test_shape_drawing_workflow() -> Result<(), FormError> {
     canvas.add_shape(shape);
 
     // Verify shape persists after drawing completes
-    assert_eq!(
-        canvas.shapes().len(),
-        1,
-        "Completed shape should persist"
-    );
+    assert_eq!(canvas.shapes().len(), 1, "Completed shape should persist");
     Ok(())
 }
 
@@ -125,11 +113,11 @@ fn test_mixed_shape_types() -> Result<(), FormError> {
 
     // Verify shape types
     match &canvas.shapes()[0] {
-        Shape::Rectangle(_) => {}, // Expected
+        Shape::Rectangle(_) => {} // Expected
         _ => panic!("First shape should be Rectangle"),
     }
     match &canvas.shapes()[1] {
-        Shape::Circle(_) => {}, // Expected
+        Shape::Circle(_) => {} // Expected
         _ => panic!("Second shape should be Circle"),
     }
     Ok(())

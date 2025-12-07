@@ -1,6 +1,6 @@
 //! Tests for TemplateRegistry functionality
 
-use form_factor_core::{FieldBounds, FieldDefinition, FieldType, FormTemplate};
+use form_factor_core::{FieldBounds, FieldDefinition, FieldType};
 use form_factor_drawing::{DrawingTemplate, TemplatePage, TemplateRegistry};
 use std::path::PathBuf;
 

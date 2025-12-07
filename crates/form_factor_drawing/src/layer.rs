@@ -51,8 +51,6 @@ pub enum LayerType {
     Grid,
 }
 
-
-
 /// A layer with visibility and lock control
 #[derive(Debug, Clone, Serialize, Deserialize, Getters, Setters)]
 #[setters(prefix = "set_", borrow_self)]

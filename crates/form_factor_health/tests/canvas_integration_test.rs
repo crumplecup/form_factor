@@ -6,11 +6,11 @@
 //! - Zoom and pan integration
 //! - Layer integration with drawing
 
+use form_factor_drawing::{CanvasState, DrawingCanvas, LayerType, Shape, ToolMode};
 use form_factor_health::{
     assert_active_tool, assert_pan_offset, assert_shape_count, assert_zoom_level,
     create_canvas_with_shapes, create_test_canvas, get_shapes_on_layer,
 };
-use form_factor_drawing::{CanvasState, DrawingCanvas, LayerType, Shape, ToolMode};
 
 // ============================================================================
 // Helper Verification Tests (ensure test infrastructure works)

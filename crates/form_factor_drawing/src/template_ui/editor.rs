@@ -304,7 +304,7 @@ impl TemplateEditorPanel {
         // Main editor area with properties panel
         if self.state.current_template().is_some() {
             let current_page_val = *self.state.current_page();
-            
+
             // Get fields for current page outside closure
             let fields: Vec<FieldDefinition> = self
                 .state
@@ -337,7 +337,7 @@ impl TemplateEditorPanel {
 
                     // Handle keyboard input
                     let selected_idx = *self.state.selected_field();
-                    
+
                     ui.input(|i| {
                         // Delete key
                         if i.key_pressed(egui::Key::Delete)
@@ -382,10 +382,20 @@ impl TemplateEditorPanel {
                     // Handle mouse interactions based on mode
                     match *self.state.mode() {
                         EditorMode::Draw => {
-                            self.handle_draw_mode(&response, &painter, canvas_rect, current_page_val);
+                            self.handle_draw_mode(
+                                &response,
+                                &painter,
+                                canvas_rect,
+                                current_page_val,
+                            );
                         }
                         EditorMode::Select | EditorMode::Edit => {
-                            self.handle_select_mode(&response, &fields, canvas_rect, current_page_val);
+                            self.handle_select_mode(
+                                &response,
+                                &fields,
+                                canvas_rect,
+                                current_page_val,
+                            );
                         }
                     }
 

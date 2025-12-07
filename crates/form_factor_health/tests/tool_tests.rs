@@ -186,8 +186,7 @@ fn copy_semantic_allows_reuse() {
 fn serialization_roundtrip() -> Result<(), FormError> {
     for tool in ToolMode::iter() {
         let json = serde_json::to_string(&tool)?;
-        let restored: ToolMode =
-            serde_json::from_str(&json)?;
+        let restored: ToolMode = serde_json::from_str(&json)?;
         assert_eq!(tool, restored);
     }
     Ok(())
@@ -202,12 +201,10 @@ fn serialization_format() -> Result<(), FormError> {
 
 #[test]
 fn deserialization_from_string() -> Result<(), FormError> {
-    let tool: ToolMode =
-        serde_json::from_str(r#""Select""#)?;
+    let tool: ToolMode = serde_json::from_str(r#""Select""#)?;
     assert_eq!(tool, ToolMode::Select);
 
-    let tool: ToolMode =
-        serde_json::from_str(r#""Freehand""#)?;
+    let tool: ToolMode = serde_json::from_str(r#""Freehand""#)?;
     assert_eq!(tool, ToolMode::Freehand);
     Ok(())
 }

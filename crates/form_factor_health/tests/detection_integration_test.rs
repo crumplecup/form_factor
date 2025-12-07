@@ -1,6 +1,6 @@
-use form_factor_health::create_test_canvas;
 use form_factor::ToolMode;
 use form_factor_drawing::CanvasState;
+use form_factor_health::create_test_canvas;
 
 /// Phase 4.1: Optional Feature Integration Tests
 ///

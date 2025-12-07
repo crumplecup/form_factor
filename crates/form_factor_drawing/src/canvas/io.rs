@@ -90,7 +90,11 @@ impl DrawingCanvas {
                 }
             }
         } else {
-            warn!(index, count = self.shapes.len(), "Shape index out of bounds");
+            warn!(
+                index,
+                count = self.shapes.len(),
+                "Shape index out of bounds"
+            );
         }
     }
 
@@ -104,7 +108,11 @@ impl DrawingCanvas {
             debug!(index, "Deleting detection");
             self.detections.remove(index);
         } else {
-            warn!(index, count = self.detections.len(), "Detection index out of bounds");
+            warn!(
+                index,
+                count = self.detections.len(),
+                "Detection index out of bounds"
+            );
         }
     }
 
@@ -140,7 +148,11 @@ impl DrawingCanvas {
     /// # Errors
     /// Returns an error if the index is out of bounds
     #[instrument(skip(self))]
-    pub fn set_detection_visibility(&mut self, index: usize, visible: bool) -> Result<(), CanvasError> {
+    pub fn set_detection_visibility(
+        &mut self,
+        index: usize,
+        visible: bool,
+    ) -> Result<(), CanvasError> {
         if index < self.detections.len() {
             debug!(index, visible, "Setting detection visibility");
             self.detections[index].set_visible(visible);

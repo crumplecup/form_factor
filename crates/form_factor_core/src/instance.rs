@@ -82,7 +82,15 @@ pub trait FormInstance: Send + Sync {
 /// Links a field definition (by ID) to its actual content and location.
 /// The bounds may differ from the template's expected bounds to handle
 /// form variations and detection results.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, derive_getters::Getters, derive_builder::Builder)]
+#[derive(
+    Debug,
+    Clone,
+    Serialize,
+    Deserialize,
+    PartialEq,
+    derive_getters::Getters,
+    derive_builder::Builder,
+)]
 #[builder(setter(into))]
 pub struct FieldValue {
     /// ID of the field definition this value corresponds to

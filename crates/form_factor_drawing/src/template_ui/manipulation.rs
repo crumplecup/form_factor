@@ -3,9 +3,7 @@
 use super::editor::{DragOperation, DragOperationType, DrawingState, TemplateEditorPanel};
 use crate::template_ui::{TemplateManagerError, TemplateManagerResult};
 use egui::{Color32, Pos2, Rect, Response, Stroke, Vec2};
-use form_factor_core::{
-    FieldBoundsBuilder, FieldDefinition, FieldDefinitionBuilder, FieldType,
-};
+use form_factor_core::{FieldBoundsBuilder, FieldDefinition, FieldDefinitionBuilder, FieldType};
 use tracing::{debug, instrument};
 
 const HANDLE_SIZE: f32 = 8.0;
@@ -106,9 +104,10 @@ impl TemplateEditorPanel {
         if response.dragged()
             && let Some(drag) = self.drag_state.clone()
             && let Some(current_pos) = response.interact_pointer_pos()
-            && let Err(e) = self.update_field_bounds(&drag, current_pos, canvas_rect, page_index) {
-                tracing::error!(error = %e, "Failed to update field bounds");
-            }
+            && let Err(e) = self.update_field_bounds(&drag, current_pos, canvas_rect, page_index)
+        {
+            tracing::error!(error = %e, "Failed to update field bounds");
+        }
 
         // End drag operation
         if response.drag_stopped()
@@ -218,7 +217,9 @@ impl TemplateEditorPanel {
             .width(rect.width())
             .height(rect.height())
             .build()
-            .map_err(|e| TemplateManagerError::new(format!("Failed to build field bounds: {}", e)))?;
+            .map_err(|e| {
+                TemplateManagerError::new(format!("Failed to build field bounds: {}", e))
+            })?;
 
         let field = FieldDefinitionBuilder::default()
             .id(field_id.clone())

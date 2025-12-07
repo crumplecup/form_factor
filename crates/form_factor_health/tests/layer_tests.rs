@@ -25,8 +25,7 @@ fn serialization_roundtrip_preserves_all_data() -> Result<(), FormError> {
     let json = serde_json::to_string(&manager)?;
 
     // Deserialize
-    let restored: LayerManager =
-        serde_json::from_str(&json)?;
+    let restored: LayerManager = serde_json::from_str(&json)?;
 
     // Verify all state preserved
     assert!(restored.is_visible(LayerType::Grid));
@@ -62,8 +61,7 @@ fn serialization_format_is_stable() -> Result<(), FormError> {
 fn deserialization_validates_layer_integrity() -> Result<(), FormError> {
     let manager = LayerManager::new();
     let json = serde_json::to_string(&manager)?;
-    let restored: LayerManager =
-        serde_json::from_str(&json)?;
+    let restored: LayerManager = serde_json::from_str(&json)?;
 
     // Validation should pass for properly deserialized data
     assert!(restored.validate().is_ok());
@@ -141,8 +139,7 @@ fn serialization_preserves_custom_layer_names() -> Result<(), FormError> {
 
     // Round-trip
     let json = serde_json::to_string(&manager)?;
-    let restored: LayerManager =
-        serde_json::from_str(&json)?;
+    let restored: LayerManager = serde_json::from_str(&json)?;
 
     assert_eq!(
         restored.get_layer(LayerType::Canvas).name(),
@@ -564,7 +561,9 @@ fn layer_type_clone_and_copy() {
 #[test]
 fn layer_name_can_be_empty_string() {
     let mut manager = LayerManager::new();
-    manager.get_layer_mut(LayerType::Canvas).set_name("".to_string());
+    manager
+        .get_layer_mut(LayerType::Canvas)
+        .set_name("".to_string());
     assert_eq!(manager.get_layer(LayerType::Canvas).name(), "");
 }
 
@@ -584,7 +583,9 @@ fn layer_name_can_contain_special_characters() {
 fn layer_name_can_be_very_long() {
     let mut manager = LayerManager::new();
     let long_name = "a".repeat(10000);
-    manager.get_layer_mut(LayerType::Grid).set_name(long_name.clone());
+    manager
+        .get_layer_mut(LayerType::Grid)
+        .set_name(long_name.clone());
     assert_eq!(manager.get_layer(LayerType::Grid).name(), &long_name);
 }
 

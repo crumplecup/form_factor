@@ -99,7 +99,8 @@ impl TemplateManagerPanel {
 
                             if radio.clicked() {
                                 debug!(template_id = %template.id(), "Template selected");
-                                self.state.with_selected_template(Some(template.id().to_string()));
+                                self.state
+                                    .with_selected_template(Some(template.id().to_string()));
                             }
                         });
 

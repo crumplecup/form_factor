@@ -95,7 +95,10 @@ fn test_complete_template_instance_lifecycle() {
     instance.add_metadata("test_run", "integration");
 
     assert_eq!(instance.template_id(), "lifecycle_test_template");
-    assert_eq!(instance.instance_name().as_deref(), Some("John Doe - Test Instance"));
+    assert_eq!(
+        instance.instance_name().as_deref(),
+        Some("John Doe - Test Instance")
+    );
 
     // Step 5: Fill the instance with valid data
     let name_value = FieldValue::new_text(

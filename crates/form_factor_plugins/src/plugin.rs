@@ -35,7 +35,10 @@ impl<'a> PluginContext<'a> {
     }
 
     /// Creates a new plugin context with canvas access for UI rendering.
-    pub fn with_canvas(events: EventSender, canvas: &'a form_factor_drawing::DrawingCanvas) -> Self {
+    pub fn with_canvas(
+        events: EventSender,
+        canvas: &'a form_factor_drawing::DrawingCanvas,
+    ) -> Self {
         Self {
             events,
             canvas: Some(canvas),

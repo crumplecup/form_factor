@@ -21,7 +21,7 @@ pub struct FieldPropertiesPanel {
     temp_required: bool,
     temp_validation_pattern: String,
     temp_help_text: String,
-    
+
     /// Temporary bounds values for editing
     temp_x: f32,
     temp_y: f32,
@@ -271,7 +271,7 @@ impl FieldPropertiesPanel {
                                         None
                                     } else {
                                         Some(self.temp_validation_pattern.clone())
-                                    }
+                                    },
                                 );
                                 field.set_help_text(if self.temp_help_text.is_empty() {
                                     None
