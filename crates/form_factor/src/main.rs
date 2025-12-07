@@ -901,7 +901,7 @@ impl App for FormFactorApp {
                     .default_width(280.0)
                     .show(ctx.egui_ctx(), |ui| {
                         egui::ScrollArea::vertical().show(ui, |ui| {
-                            self.plugin_manager.render_plugins(ui);
+                            self.plugin_manager.render_plugins(ui, &self.canvas);
                         });
                     });
 

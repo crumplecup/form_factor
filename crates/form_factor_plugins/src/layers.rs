@@ -34,11 +34,16 @@ struct LayerInfo {
 /// - Visibility toggle buttons
 /// - Lock status indicators
 /// - Selection highlighting
+/// - Expandable object lists for Shapes and Detections layers
 pub struct LayersPlugin {
     /// Information about each layer
     layers: Vec<LayerInfo>,
     /// Currently selected layer
     selected_layer: Option<LayerType>,
+    /// Whether the Shapes layer is expanded to show individual shapes
+    shapes_expanded: bool,
+    /// Whether the Detections layer is expanded to show individual detections
+    detections_expanded: bool,
 }
 
 impl LayersPlugin {
@@ -59,6 +64,8 @@ impl LayersPlugin {
         Self {
             layers,
             selected_layer: None,
+            shapes_expanded: false,
+            detections_expanded: false,
         }
     }
 
@@ -76,63 +83,133 @@ impl LayersPlugin {
 
     /// Renders a single layer row.
     fn render_layer_row(&mut self, ui: &mut egui::Ui, index: usize, ctx: &PluginContext) {
-        let layer = &mut self.layers[index];
-        ui.horizontal(|ui| {
-            // Selection indicator
-            let is_selected = self.selected_layer == Some(layer.layer_type);
-            if ui
-                .selectable_label(is_selected, "")
-                .on_hover_text("Select layer")
-                .clicked()
-            {
-                self.selected_layer = Some(layer.layer_type);
-                debug!(layer = ?layer.layer_type, "Layer selected");
-                ctx.events.emit(AppEvent::LayerSelected {
-                    layer_name: layer.name.clone(),
-                });
-            }
+        // Extract layer type first to avoid borrow checker issues
+        let layer_type = self.layers[index].layer_type;
 
-            // Layer name
-            ui.label(&layer.name);
+        // Check if this layer supports expansion
+        let is_expandable = matches!(layer_type, LayerType::Shapes | LayerType::Detections);
+        let is_expanded = match layer_type {
+            LayerType::Shapes => self.shapes_expanded,
+            LayerType::Detections => self.detections_expanded,
+            _ => false,
+        };
 
-            ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                // Lock indicator
-                if layer.locked {
-                    ui.label("🔒").on_hover_text("Layer is locked");
+        // Render layer row UI
+        {
+            let layer = &mut self.layers[index];
+
+            ui.horizontal(|ui| {
+                // Expansion caret (for Shapes and Detections layers)
+                if is_expandable {
+                    let caret = if is_expanded { "▼" } else { "▶" };
+                    if ui.button(caret).on_hover_text("Expand/collapse").clicked() {
+                        match layer.layer_type {
+                            LayerType::Shapes => self.shapes_expanded = !self.shapes_expanded,
+                            LayerType::Detections => self.detections_expanded = !self.detections_expanded,
+                            _ => {}
+                        }
+                    }
                 } else {
-                    ui.label("🔓").on_hover_text("Layer is unlocked");
+                    // Spacer for alignment
+                    ui.add_space(20.0);
                 }
 
-                // Visibility toggle
-                let eye_icon = if layer.visible { "👁" } else { "⚫" };
+                // Selection indicator
+                let is_selected = self.selected_layer == Some(layer.layer_type);
                 if ui
-                    .button(eye_icon)
-                    .on_hover_text("Toggle visibility")
+                    .selectable_label(is_selected, "")
+                    .on_hover_text("Select layer")
                     .clicked()
                 {
-                    layer.visible = !layer.visible;
-                    debug!(
-                        layer = ?layer.layer_type,
-                        visible = layer.visible,
-                        "Layer visibility toggled"
-                    );
-                    ctx.events.emit(AppEvent::LayerVisibilityChanged {
+                    self.selected_layer = Some(layer.layer_type);
+                    debug!(layer = ?layer.layer_type, "Layer selected");
+                    ctx.events.emit(AppEvent::LayerSelected {
                         layer_name: layer.name.clone(),
-                        visible: layer.visible,
                     });
                 }
 
-                // Clear layer button (skip for Grid layer)
-                if layer.layer_type != LayerType::Grid
-                    && ui.button("🗑").on_hover_text("Clear layer").clicked()
-                {
-                    debug!(layer = ?layer.layer_type, "Layer clear requested");
-                    ctx.events.emit(AppEvent::LayerClearRequested {
-                        layer_name: layer.name.clone(),
-                    });
-                }
+                // Layer name
+                ui.label(&layer.name);
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    // Clear layer button (skip for Grid layer)
+                    if layer.layer_type != LayerType::Grid
+                        && ui.button("🗑").on_hover_text("Clear layer").clicked()
+                    {
+                        debug!(layer = ?layer.layer_type, "Layer clear requested");
+                        ctx.events.emit(AppEvent::LayerClearRequested {
+                            layer_name: layer.name.clone(),
+                        });
+                    }
+
+                    // Visibility toggle
+                    let eye_icon = if layer.visible { "👁" } else { "⚫" };
+                    if ui
+                        .button(eye_icon)
+                        .on_hover_text("Toggle visibility")
+                        .clicked()
+                    {
+                        layer.visible = !layer.visible;
+                        debug!(
+                            layer = ?layer.layer_type,
+                            visible = layer.visible,
+                            "Layer visibility toggled"
+                        );
+                        ctx.events.emit(AppEvent::LayerVisibilityChanged {
+                            layer_name: layer.name.clone(),
+                            visible: layer.visible,
+                        });
+                    }
+
+                    // Lock indicator
+                    if layer.locked {
+                        ui.label("🔒").on_hover_text("Layer is locked");
+                    } else {
+                        ui.label("🔓").on_hover_text("Layer is unlocked");
+                    }
+                });
             });
-        });
+        } // layer borrow ends here
+
+        // Render individual shapes/detections if expanded
+        if is_expanded {
+            self.render_layer_objects(ui, layer_type, ctx);
+        }
+    }
+
+    /// Renders individual objects within an expanded layer.
+    fn render_layer_objects(&self, ui: &mut egui::Ui, layer_type: LayerType, ctx: &PluginContext) {
+        if let Some(canvas) = ctx.canvas {
+            let shapes = match layer_type {
+                LayerType::Shapes => canvas.shapes(),
+                LayerType::Detections => canvas.detections(),
+                _ => return,
+            };
+
+            if shapes.is_empty() {
+                ui.horizontal(|ui| {
+                    ui.add_space(40.0); // Indent
+                    ui.label(egui::RichText::new("(empty)").weak());
+                });
+                return;
+            }
+
+            for (i, shape) in shapes.iter().enumerate() {
+                ui.horizontal(|ui| {
+                    ui.add_space(40.0); // Indent to show hierarchy
+
+                    // Get shape name
+                    let shape_name = match shape {
+                        form_factor_drawing::Shape::Rectangle(r) => r.name(),
+                        form_factor_drawing::Shape::Circle(c) => c.name(),
+                        form_factor_drawing::Shape::Polygon(p) => p.name(),
+                    };
+
+                    // Display shape with index and name
+                    ui.label(format!("{}. {}", i + 1, shape_name));
+                });
+            }
+        }
     }
 }
 

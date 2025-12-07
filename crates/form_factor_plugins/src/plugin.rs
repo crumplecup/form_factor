@@ -6,15 +6,28 @@ use crate::{bus::EventSender, event::AppEvent};
 ///
 /// The plugin context gives plugins access to application state and
 /// the ability to send events to other plugins.
-pub struct PluginContext {
+pub struct PluginContext<'a> {
     /// Event sender for publishing events
     pub events: EventSender,
+    /// Optional reference to the drawing canvas (for UI rendering)
+    pub canvas: Option<&'a form_factor_drawing::DrawingCanvas>,
 }
 
-impl PluginContext {
-    /// Creates a new plugin context.
+impl<'a> PluginContext<'a> {
+    /// Creates a new plugin context for event handling (without canvas access).
     pub fn new(events: EventSender) -> Self {
-        Self { events }
+        Self {
+            events,
+            canvas: None,
+        }
+    }
+
+    /// Creates a new plugin context with canvas access for UI rendering.
+    pub fn with_canvas(events: EventSender, canvas: &'a form_factor_drawing::DrawingCanvas) -> Self {
+        Self {
+            events,
+            canvas: Some(canvas),
+        }
     }
 }
 
@@ -36,7 +49,7 @@ pub trait Plugin: Send {
     /// # Arguments
     /// * `ui` - The egui UI context for rendering
     /// * `ctx` - Plugin context with access to events and app state
-    fn ui(&mut self, ui: &mut egui::Ui, ctx: &PluginContext);
+    fn ui(&mut self, ui: &mut egui::Ui, ctx: &PluginContext<'_>);
 
     /// Handles an event from the event bus.
     ///
@@ -49,7 +62,7 @@ pub trait Plugin: Send {
     ///
     /// # Returns
     /// The plugin can optionally return a new event to emit in response.
-    fn on_event(&mut self, _event: &AppEvent, _ctx: &PluginContext) -> Option<AppEvent> {
+    fn on_event(&mut self, _event: &AppEvent, _ctx: &PluginContext<'_>) -> Option<AppEvent> {
         None
     }
 
@@ -59,7 +72,7 @@ pub trait Plugin: Send {
     ///
     /// # Arguments
     /// * `ctx` - Plugin context with access to events
-    fn on_load(&mut self, _ctx: &PluginContext) {}
+    fn on_load(&mut self, _ctx: &PluginContext<'_>) {}
 
     /// Called before the application saves state.
     ///
@@ -67,7 +80,7 @@ pub trait Plugin: Send {
     ///
     /// # Arguments
     /// * `ctx` - Plugin context with access to events
-    fn on_save(&mut self, _ctx: &PluginContext) {}
+    fn on_save(&mut self, _ctx: &PluginContext<'_>) {}
 
     /// Called when the application is shutting down.
     ///
@@ -75,7 +88,7 @@ pub trait Plugin: Send {
     ///
     /// # Arguments
     /// * `ctx` - Plugin context with access to events
-    fn on_shutdown(&mut self, _ctx: &PluginContext) {}
+    fn on_shutdown(&mut self, _ctx: &PluginContext<'_>) {}
 
     /// Returns whether this plugin should be displayed in the UI.
     ///
@@ -116,7 +129,7 @@ mod tests {
             &self.name
         }
 
-        fn ui(&mut self, _ui: &mut egui::Ui, _ctx: &PluginContext) {
+        fn ui(&mut self, _ui: &mut egui::Ui, _ctx: &PluginContext<'_>) {
             self.call_count += 1;
         }
 

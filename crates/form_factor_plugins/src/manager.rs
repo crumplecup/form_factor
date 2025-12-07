@@ -59,9 +59,13 @@ impl PluginManager {
     /// Renders all enabled plugins.
     ///
     /// This should be called once per frame from the main UI loop.
-    #[instrument(skip(self, ui))]
-    pub fn render_plugins(&mut self, ui: &mut egui::Ui) {
-        let ctx = self.create_context();
+    #[instrument(skip(self, ui, canvas))]
+    pub fn render_plugins(
+        &mut self,
+        ui: &mut egui::Ui,
+        canvas: &form_factor_drawing::DrawingCanvas,
+    ) {
+        let ctx = PluginContext::with_canvas(self.event_bus.sender(), canvas);
 
         for plugin in &mut self.plugins {
             if plugin.is_enabled() {
@@ -84,10 +88,12 @@ impl PluginManager {
 
         debug!(event_count = events.len(), "Processing events");
 
+        // Create context once before loop to avoid borrow checker issues
+        let sender = self.event_bus.sender();
+        let ctx = PluginContext::new(sender);
+
         // Distribute each event to all plugins
         for event in &events {
-            let ctx = self.create_context();
-
             for plugin in &mut self.plugins {
                 if let Some(response) = plugin.on_event(event, &ctx) {
                     debug!(
@@ -105,7 +111,8 @@ impl PluginManager {
     #[instrument(skip(self))]
     pub fn save_plugins(&mut self) {
         info!("Saving plugin state");
-        let ctx = self.create_context();
+        let sender = self.event_bus.sender();
+        let ctx = PluginContext::new(sender);
 
         for plugin in &mut self.plugins {
             plugin.on_save(&ctx);
@@ -118,7 +125,8 @@ impl PluginManager {
     #[instrument(skip(self))]
     pub fn shutdown(&mut self) {
         info!("Shutting down plugins");
-        let ctx = self.create_context();
+        let sender = self.event_bus.sender();
+        let ctx = PluginContext::new(sender);
 
         for plugin in &mut self.plugins {
             debug!(plugin = plugin.name(), "Shutting down plugin");
@@ -140,7 +148,7 @@ impl PluginManager {
     }
 
     /// Creates a plugin context for event handling.
-    fn create_context(&self) -> PluginContext {
+    fn create_context(&self) -> PluginContext<'_> {
         PluginContext::new(self.event_bus.sender())
     }
 }
@@ -178,9 +186,9 @@ mod tests {
             &self.name
         }
 
-        fn ui(&mut self, _ui: &mut egui::Ui, _ctx: &PluginContext) {}
+        fn ui(&mut self, _ui: &mut egui::Ui, _ctx: &PluginContext<'_>) {}
 
-        fn on_event(&mut self, event: &AppEvent, _ctx: &PluginContext) -> Option<AppEvent> {
+        fn on_event(&mut self, event: &AppEvent, _ctx: &PluginContext<'_>) -> Option<AppEvent> {
             self.events_received.push(event.clone());
             None
         }
