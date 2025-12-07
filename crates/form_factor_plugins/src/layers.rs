@@ -8,8 +8,6 @@
 //!
 //! Available with the `plugin-layers` feature.
 
-#![cfg(feature = "plugin-layers")]
-
 use crate::{
     event::AppEvent,
     plugin::{Plugin, PluginContext},
