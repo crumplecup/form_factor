@@ -1,8 +1,63 @@
 # Main.rs Refactoring Plan
 
-**Status:** Planning
+**Status:** ✅ Phase 1 Complete, Phase 2 In Progress
 **Created:** 2025-12-07
+**Last Updated:** 2025-12-08
 **Goal:** Refactor main.rs from a "dumping ground" into a well-organized, maintainable structure while preserving all functionality.
+
+## ✅ Completed Work (2025-12-08)
+
+### Error Handling Refactor
+Before starting main.rs refactor, we completed a comprehensive error handling refactor following CLAUDE.md patterns:
+- Converted all error types to use `derive_more::Display` and `derive_more::Error`
+- Established proper hierarchy: Module errors → Crate umbrellas → Workspace umbrella
+- Added `#[track_caller]` for automatic location tracking throughout
+- Properly wrapped all external errors (opencv, serde, etc.)
+- See [ERROR_REFACTOR_STRATEGY.md](ERROR_REFACTOR_STRATEGY.md) for full details
+
+### Main.rs Module Extraction (Phase 1)
+Successfully extracted main.rs logic into focused modules following Rust idioms:
+- ✅ Created skeletal module structure (lib.rs with mod declarations)
+- ✅ Extracted property rendering (PropertyRenderer helper type)
+- ✅ Extracted file dialogs (FileDialogs helper type)
+- ✅ Extracted plugin setup (PluginSetup helper type)
+- ✅ Extracted detection tasks (TextDetectionTask, LogoDetectionTask, OcrExtractionTask)
+- ✅ Extracted type converters (ToolConverter, LayerConverter)
+- ✅ Extracted file events (FileEventHandlers)
+- ✅ Extracted canvas events (CanvasEventHandlers)
+- ✅ Extracted layer events (LayerEventHandlers)
+- ✅ Extracted object events (ObjectEventHandlers)
+- ✅ Extracted detection result handlers (DetectionResultHandlers)
+- ✅ All helpers are public and documented
+- ✅ All helpers use `#[instrument]` for tracing
+- ✅ Proper feature gating throughout
+- ✅ Full workspace compiles with `just check`
+
+**Architecture:**
+```
+crates/form_factor/src/
+├── lib.rs              # Module declarations + pub use exports
+├── main.rs             # Slim binary entry point
+├── property_rendering.rs
+├── file_dialogs.rs
+├── plugin_setup.rs
+├── detection_tasks.rs
+├── converters.rs
+├── file_events.rs
+├── canvas_events.rs
+├── layer_events.rs
+├── object_events.rs
+└── detection_results.rs
+```
+
+**Current main.rs size:** Reduced from ~1265 lines to manageable event loop
+
+**Benefits achieved:**
+- Clear separation of concerns
+- Testable helper types
+- Better documentation
+- Easier to add features
+- No namespace pollution (all via Type::method() pattern)
 
 ## Current State Analysis
 
