@@ -18,6 +18,7 @@ name = "form_factor"
 # Workspace crates
 form_factor_core = { workspace = true }
 form_factor_drawing = { workspace = true }
+form_factor_error = { workspace = true }
 form_factor_cv = { workspace = true, optional = true }
 form_factor_ocr = { workspace = true, optional = true }
 form_factor_backends = { workspace = true, features = ["eframe"], optional = true }

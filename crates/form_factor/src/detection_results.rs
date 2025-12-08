@@ -1,7 +1,10 @@
 //! Detection result processing
 
-
-#[cfg(any(feature = "text-detection", feature = "logo-detection", feature = "ocr"))]
+#[cfg(any(
+    feature = "text-detection",
+    feature = "logo-detection",
+    feature = "ocr"
+))]
 use form_factor_drawing::DrawingCanvas;
 
 #[cfg(any(feature = "text-detection", feature = "logo-detection"))]

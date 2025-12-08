@@ -68,6 +68,7 @@ tokio = { version = "1.48", features = ["sync"] }
 # Workspace crates
 form_factor_core = { path = "crates/form_factor_core" }
 form_factor_drawing = { path = "crates/form_factor_drawing" }
+form_factor_error = { path = "crates/form_factor_error" }
 form_factor_cv = { path = "crates/form_factor_cv" }
 form_factor_ocr = { path = "crates/form_factor_ocr" }
 form_factor_backends = { path = "crates/form_factor_backends" }

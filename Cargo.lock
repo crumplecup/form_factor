@@ -1477,6 +1477,7 @@ dependencies = [
  "form_factor_core",
  "form_factor_cv",
  "form_factor_drawing",
+ "form_factor_error",
  "form_factor_ocr",
  "form_factor_plugins",
  "image",
@@ -1553,6 +1554,13 @@ dependencies = [
 [[package]]
 name = "form_factor_error"
 version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "form_factor_core",
+ "form_factor_cv",
+ "form_factor_drawing",
+ "form_factor_ocr",
+]
 
 [[package]]
 name = "form_factor_health"

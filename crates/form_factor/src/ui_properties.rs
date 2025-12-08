@@ -1,7 +1,7 @@
 //! Property rendering for shapes and detections
 
-use form_factor_drawing::{DrawingCanvas, Shape};
 use form_factor_drawing::DetectionType;
+use form_factor_drawing::{DrawingCanvas, Shape};
 
 /// Renders property editors for shapes and detections
 pub struct PropertyRenderer;
@@ -15,7 +15,7 @@ impl PropertyRenderer {
         shape_idx: usize,
     ) -> Result<(), String> {
         tracing::debug!(shape_idx, "Rendering shape properties");
-        
+
         let shape = canvas.shapes().get(shape_idx).ok_or_else(|| {
             tracing::warn!(shape_idx, "Shape index out of bounds");
             format!("Shape {} not found", shape_idx)

@@ -88,3 +88,4 @@ This index tracks all planning documents in the workspace. When documents are co
 
 *Last Updated: 2025-12-07*
 *Generated automatically - see git log for detailed history*
+- [ERROR_REFACTOR_STRATEGY.md](ERROR_REFACTOR_STRATEGY.md) - Error handling architecture cleanup

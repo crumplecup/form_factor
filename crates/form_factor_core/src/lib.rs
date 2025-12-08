@@ -26,7 +26,7 @@ mod template_browser_error;
 
 pub use app::{App, AppContext};
 pub use backend::{Backend, BackendConfig};
-pub use error::{IoError, IoOperation};
+pub use error::{CoreError, CoreErrorKind, CoreResult, IoError, IoOperation};
 
 // Re-export template types at crate root
 pub use template::{

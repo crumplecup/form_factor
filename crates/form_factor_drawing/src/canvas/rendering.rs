@@ -236,10 +236,16 @@ impl DrawingCanvas {
                 // Draw selection highlight if this detection is selected
                 // Note: selected_detection is Option<(DetectionType, usize)>
                 // For logo/text detections, check if it matches (DetectionType::Logo/Text, idx)
-                let is_selected = self.selected_detection.map_or(false, |(det_type, det_idx)| {
-                    det_idx == idx && matches!(det_type, crate::DetectionType::Logo | crate::DetectionType::Text)
-                });
-                
+                let is_selected = self
+                    .selected_detection
+                    .map_or(false, |(det_type, det_idx)| {
+                        det_idx == idx
+                            && matches!(
+                                det_type,
+                                crate::DetectionType::Logo | crate::DetectionType::Text
+                            )
+                    });
+
                 if is_selected {
                     let highlight_stroke = Stroke::new(4.0, Color32::from_rgb(255, 215, 0));
                     match &detection_in_canvas_space {
@@ -296,10 +302,12 @@ impl DrawingCanvas {
                 self.render_ocr_text(&detection_in_canvas_space, text, &painter, &to_screen);
 
                 // Draw selection highlight if this OCR detection is selected
-                let is_selected = self.selected_detection.map_or(false, |(det_type, det_idx)| {
-                    det_idx == idx && matches!(det_type, crate::DetectionType::Ocr)
-                });
-                
+                let is_selected = self
+                    .selected_detection
+                    .map_or(false, |(det_type, det_idx)| {
+                        det_idx == idx && matches!(det_type, crate::DetectionType::Ocr)
+                    });
+
                 if is_selected {
                     let highlight_stroke = Stroke::new(4.0, Color32::from_rgb(255, 215, 0));
                     match &detection_in_canvas_space {

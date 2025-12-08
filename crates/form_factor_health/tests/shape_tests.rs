@@ -260,7 +260,7 @@ fn rectangle_normalizes_corners() -> Result<(), form_factor::ShapeError> {
 }
 
 #[test]
-fn circle_creates_with_valid_params() -> Result<(), form_factor::FormError> {
+fn circle_creates_with_valid_params() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::GREEN);
     let fill = Color32::RED;
     let center = Pos2::new(50.0, 75.0);
@@ -276,7 +276,7 @@ fn circle_creates_with_valid_params() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn polygon_creates_with_three_points() -> Result<(), form_factor::FormError> {
+fn polygon_creates_with_three_points() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::YELLOW;
 
@@ -297,7 +297,7 @@ fn polygon_creates_with_three_points() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn polygon_creates_with_many_points() -> Result<(), form_factor::FormError> {
+fn polygon_creates_with_many_points() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -320,7 +320,7 @@ fn polygon_creates_with_many_points() -> Result<(), form_factor::FormError> {
 // ============================================================================
 
 #[test]
-fn circle_translates_correctly() -> Result<(), form_factor::FormError> {
+fn circle_translates_correctly() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -334,7 +334,7 @@ fn circle_translates_correctly() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn rectangle_translates_correctly() -> Result<(), form_factor::FormError> {
+fn rectangle_translates_correctly() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -350,7 +350,7 @@ fn rectangle_translates_correctly() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn polygon_translates_correctly() -> Result<(), form_factor::FormError> {
+fn polygon_translates_correctly() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -372,7 +372,7 @@ fn polygon_translates_correctly() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn circle_rotates_around_pivot() -> Result<(), form_factor::FormError> {
+fn circle_rotates_around_pivot() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -390,7 +390,7 @@ fn circle_rotates_around_pivot() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn rectangle_rotates_90_degrees() -> Result<(), form_factor::FormError> {
+fn rectangle_rotates_90_degrees() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -409,7 +409,7 @@ fn rectangle_rotates_90_degrees() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn polygon_rotates_180_degrees() -> Result<(), form_factor::FormError> {
+fn polygon_rotates_180_degrees() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -435,7 +435,7 @@ fn polygon_rotates_180_degrees() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn rotation_360_degrees_returns_to_original() -> Result<(), form_factor::FormError> {
+fn rotation_360_degrees_returns_to_original() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -451,7 +451,7 @@ fn rotation_360_degrees_returns_to_original() -> Result<(), form_factor::FormErr
 }
 
 #[test]
-fn rectangle_set_corner_updates_shape() -> Result<(), form_factor::FormError> {
+fn rectangle_set_corner_updates_shape() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -466,7 +466,7 @@ fn rectangle_set_corner_updates_shape() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn polygon_set_vertex_updates_shape() -> Result<(), form_factor::FormError> {
+fn polygon_set_vertex_updates_shape() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -486,7 +486,7 @@ fn polygon_set_vertex_updates_shape() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn polygon_set_vertices_replaces_all() -> Result<(), form_factor::FormError> {
+fn polygon_set_vertices_replaces_all() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -518,7 +518,7 @@ fn polygon_set_vertices_replaces_all() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn circle_set_radius_updates_radius() -> Result<(), form_factor::FormError> {
+fn circle_set_radius_updates_radius() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -534,7 +534,7 @@ fn circle_set_radius_updates_radius() -> Result<(), form_factor::FormError> {
 }
 
 #[test]
-fn circle_set_center_updates_center() -> Result<(), form_factor::FormError> {
+fn circle_set_center_updates_center() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 
@@ -550,7 +550,7 @@ fn circle_set_center_updates_center() -> Result<(), form_factor::FormError> {
 // ============================================================================
 
 #[test]
-fn circle_contains_interior_point() -> Result<(), form_factor::FormError> {
+fn circle_contains_interior_point() -> Result<(), form_factor::FormFactorError> {
     let stroke = Stroke::new(1.0, Color32::BLACK);
     let fill = Color32::TRANSPARENT;
 

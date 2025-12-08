@@ -3,18 +3,22 @@
 mod ui_template;
 mod ui_update;
 
-use form_factor::{App, AppContext, DrawingCanvas};
-#[cfg(all(feature = "plugins", feature = "text-detection"))]
-use form_factor::TextDetectionTask;
 #[cfg(all(feature = "plugins", feature = "logo-detection"))]
 use form_factor::LogoDetectionTask;
 #[cfg(all(feature = "plugins", feature = "ocr"))]
 use form_factor::OcrExtractionTask;
 #[cfg(feature = "plugins")]
 use form_factor::PluginSetup;
+#[cfg(all(feature = "plugins", feature = "text-detection"))]
+use form_factor::TextDetectionTask;
+use form_factor::{App, AppContext, DrawingCanvas};
 #[cfg(all(
     feature = "plugins",
-    any(feature = "text-detection", feature = "logo-detection", feature = "ocr")
+    any(
+        feature = "text-detection",
+        feature = "logo-detection",
+        feature = "ocr"
+    )
 ))]
 use form_factor_drawing::Shape;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -78,7 +82,11 @@ impl FormFactorApp {
 
     /// Render the instance filling mode layout
     fn render_instance_filling_mode(&mut self, ctx: &AppContext) {
-        ui_update::update_instance_filling_mode(&mut self.app_state, &mut self.data_entry_panel, ctx);
+        ui_update::update_instance_filling_mode(
+            &mut self.app_state,
+            &mut self.data_entry_panel,
+            ctx,
+        );
     }
 
     /// Render the template manager mode layout
@@ -94,7 +102,6 @@ impl FormFactorApp {
         #[cfg(not(feature = "plugins"))]
         ui_template::update_template_manager_mode(ctx);
     }
-
 }
 
 impl App for FormFactorApp {
@@ -120,7 +127,7 @@ impl App for FormFactorApp {
                 self.mode_switcher.ui(ui, &mut self.app_state);
             });
         });
-        
+
         // Process plugin events and wire them to canvas operations
         #[cfg(feature = "plugins")]
         {
@@ -133,13 +140,23 @@ impl App for FormFactorApp {
                 use form_factor::AppEvent;
                 match event {
                     AppEvent::CanvasZoomChanged { zoom } => {
-                        form_factor::CanvasEventHandler::handle_zoom_changed(&mut self.canvas, *zoom);
+                        form_factor::CanvasEventHandler::handle_zoom_changed(
+                            &mut self.canvas,
+                            *zoom,
+                        );
                     }
                     AppEvent::CanvasPanChanged { x, y } => {
-                        form_factor::CanvasEventHandler::handle_pan_changed(&mut self.canvas, *x, *y);
+                        form_factor::CanvasEventHandler::handle_pan_changed(
+                            &mut self.canvas,
+                            *x,
+                            *y,
+                        );
                     }
                     AppEvent::ToolSelected { tool_name } => {
-                        form_factor::CanvasEventHandler::handle_tool_selected(&mut self.canvas, tool_name);
+                        form_factor::CanvasEventHandler::handle_tool_selected(
+                            &mut self.canvas,
+                            tool_name,
+                        );
                     }
                     AppEvent::LayerVisibilityChanged {
                         layer_name,
@@ -152,7 +169,10 @@ impl App for FormFactorApp {
                         );
                     }
                     AppEvent::LayerSelected { layer_name } => {
-                        form_factor::LayerEventHandler::handle_selected(&mut self.canvas, layer_name);
+                        form_factor::LayerEventHandler::handle_selected(
+                            &mut self.canvas,
+                            layer_name,
+                        );
                     }
                     AppEvent::LayerClearRequested { layer_name } => {
                         form_factor::LayerEventHandler::handle_clear_requested(
@@ -187,7 +207,10 @@ impl App for FormFactorApp {
                     }
                     #[cfg(feature = "plugin-layers")]
                     AppEvent::OcrObjectDeleteRequested { index } => {
-                        form_factor::ObjectEventHandler::handle_ocr_delete_requested(&mut self.canvas, *index);
+                        form_factor::ObjectEventHandler::handle_ocr_delete_requested(
+                            &mut self.canvas,
+                            *index,
+                        );
                     }
                     #[cfg(feature = "plugin-layers")]
                     AppEvent::OcrObjectVisibilityChanged { index, visible } => {
@@ -274,7 +297,7 @@ impl App for FormFactorApp {
                             // Clone detections to pass to background thread
                             let detections: Vec<Shape> = self.canvas.detections().to_vec();
                             let sender = self.plugin_manager.event_bus().sender();
-                            
+
                             OcrExtractionTask::spawn(form_path, detections, sender);
                         } else {
                             self.toasts.error("No image loaded");
@@ -326,10 +349,15 @@ impl App for FormFactorApp {
                         );
                     }
                     AppEvent::CanvasImageLockChanged { locked } => {
-                        form_factor::CanvasEventHandler::handle_image_lock_changed(&mut self.canvas, *locked);
+                        form_factor::CanvasEventHandler::handle_image_lock_changed(
+                            &mut self.canvas,
+                            *locked,
+                        );
                     }
                     AppEvent::CanvasImageClearRequested => {
-                        form_factor::CanvasEventHandler::handle_image_clear_requested(&mut self.canvas);
+                        form_factor::CanvasEventHandler::handle_image_clear_requested(
+                            &mut self.canvas,
+                        );
                     }
                     _ => {
                         // Ignore other events
@@ -440,13 +468,13 @@ impl App for FormFactorApp {
                     .default_width(400.0)
                     .show(ctx.egui_ctx(), |ui| {
                         selector.show(ui);
-                        
+
                         ui.separator();
                         ui.horizontal(|ui| {
                             if ui.button("Cancel").clicked() {
                                 should_close = true;
                             }
-                            
+
                             if ui.button("Assign").clicked() && selector.selected().is_some() {
                                 // TODO: Actually assign the field to the selected shape/detection
                                 tracing::info!("Assigned field type: {:?}", selector.selected());
@@ -454,7 +482,7 @@ impl App for FormFactorApp {
                             }
                         });
                     });
-                    
+
                 if should_close {
                     self.show_field_selector = false;
                 }
@@ -535,7 +563,6 @@ impl FormFactorApp {
             self.prev_selected_detection = current_detection;
         }
     }
-
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

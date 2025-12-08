@@ -2,12 +2,20 @@
 
 #[cfg(all(
     feature = "plugins",
-    any(feature = "text-detection", feature = "logo-detection", feature = "ocr")
+    any(
+        feature = "text-detection",
+        feature = "logo-detection",
+        feature = "ocr"
+    )
 ))]
 use form_factor_plugins::AppEvent;
 #[cfg(all(
     feature = "plugins",
-    any(feature = "text-detection", feature = "logo-detection", feature = "ocr")
+    any(
+        feature = "text-detection",
+        feature = "logo-detection",
+        feature = "ocr"
+    )
 ))]
 use form_factor_plugins::EventSender;
 
@@ -58,14 +66,14 @@ impl TextDetectionTask {
     #[tracing::instrument(fields(form_path))]
     fn run_detection(form_path: &str) -> Result<Vec<form_factor_drawing::Shape>, String> {
         use egui::{Color32, Pos2, Stroke};
-        use form_factor_drawing::{Rectangle, Shape};
         use form_factor_cv::TextDetector;
+        use form_factor_drawing::{Rectangle, Shape};
 
         tracing::debug!("Creating text detector");
 
         // Create text detector
-        let detector = TextDetector::new("models/DB_TD500_resnet50.onnx".to_string())
-            .map_err(|e| {
+        let detector =
+            TextDetector::new("models/DB_TD500_resnet50.onnx".to_string()).map_err(|e| {
                 tracing::error!(error = %e, "Failed to create detector");
                 format!("Failed to create detector: {}", e)
             })?;
@@ -153,8 +161,8 @@ impl LogoDetectionTask {
     #[tracing::instrument(fields(form_path))]
     fn run_detection(form_path: &str) -> Result<Vec<form_factor_drawing::Shape>, String> {
         use egui::{Color32, Pos2, Stroke};
-        use form_factor_drawing::{Rectangle, Shape};
         use form_factor_cv::LogoDetector;
+        use form_factor_drawing::{Rectangle, Shape};
 
         tracing::debug!("Creating logo detector");
 
@@ -186,10 +194,11 @@ impl LogoDetectionTask {
                 format!("Failed to read directory entry: {}", e)
             })?;
             let path = entry.path();
-            if path.is_file() && let Some(ext) = path.extension() {
+            if path.is_file()
+                && let Some(ext) = path.extension()
+            {
                 let ext_str = ext.to_string_lossy().to_lowercase();
-                if ext_str == "png" || ext_str == "jpg" || ext_str == "jpeg" || ext_str == "webp"
-                {
+                if ext_str == "png" || ext_str == "jpg" || ext_str == "jpeg" || ext_str == "webp" {
                     let logo_name = path
                         .file_stem()
                         .and_then(|s| s.to_str())
@@ -253,7 +262,11 @@ pub struct OcrExtractionTask;
 impl OcrExtractionTask {
     /// Spawn background thread for OCR extraction
     #[tracing::instrument(skip(sender, detections), fields(form_path, detection_count = detections.len()))]
-    pub fn spawn(form_path: String, detections: Vec<form_factor_drawing::Shape>, sender: EventSender) {
+    pub fn spawn(
+        form_path: String,
+        detections: Vec<form_factor_drawing::Shape>,
+        sender: EventSender,
+    ) {
         tracing::info!("Spawning OCR extraction background task");
 
         std::thread::spawn(move || {

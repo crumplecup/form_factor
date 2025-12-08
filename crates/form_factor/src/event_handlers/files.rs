@@ -1,6 +1,5 @@
 //! File event handlers
 
-
 #[cfg(feature = "plugins")]
 use crate::file_dialogs::FileDialogs;
 #[cfg(feature = "plugins")]
@@ -23,13 +22,13 @@ impl FileEventHandler {
     ) {
         tracing::debug!("Handling open file request");
 
-        if let Some(path) = FileDialogs::open_project() && let Some(path_str) = path.to_str() {
+        if let Some(path) = FileDialogs::open_project()
+            && let Some(path_str) = path.to_str()
+        {
             match canvas.load_from_file(path_str, egui_ctx) {
                 Ok(()) => {
                     tracing::info!("Loaded project from {}", path_str);
-                    sender.emit(AppEvent::FileOpened {
-                        path: path.clone(),
-                    });
+                    sender.emit(AppEvent::FileOpened { path: path.clone() });
                 }
                 Err(e) => {
                     tracing::error!(error = %e, path = path_str, "Failed to load project");
@@ -53,9 +52,7 @@ impl FileEventHandler {
             match canvas.save_to_file(path_str) {
                 Ok(()) => {
                     tracing::info!("Saved project to {}", path_str);
-                    sender.emit(AppEvent::FileSaved {
-                        path: path.clone(),
-                    });
+                    sender.emit(AppEvent::FileSaved { path: path.clone() });
                 }
                 Err(e) => {
                     tracing::error!(error = %e, path = path_str, "Failed to save project");
@@ -79,9 +76,7 @@ impl FileEventHandler {
             match canvas.save_to_file(path_str) {
                 Ok(()) => {
                     tracing::info!("Saved project to {}", path_str);
-                    sender.emit(AppEvent::FileSaved {
-                        path: path.clone(),
-                    });
+                    sender.emit(AppEvent::FileSaved { path: path.clone() });
                 }
                 Err(e) => {
                     tracing::error!(error = %e, path = path_str, "Failed to save project");
@@ -95,7 +90,9 @@ impl FileEventHandler {
     pub fn handle_load_image_requested(canvas: &mut DrawingCanvas, egui_ctx: &egui::Context) {
         tracing::debug!("Handling load image request");
 
-        if let Some(path) = FileDialogs::load_image() && let Some(path_str) = path.to_str() {
+        if let Some(path) = FileDialogs::load_image()
+            && let Some(path_str) = path.to_str()
+        {
             match canvas.load_form_image(path_str, egui_ctx) {
                 Ok(()) => {
                     tracing::info!("Loaded image from {}", path_str);

@@ -71,11 +71,7 @@ impl ObjectEventHandler {
     /// Handle OCR object visibility changed
     #[cfg(feature = "plugin-layers")]
     #[tracing::instrument(skip(canvas), fields(index, visible))]
-    pub fn handle_ocr_visibility_changed(
-        canvas: &mut DrawingCanvas,
-        index: usize,
-        visible: bool,
-    ) {
+    pub fn handle_ocr_visibility_changed(canvas: &mut DrawingCanvas, index: usize, visible: bool) {
         tracing::info!(index, visible, "Changing OCR detection visibility");
 
         if let Err(e) = canvas.set_ocr_detection_visibility(index, visible) {

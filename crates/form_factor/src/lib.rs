@@ -34,14 +34,14 @@
 mod error;
 
 // UI helper modules (from main binary refactoring)
-mod ui_properties;
+mod detection_results;
+mod detection_tasks;
+mod event_handlers;
 mod file_dialogs;
 #[cfg(feature = "plugins")]
 mod plugin_setup;
 mod type_conversions;
-mod detection_tasks;
-mod detection_results;
-mod event_handlers;
+mod ui_properties;
 
 // ============================================================================
 // Core Application Types
@@ -68,14 +68,17 @@ pub use form_factor_core::BackendConfig;
 pub use form_factor_backends::{EframeBackend, EframeError};
 
 // ============================================================================
-// Error Types
+// Error Handling
 // ============================================================================
 
-/// Top-level error type
-pub use error::FormFactorError;
+/// Workspace-wide umbrella error aggregating all crate errors
+pub use form_factor_error::{FormFactorError, FormFactorErrorKind, FormFactorResult};
 
-/// Result type alias
-pub use error::FormFactorResult;
+/// Drawing crate error (temporary - will be renamed to DrawingError in future refactor)
+pub use form_factor_drawing::FormError;
+
+/// Binary-specific error (for main.rs use only, not part of library API)
+pub(crate) use error::{BinaryError, BinaryResult};
 
 /// I/O error types (re-exported from core)
 pub use form_factor_core::{IoError, IoOperation};

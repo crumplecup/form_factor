@@ -128,8 +128,6 @@ impl RecentProjects {
                     format!("Failed to create config directory: {}", e),
                     parent.to_string_lossy().to_string(),
                     IoOperation::Create,
-                    line!(),
-                    file!(),
                 )
             })?;
         }
@@ -139,8 +137,6 @@ impl RecentProjects {
                 format!("Failed to serialize recent projects: {}", e),
                 config_path.to_string_lossy().to_string(),
                 IoOperation::Write,
-                line!(),
-                file!(),
             )
         })?;
 
@@ -149,8 +145,6 @@ impl RecentProjects {
                 format!("Failed to write recent projects config: {}", e),
                 config_path.to_string_lossy().to_string(),
                 IoOperation::Write,
-                line!(),
-                file!(),
             )
         })?;
 

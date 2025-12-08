@@ -7,3 +7,12 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+derive_more = { workspace = true }
+form_factor_core = { workspace = true }
+form_factor_drawing = { workspace = true }
+form_factor_cv = { workspace = true, optional = true }
+form_factor_ocr = { workspace = true, optional = true }
+
+[features]
+cv = ["dep:form_factor_cv"]
+ocr = ["dep:form_factor_ocr"]

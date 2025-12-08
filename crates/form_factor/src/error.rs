@@ -1,15 +1,18 @@
-//! Error handling for form_factor binary crate
+//! Error handling for form_factor binary crate (main.rs)
+//!
+//! Note: The library exports workspace-wide FormFactorError from form_factor_error crate.
+//! This module provides binary-specific error handling.
 
-/// Simple error type for form_factor binary.
+/// Simple error type for form_factor binary (not part of library API).
 #[derive(Debug, Clone, derive_more::Display, derive_more::Error)]
 #[display("{}", message)]
-pub struct FormFactorError {
+pub struct BinaryError {
     message: String,
     line: u32,
     file: &'static str,
 }
 
-impl FormFactorError {
+impl BinaryError {
     /// Creates a new error with location tracking.
     #[track_caller]
     pub fn new(message: impl Into<String>) -> Self {
@@ -22,5 +25,5 @@ impl FormFactorError {
     }
 }
 
-/// Result type alias for form_factor binary.
-pub type FormFactorResult<T> = Result<T, FormFactorError>;
+/// Result type alias for form_factor binary (not part of library API).
+pub type BinaryResult<T> = Result<T, BinaryError>;

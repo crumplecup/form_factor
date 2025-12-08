@@ -1,8 +1,8 @@
 use egui::{Color32, Pos2, Stroke};
-use form_factor::{Circle, DrawingCanvas, FormError, Rectangle, Shape};
+use form_factor::{Circle, DrawingCanvas, FormFactorError, Rectangle, Shape};
 
 #[test]
-fn test_shape_creation_and_persistence() -> Result<(), FormError> {
+fn test_shape_creation_and_persistence() -> Result<(), form_factor::FormFactorError> {
     // Create drawing canvas
     let mut canvas = DrawingCanvas::new();
 
@@ -35,7 +35,7 @@ fn test_shape_creation_and_persistence() -> Result<(), FormError> {
 }
 
 #[test]
-fn test_multiple_shape_creation() -> Result<(), FormError> {
+fn test_multiple_shape_creation() -> Result<(), form_factor::FormFactorError> {
     let mut canvas = DrawingCanvas::new();
 
     // Add multiple shapes
@@ -57,7 +57,7 @@ fn test_multiple_shape_creation() -> Result<(), FormError> {
 }
 
 #[test]
-fn test_shape_drawing_workflow() -> Result<(), FormError> {
+fn test_shape_drawing_workflow() -> Result<(), form_factor::FormFactorError> {
     let mut canvas = DrawingCanvas::new();
 
     // Simulate drawing workflow:
@@ -83,7 +83,7 @@ fn test_shape_drawing_workflow() -> Result<(), FormError> {
 }
 
 #[test]
-fn test_mixed_shape_types() -> Result<(), FormError> {
+fn test_mixed_shape_types() -> Result<(), form_factor::FormFactorError> {
     let mut canvas = DrawingCanvas::new();
 
     // Add a rectangle

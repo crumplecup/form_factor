@@ -1,7 +1,9 @@
 //! Layer event handlers
 
 use crate::type_conversions::LayerParser;
-use form_factor_drawing::{AppMode, AppState, DrawingCanvas, DataEntryPanel, InstanceManagerPanel, LayerType};
+use form_factor_drawing::{
+    AppMode, AppState, DataEntryPanel, DrawingCanvas, InstanceManagerPanel, LayerType,
+};
 
 /// Layer event handler
 pub struct LayerEventHandler;
@@ -9,11 +11,7 @@ pub struct LayerEventHandler;
 impl LayerEventHandler {
     /// Handle layer visibility changed
     #[tracing::instrument(skip(canvas), fields(layer_name, visible))]
-    pub fn handle_visibility_changed(
-        canvas: &mut DrawingCanvas,
-        layer_name: &str,
-        visible: bool,
-    ) {
+    pub fn handle_visibility_changed(canvas: &mut DrawingCanvas, layer_name: &str, visible: bool) {
         tracing::debug!(layer_name, visible, "Layer visibility changed");
 
         if let Some(layer_type) = LayerParser::from_name(layer_name)
@@ -33,7 +31,10 @@ impl LayerEventHandler {
     }
 
     /// Handle layer clear requested
-    #[tracing::instrument(skip(canvas, app_state, instance_manager_panel, data_entry_panel), fields(layer_name))]
+    #[tracing::instrument(
+        skip(canvas, app_state, instance_manager_panel, data_entry_panel),
+        fields(layer_name)
+    )]
     pub fn handle_clear_requested(
         canvas: &mut DrawingCanvas,
         app_state: &mut AppState,

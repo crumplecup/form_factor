@@ -12,7 +12,7 @@ use form_factor_core::{
 use form_factor_drawing::{DrawingInstance, DrawingTemplate, FormError, TemplatePage};
 
 #[test]
-fn test_multi_page_workflow() -> Result<(), FormError> {
+fn test_multi_page_workflow() -> Result<(), form_factor::FormFactorError> {
     // Step 1: Create a multi-page template (3 pages)
     let page1_field1 = FieldDefinition::builder()
         .id("employee_name")
@@ -325,7 +325,7 @@ fn test_page_navigation() {
 }
 
 #[test]
-fn test_field_distribution_across_pages() -> Result<(), FormError> {
+fn test_field_distribution_across_pages() -> Result<(), form_factor::FormFactorError> {
     let mut page1 = TemplatePage::new(0);
     let mut page2 = TemplatePage::new(1);
 
