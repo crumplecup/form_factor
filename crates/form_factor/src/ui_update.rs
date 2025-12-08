@@ -1,7 +1,14 @@
+//! Instance filling mode UI handling
+//!
+//! Available with the `plugins` feature.
+
+#[cfg(feature = "plugins")]
 use crate::AppContext;
+#[cfg(feature = "plugins")]
 use form_factor_drawing::{AppState, DataEntryAction, DataEntryPanel};
 
 /// Handles UI updates for instance filling mode
+#[cfg(feature = "plugins")]
 #[tracing::instrument(skip(app_state, data_entry_panel, ctx))]
 pub fn update_instance_filling_mode(
     app_state: &mut AppState,
@@ -36,6 +43,7 @@ pub fn update_instance_filling_mode(
 }
 
 /// Handles data entry actions from the panel
+#[cfg(feature = "plugins")]
 #[tracing::instrument(skip(app_state, data_entry_panel))]
 fn handle_data_entry_action(
     action: DataEntryAction,
@@ -96,6 +104,7 @@ fn handle_data_entry_action(
 }
 
 /// Save instance as draft (incomplete data allowed)
+#[cfg(feature = "plugins")]
 #[tracing::instrument]
 fn save_instance_draft(instance_name: &str) {
     // TODO: Implement instance draft saving to file system
@@ -103,6 +112,7 @@ fn save_instance_draft(instance_name: &str) {
 }
 
 /// Save instance as final submission (validation required)
+#[cfg(feature = "plugins")]
 #[tracing::instrument]
 fn save_instance_final(instance_name: &str) -> bool {
     // TODO: Implement instance final saving to file system

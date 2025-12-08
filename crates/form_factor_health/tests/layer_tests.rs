@@ -3,14 +3,14 @@
 //! These tests validate serialization, deserialization, and API contracts
 //! that are critical for real-world usage.
 
-use form_factor::{FormFactorError, LayerError, LayerManager, LayerType};
+use form_factor::{LayerError, LayerManager, LayerType};
 
 // ============================================================================
 // High Priority: Serialization/Deserialization Tests
 // ============================================================================
 
 #[test]
-fn serialization_roundtrip_preserves_all_data() -> Result<(), form_factor::FormFactorError> {
+fn serialization_roundtrip_preserves_all_data() -> Result<(), serde_json::Error> {
     let mut manager = LayerManager::new();
 
     // Modify state
@@ -43,7 +43,7 @@ fn serialization_roundtrip_preserves_all_data() -> Result<(), form_factor::FormF
 }
 
 #[test]
-fn serialization_format_is_stable() -> Result<(), form_factor::FormFactorError> {
+fn serialization_format_is_stable() -> Result<(), serde_json::Error> {
     let manager = LayerManager::new();
     let json = serde_json::to_string_pretty(&manager)?;
 
@@ -58,7 +58,7 @@ fn serialization_format_is_stable() -> Result<(), form_factor::FormFactorError> 
 }
 
 #[test]
-fn deserialization_validates_layer_integrity() -> Result<(), form_factor::FormFactorError> {
+fn deserialization_validates_layer_integrity() -> Result<(), serde_json::Error> {
     let manager = LayerManager::new();
     let json = serde_json::to_string(&manager)?;
     let restored: LayerManager = serde_json::from_str(&json)?;
@@ -69,7 +69,7 @@ fn deserialization_validates_layer_integrity() -> Result<(), form_factor::FormFa
 }
 
 #[test]
-fn deserialization_handles_extra_fields() -> Result<(), form_factor::FormFactorError> {
+fn deserialization_handles_extra_fields() -> Result<(), serde_json::Error> {
     // JSON with extra unknown fields (forward compatibility)
     let json = r#"{
         "layers": {
@@ -120,7 +120,7 @@ fn deserialization_handles_extra_fields() -> Result<(), form_factor::FormFactorE
 }
 
 #[test]
-fn serialization_preserves_custom_layer_names() -> Result<(), form_factor::FormFactorError> {
+fn serialization_preserves_custom_layer_names() -> Result<(), serde_json::Error> {
     let mut manager = LayerManager::new();
 
     // Customize all layer names
@@ -158,7 +158,7 @@ fn serialization_preserves_custom_layer_names() -> Result<(), form_factor::FormF
 }
 
 #[test]
-fn multiple_serialization_roundtrips_are_stable() -> Result<(), form_factor::FormFactorError> {
+fn multiple_serialization_roundtrips_are_stable() -> Result<(), serde_json::Error> {
     let mut manager = LayerManager::new();
     manager.set_visible(LayerType::Grid, true);
     manager.set_locked(LayerType::Canvas, true);
@@ -395,7 +395,7 @@ fn validation_succeeds_after_modifications() {
 }
 
 #[test]
-fn validation_succeeds_after_deserialization() -> Result<(), form_factor::FormFactorError> {
+fn validation_succeeds_after_deserialization() -> Result<(), serde_json::Error> {
     let json = r#"{
         "layers": {
             "Canvas": {"name": "Canvas", "layer_type": "Canvas", "visible": true, "locked": false},

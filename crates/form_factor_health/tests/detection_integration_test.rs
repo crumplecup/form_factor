@@ -22,18 +22,16 @@ fn test_text_detector_initialization() {
     let _canvas = create_test_canvas();
 
     // Test that TextDetector can be initialized
-    let detector_result = TextDetector::new();
+    let detector_result = TextDetector::new("models/text_detection.onnx".to_string());
 
     // In a real test environment with OpenCV models, this would succeed
     // Without models, it may fail - either outcome is valid for this test
     match detector_result {
         Ok(_detector) => {
             // Successfully initialized
-            assert!(true);
         }
         Err(_) => {
             // Model not available - acceptable in CI
-            assert!(true);
         }
     }
 }
@@ -45,14 +43,15 @@ fn test_text_region_structure() {
 
     let _canvas = create_test_canvas();
 
-    // TextRegion has points field (polygon of detected text)
-    let points = vec![[10.0, 20.0], [100.0, 20.0], [100.0, 50.0], [10.0, 50.0]];
+    // TextRegion represents a detected text bounding box
+    let region = TextRegion::new(10, 20, 90, 30, 0.95).expect("Valid text region");
 
-    let region = TextRegion::new(points.clone());
-
-    // Verify region stores points correctly
-    assert_eq!(region.points().len(), 4);
-    assert_eq!(region.points()[0], [10.0, 20.0]);
+    // Verify region has valid dimensions
+    assert_eq!(*region.x(), 10);
+    assert_eq!(*region.y(), 20);
+    assert_eq!(*region.width(), 90);
+    assert_eq!(*region.height(), 30);
+    assert_eq!(*region.confidence(), 0.95);
 }
 
 #[test]
@@ -75,21 +74,12 @@ fn test_canvas_ready_for_text_detection() {
 fn test_logo_detector_initialization() {
     use form_factor::LogoDetector;
 
-    let canvas = create_test_canvas();
+    let _canvas = create_test_canvas();
 
     // Test that LogoDetector can be initialized
-    let detector_result = LogoDetector::new();
+    let _detector = LogoDetector::new();
 
-    // In a real environment with OpenCV, this should succeed
-    match detector_result {
-        Ok(_detector) => {
-            assert!(true);
-        }
-        Err(_) => {
-            // OpenCV not available - acceptable in CI
-            assert!(true);
-        }
-    }
+    // LogoDetector initializes successfully
 }
 
 #[test]
@@ -97,7 +87,7 @@ fn test_logo_detector_initialization() {
 fn test_logo_detection_methods() {
     use form_factor::LogoDetectionMethod;
 
-    let canvas = create_test_canvas();
+    let _canvas = create_test_canvas();
 
     // Test that both detection methods are available
     let template_method = LogoDetectionMethod::TemplateMatching;
@@ -115,7 +105,7 @@ fn test_logo_detection_methods() {
 fn test_logo_location_structure() {
     use form_factor::LogoLocation;
 
-    let canvas = create_test_canvas();
+    let _canvas = create_test_canvas();
 
     // LogoLocation represents detected logo position
     let location = LogoLocation { x: 100, y: 150 };
@@ -129,7 +119,7 @@ fn test_logo_location_structure() {
 fn test_logo_size_structure() {
     use form_factor::LogoSize;
 
-    let canvas = create_test_canvas();
+    let _canvas = create_test_canvas();
 
     // LogoSize represents detected logo dimensions
     let size = LogoSize {
@@ -148,21 +138,29 @@ fn test_logo_size_structure() {
 #[test]
 #[cfg(feature = "ocr")]
 fn test_ocr_engine_initialization() {
-    use form_factor::OCREngine;
+    use form_factor::{EngineMode, OCRConfig, OCREngine, PageSegmentationMode};
 
-    let canvas = create_test_canvas();
+    let _canvas = create_test_canvas();
 
-    // Test that OCREngine can be initialized
-    let engine_result = OCREngine::new();
+    // Test that OCREngine can be initialized with a config
+    let config = OCRConfig {
+        language: "eng".to_string(),
+        page_segmentation_mode: PageSegmentationMode::Auto,
+        engine_mode: EngineMode::Default,
+        min_confidence: 60,
+        preprocess: false,
+        tessdata_path: Some("tessdata".to_string()),
+    };
+
+    let engine_result = OCREngine::new(config);
 
     // In environment with Tesseract, this should succeed
     match engine_result {
         Ok(_engine) => {
-            assert!(true);
+            // Successfully initialized
         }
         Err(_) => {
             // Tesseract not available - acceptable in CI
-            assert!(true);
         }
     }
 }
@@ -172,13 +170,16 @@ fn test_ocr_engine_initialization() {
 fn test_ocr_config_modes() {
     use form_factor::{EngineMode, OCRConfig, PageSegmentationMode};
 
-    let canvas = create_test_canvas();
+    let _canvas = create_test_canvas();
 
-    // Test OCR configuration options (using Default or specific values)
+    // Test OCR configuration options
     let config = OCRConfig {
         language: "eng".to_string(),
         page_segmentation_mode: PageSegmentationMode::SingleBlock,
         engine_mode: EngineMode::LstmOnly,
+        min_confidence: 70,
+        preprocess: false,
+        tessdata_path: Some("tessdata".to_string()),
     };
 
     assert_eq!(config.engine_mode, EngineMode::LstmOnly);
@@ -193,7 +194,7 @@ fn test_ocr_config_modes() {
 fn test_bounding_box_structure() {
     use form_factor::BoundingBox;
 
-    let canvas = create_test_canvas();
+    let _canvas = create_test_canvas();
 
     // Test BoundingBox for text regions
     let bbox = BoundingBox {
@@ -214,7 +215,7 @@ fn test_bounding_box_structure() {
 fn test_word_result_construction() {
     use form_factor::BoundingBox;
 
-    let canvas = create_test_canvas();
+    let _canvas = create_test_canvas();
 
     // WordResult has non-public fields, so we test BoundingBox separately
     let bbox = BoundingBox {
@@ -238,21 +239,29 @@ fn test_word_result_construction() {
 #[test]
 #[cfg(all(feature = "text-detection", feature = "ocr"))]
 fn test_text_detection_and_ocr_workflow() {
-    use form_factor::{OCREngine, TextDetector, TextRegion};
+    use form_factor::{EngineMode, OCRConfig, OCREngine, PageSegmentationMode, TextRegion};
 
-    let canvas = create_test_canvas();
+    let _canvas = create_test_canvas();
 
     // Typical workflow: TextDetector finds regions, OCR extracts text
 
     // 1. Text detection creates regions
-    let points = vec![[50.0, 100.0], [250.0, 100.0], [250.0, 150.0], [50.0, 150.0]];
-    let text_region = TextRegion::new(points);
+    let text_region = TextRegion::new(50, 100, 200, 50, 0.90).expect("Valid text region");
 
-    assert_eq!(text_region.points().len(), 4);
+    assert_eq!(*text_region.width(), 200);
+    assert_eq!(*text_region.height(), 50);
 
     // 2. OCR engine would process those regions
-    // (Initialization may fail without Tesseract - that's OK)
-    let _ocr_result = OCREngine::new();
+    // OCREngine needs a config now
+    let config = OCRConfig {
+        language: "eng".to_string(),
+        page_segmentation_mode: PageSegmentationMode::Auto,
+        engine_mode: EngineMode::Default,
+        min_confidence: 50,
+        preprocess: false,
+        tessdata_path: Some("tessdata".to_string()),
+    };
+    let _ocr_result = OCREngine::new(config);
 }
 
 #[test]
@@ -265,11 +274,11 @@ fn test_mixed_detection_types_workflow() {
     // Workflow: Detect both logos and text on same image
 
     // Initialize both detectors (may fail without OpenCV)
-    let _text_detector_result = TextDetector::new();
+    let _text_detector_result = TextDetector::new("models/text_detection.onnx".to_string());
     let _logo_detector_result = LogoDetector::new();
 
     // Both detection types should be independent
-    assert_eq!(canvas.project_name(), "mixed_detection_workflow");
+    assert_eq!(canvas.project_name(), "Test Canvas");
 }
 
 // =============================================================================

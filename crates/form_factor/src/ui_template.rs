@@ -1,3 +1,4 @@
+#[cfg(feature = "plugins")]
 use crate::AppContext;
 
 #[cfg(feature = "plugins")]
@@ -38,14 +39,5 @@ pub fn update_template_manager_mode(
     // Render canvas in central panel for template viewing/editing
     egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
         canvas.ui(ui);
-    });
-}
-
-/// Handles UI updates for template manager mode (no-plugins fallback)
-#[tracing::instrument(skip(ctx))]
-#[cfg(not(feature = "plugins"))]
-pub fn update_template_manager_mode(ctx: &AppContext) {
-    egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
-        ui.label("Template manager requires plugins feature");
     });
 }

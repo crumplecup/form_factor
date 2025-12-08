@@ -30,9 +30,6 @@
 #![warn(missing_docs)]
 #![forbid(unsafe_code)]
 
-// Top-level modules
-mod error;
-
 // UI helper modules (from main binary refactoring)
 mod detection_results;
 mod detection_tasks;
@@ -76,9 +73,6 @@ pub use form_factor_error::{FormFactorError, FormFactorErrorKind, FormFactorResu
 
 /// Drawing crate error (temporary - will be renamed to DrawingError in future refactor)
 pub use form_factor_drawing::FormError;
-
-/// Binary-specific error (for main.rs use only, not part of library API)
-pub(crate) use error::{BinaryError, BinaryResult};
 
 /// I/O error types (re-exported from core)
 pub use form_factor_core::{IoError, IoOperation};

@@ -30,7 +30,7 @@ pub enum DetectionType {
 }
 
 /// Kinds of errors that can occur in canvas operations
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum CanvasErrorKind {
     /// Failed to load image file
     ImageLoad(String),
@@ -47,7 +47,8 @@ pub enum CanvasErrorKind {
     /// Text detection operation failed
     TextDetection(String),
     /// Logo detection operation failed
-    LogoDetection(String),
+    #[cfg(feature = "logo-detection")]
+    LogoDetection(form_factor_cv::LogoDetectionError),
     /// No recent projects found
     NoRecentProjects,
     /// OCR text extraction failed
@@ -68,7 +69,8 @@ impl std::fmt::Display for CanvasErrorKind {
             }
             CanvasErrorKind::NoFormImageLoaded => write!(f, "No form image loaded"),
             CanvasErrorKind::TextDetection(msg) => write!(f, "Text detection failed: {}", msg),
-            CanvasErrorKind::LogoDetection(msg) => write!(f, "Logo detection failed: {}", msg),
+            #[cfg(feature = "logo-detection")]
+            CanvasErrorKind::LogoDetection(err) => write!(f, "Logo detection failed: {}", err),
             CanvasErrorKind::NoRecentProjects => write!(f, "No recent projects found"),
             CanvasErrorKind::OCRFailed(msg) => write!(f, "OCR text extraction failed: {}", msg),
             CanvasErrorKind::InvalidShape(msg) => write!(f, "Invalid shape: {}", msg),

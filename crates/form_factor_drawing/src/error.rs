@@ -13,19 +13,19 @@ pub enum FormErrorKind {
     /// Canvas operation error
     #[display("Canvas: {}", _0)]
     Canvas(CanvasError),
-    
+
     /// Shape operation error
     #[display("Shape: {}", _0)]
     Shape(ShapeError),
-    
+
     /// Layer operation error
     #[display("Layer: {}", _0)]
     Layer(LayerError),
-    
+
     /// Template operation error
     #[display("Template: {}", _0)]
     Template(TemplateError),
-    
+
     /// Instance operation error
     #[display("Instance: {}", _0)]
     Instance(InstanceError),
@@ -44,6 +44,3 @@ where
         Self(Box::new(err.into()))
     }
 }
-
-/// Drawing crate result type
-pub type DrawingResult<T> = Result<T, FormError>;

@@ -171,14 +171,16 @@ impl BoundingBox {
     /// Returns error if width or height is not positive
     pub fn new(x: i32, y: i32, width: i32, height: i32) -> Result<Self, OCRError> {
         if width <= 0 {
-            return Err(OCRError::new(
-                OCRErrorKind::InvalidParameter(format!("Width must be positive, got: {}", width)),
-            ));
+            return Err(OCRError::new(OCRErrorKind::InvalidParameter(format!(
+                "Width must be positive, got: {}",
+                width
+            ))));
         }
         if height <= 0 {
-            return Err(OCRError::new(
-                OCRErrorKind::InvalidParameter(format!("Height must be positive, got: {}", height)),
-            ));
+            return Err(OCRError::new(OCRErrorKind::InvalidParameter(format!(
+                "Height must be positive, got: {}",
+                height
+            ))));
         }
         Ok(Self {
             x,
@@ -444,15 +446,17 @@ impl OCREngine {
     fn test_tesseract(config: &OCRConfig) -> Result<(), OCRError> {
         let mut lt = if let Some(ref path) = config.tessdata_path {
             LepTess::new(Some(path), &config.language).map_err(|e| {
-                OCRError::new(
-                    OCRErrorKind::Initialization(format!("Failed with custom path: {}", e)),
-                )
+                OCRError::new(OCRErrorKind::Initialization(format!(
+                    "Failed with custom path: {}",
+                    e
+                )))
             })?
         } else {
             LepTess::new(None, &config.language).map_err(|e| {
-                OCRError::new(
-                    OCRErrorKind::Initialization(format!("Is Tesseract installed? {}", e)),
-                )
+                OCRError::new(OCRErrorKind::Initialization(format!(
+                    "Is Tesseract installed? {}",
+                    e
+                )))
             })?
         };
 
@@ -462,9 +466,10 @@ impl OCREngine {
             &(config.page_segmentation_mode as i32).to_string(),
         )
         .map_err(|e| {
-            OCRError::new(
-                OCRErrorKind::Initialization(format!("Failed to set PSM: {}", e)),
-            )
+            OCRError::new(OCRErrorKind::Initialization(format!(
+                "Failed to set PSM: {}",
+                e
+            )))
         })?;
 
         debug!("Tesseract initialized successfully");
@@ -481,9 +486,8 @@ impl OCREngine {
         let path = path.as_ref();
         debug!(path = ?path, "Loading image");
 
-        let img = image::open(path).map_err(|e| {
-            OCRError::new(OCRErrorKind::ImageLoad(format!("{}", e)))
-        })?;
+        let img = image::open(path)
+            .map_err(|e| OCRError::new(OCRErrorKind::ImageLoad(format!("{}", e))))?;
 
         self.extract_text(&img)
     }
@@ -514,11 +518,7 @@ impl OCREngine {
         } else {
             LepTess::new(None, &self.config.language)
         }
-        .map_err(|e| {
-            OCRError::new(
-                OCRErrorKind::Initialization(format!("{}", e)),
-            )
-        })?;
+        .map_err(|e| OCRError::new(OCRErrorKind::Initialization(format!("{}", e))))?;
 
         // Configure Tesseract
         lt.set_variable(
@@ -526,9 +526,10 @@ impl OCREngine {
             &(self.config.page_segmentation_mode as i32).to_string(),
         )
         .map_err(|e| {
-            OCRError::new(
-                OCRErrorKind::Initialization(format!("Failed to set PSM: {}", e)),
-            )
+            OCRError::new(OCRErrorKind::Initialization(format!(
+                "Failed to set PSM: {}",
+                e
+            )))
         })?;
 
         // Encode image as PNG for leptess (new API requires encoded image data)
@@ -546,23 +547,25 @@ impl OCREngine {
                     image::ExtendedColorType::L8,
                 )
                 .map_err(|e| {
-                    OCRError::new(
-                        OCRErrorKind::ImageProcessing(format!("Failed to encode image: {}", e)),
-                    )
+                    OCRError::new(OCRErrorKind::ImageProcessing(format!(
+                        "Failed to encode image: {}",
+                        e
+                    )))
                 })?;
         }
 
         // Set image from encoded PNG data
         lt.set_image_from_mem(&png_data).map_err(|e| {
-            OCRError::new(
-                OCRErrorKind::ImageProcessing(format!("Failed to set image: {}", e)),
-            )
+            OCRError::new(OCRErrorKind::ImageProcessing(format!(
+                "Failed to set image: {}",
+                e
+            )))
         })?;
 
         // Get text
-        let text = lt.get_utf8_text().map_err(|e| {
-            OCRError::new(OCRErrorKind::Extraction(format!("{}", e)))
-        })?;
+        let text = lt
+            .get_utf8_text()
+            .map_err(|e| OCRError::new(OCRErrorKind::Extraction(format!("{}", e))))?;
 
         // Get confidence and clamp to valid range
         let confidence = (lt.mean_text_conf() as f32).clamp(MIN_CONFIDENCE, MAX_CONFIDENCE);
@@ -593,9 +596,8 @@ impl OCREngine {
         let path = path.as_ref();
         debug!(path = ?path, "Loading image");
 
-        let img = image::open(path).map_err(|e| {
-            OCRError::new(OCRErrorKind::ImageLoad(format!("{}", e)))
-        })?;
+        let img = image::open(path)
+            .map_err(|e| OCRError::new(OCRErrorKind::ImageLoad(format!("{}", e))))?;
 
         self.extract_text_from_region(&img, region)
     }
@@ -620,27 +622,23 @@ impl OCREngine {
 
         // Validate region bounds
         if x + width > image.width() || y + height > image.height() {
-            return Err(OCRError::new(
-                OCRErrorKind::InvalidRegion(format!(
-                    "Region ({}, {}, {}, {}) exceeds image bounds ({}x{})",
-                    x,
-                    y,
-                    width,
-                    height,
-                    image.width(),
-                    image.height()
-                )),
-            ));
+            return Err(OCRError::new(OCRErrorKind::InvalidRegion(format!(
+                "Region ({}, {}, {}, {}) exceeds image bounds ({}x{})",
+                x,
+                y,
+                width,
+                height,
+                image.width(),
+                image.height()
+            ))));
         }
 
         // Validate region has positive dimensions
         if width == 0 || height == 0 {
-            return Err(OCRError::new(
-                OCRErrorKind::InvalidRegion(format!(
-                    "Region must have positive width and height, got: {}x{}",
-                    width, height
-                )),
-            ));
+            return Err(OCRError::new(OCRErrorKind::InvalidRegion(format!(
+                "Region must have positive width and height, got: {}x{}",
+                width, height
+            ))));
         }
 
         debug!(width, height, x, y, "Extracting region");

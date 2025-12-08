@@ -226,7 +226,7 @@ check-features:
 test-all package='':
     #!/usr/bin/env bash
     set -uo pipefail  # Removed -e so we can capture exit codes
-    LOG_FILE="/tmp/form_factor_check_all.log"
+    LOG_FILE="/tmp/form_factor_test-all.log"
     rm -f "$LOG_FILE"
     EXIT_CODE=0
 

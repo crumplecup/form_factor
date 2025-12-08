@@ -604,7 +604,11 @@ impl DrawingCanvas {
         let logos_dir = std::path::Path::new("logos");
         if !logos_dir.exists() {
             return Err(CanvasError::new(
-                CanvasErrorKind::LogoDetection("logos directory does not exist".to_string()),
+                CanvasErrorKind::LogoDetection(form_factor_cv::LogoDetectionError::new(
+                    form_factor_cv::LogoDetectionErrorKind::LogoImageLoad(
+                        "logos directory does not exist".to_string(),
+                    ),
+                )),
                 line!(),
                 file!(),
             ));
@@ -613,16 +617,23 @@ impl DrawingCanvas {
         let mut logo_count = 0;
         for entry in std::fs::read_dir(logos_dir).map_err(|e| {
             CanvasError::new(
-                CanvasErrorKind::LogoDetection(format!("Failed to read logos directory: {}", e)),
+                CanvasErrorKind::LogoDetection(form_factor_cv::LogoDetectionError::new(
+                    form_factor_cv::LogoDetectionErrorKind::LogoImageLoad(format!(
+                        "Failed to read logos directory: {}",
+                        e
+                    )),
+                )),
                 line!(),
                 file!(),
             )
         })? {
             let entry = entry.map_err(|e| {
                 CanvasError::new(
-                    CanvasErrorKind::LogoDetection(format!(
-                        "Failed to read directory entry: {}",
-                        e
+                    CanvasErrorKind::LogoDetection(form_factor_cv::LogoDetectionError::new(
+                        form_factor_cv::LogoDetectionErrorKind::LogoImageLoad(format!(
+                            "Failed to read directory entry: {}",
+                            e
+                        )),
                     )),
                     line!(),
                     file!(),
@@ -658,9 +669,11 @@ impl DrawingCanvas {
 
         if logo_count == 0 {
             return Err(CanvasError::new(
-                CanvasErrorKind::LogoDetection(
-                    "No logo templates found in logos directory".to_string(),
-                ),
+                CanvasErrorKind::LogoDetection(form_factor_cv::LogoDetectionError::new(
+                    form_factor_cv::LogoDetectionErrorKind::LogoImageEmpty(
+                        "No logo templates found in logos directory".to_string(),
+                    ),
+                )),
                 line!(),
                 file!(),
             ));

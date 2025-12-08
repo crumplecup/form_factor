@@ -36,8 +36,10 @@ struct FormFactorApp {
     app_state: form_factor::AppState,
     mode_switcher: form_factor::ModeSwitcher,
     /// Data entry panel for instance filling (created when entering InstanceFilling mode)
+    #[cfg(feature = "plugins")]
     data_entry_panel: Option<form_factor::DataEntryPanel>,
     /// Instance manager panel for creating and managing instances
+    #[cfg(feature = "plugins")]
     instance_manager_panel: Option<form_factor::InstanceManagerPanel>,
     /// Template browser for template management
     #[cfg(feature = "plugins")]
@@ -47,8 +49,10 @@ struct FormFactorApp {
     #[cfg(feature = "plugins")]
     plugin_manager: form_factor::PluginManager,
     /// Previous selected shape index for change detection
+    #[cfg(feature = "plugins")]
     prev_selected_shape: Option<usize>,
     /// Previous selected detection for change detection
+    #[cfg(feature = "plugins")]
     prev_selected_detection: Option<(form_factor_drawing::DetectionType, usize)>,
     /// Field type selector for assigning fields to shapes/detections
     field_type_selector: Option<form_factor_drawing::FieldTypeSelector>,
@@ -66,14 +70,18 @@ impl FormFactorApp {
             canvas: DrawingCanvas::new(),
             app_state: form_factor::AppState::new(),
             mode_switcher: form_factor::ModeSwitcher::new(),
+            #[cfg(feature = "plugins")]
             data_entry_panel: None,
+            #[cfg(feature = "plugins")]
             instance_manager_panel: None,
             #[cfg(feature = "plugins")]
             template_browser: None,
             toasts: egui_notify::Toasts::default(),
             #[cfg(feature = "plugins")]
             plugin_manager,
+            #[cfg(feature = "plugins")]
             prev_selected_shape: None,
+            #[cfg(feature = "plugins")]
             prev_selected_detection: None,
             field_type_selector: None,
             show_field_selector: false,
@@ -81,6 +89,7 @@ impl FormFactorApp {
     }
 
     /// Render the instance filling mode layout
+    #[cfg(feature = "plugins")]
     fn render_instance_filling_mode(&mut self, ctx: &AppContext) {
         ui_update::update_instance_filling_mode(
             &mut self.app_state,
@@ -90,17 +99,14 @@ impl FormFactorApp {
     }
 
     /// Render the template manager mode layout
+    #[cfg(feature = "plugins")]
     fn render_template_manager_mode(&mut self, ctx: &AppContext) {
-        #[cfg(feature = "plugins")]
         ui_template::update_template_manager_mode(
             &self.app_state,
             &mut self.template_browser,
             &mut self.canvas,
             ctx,
         );
-
-        #[cfg(not(feature = "plugins"))]
-        ui_template::update_template_manager_mode(ctx);
     }
 }
 
@@ -383,75 +389,85 @@ impl App for FormFactorApp {
         });
 
         // Render mode-specific layout
-        match self.app_state.mode() {
-            form_factor::AppMode::InstanceFilling => {
-                self.render_instance_filling_mode(ctx);
-            }
-            form_factor::AppMode::TemplateManager => {
-                self.render_template_manager_mode(ctx);
-            }
-            _ => {
-                // Default layout: plugin sidebar + canvas
-                #[cfg(feature = "plugins")]
-                egui::SidePanel::right("plugin_panel")
-                    .default_width(280.0)
-                    .show(ctx.egui_ctx(), |ui| {
-                        egui::ScrollArea::vertical().show(ui, |ui| {
-                            self.plugin_manager.render_plugins(ui, &self.canvas);
+        #[cfg(feature = "plugins")]
+        {
+            match self.app_state.mode() {
+                form_factor::AppMode::InstanceFilling => {
+                    self.render_instance_filling_mode(ctx);
+                }
+                form_factor::AppMode::TemplateManager => {
+                    self.render_template_manager_mode(ctx);
+                }
+                _ => {
+                    // Default layout: plugin sidebar + canvas
+                    egui::SidePanel::right("plugin_panel")
+                        .default_width(280.0)
+                        .show(ctx.egui_ctx(), |ui| {
+                            egui::ScrollArea::vertical().show(ui, |ui| {
+                                self.plugin_manager.render_plugins(ui, &self.canvas);
 
-                            // Show property editor when something is selected
-                            if *self.canvas.show_properties() {
-                                ui.separator();
-                                ui.heading("Properties");
+                                // Show property editor when something is selected
+                                if *self.canvas.show_properties() {
+                                    ui.separator();
+                                    ui.heading("Properties");
 
-                                if let Some(shape_idx) = *self.canvas.selected_shape() {
-                                    if let Err(e) = form_factor::PropertyRenderer::render_shape_properties(
-                                        ui,
-                                        &self.canvas,
-                                        shape_idx,
-                                    ) {
-                                        tracing::error!(error = %e, "Failed to render shape properties");
-                                        ui.label(format!("Error: {}", e));
-                                    } else {
-                                        // Show field type selector button (maintained in FormFactorApp for state)
-                                        if ui.button("Assign to Field...").clicked() {
-                                            self.show_field_selector = true;
-                                            if self.field_type_selector.is_none() {
-                                                self.field_type_selector =
-                                                    Some(form_factor_drawing::FieldTypeSelector::new());
+                                    if let Some(shape_idx) = *self.canvas.selected_shape() {
+                                        if let Err(e) = form_factor::PropertyRenderer::render_shape_properties(
+                                            ui,
+                                            &self.canvas,
+                                            shape_idx,
+                                        ) {
+                                            tracing::error!(error = %e, "Failed to render shape properties");
+                                            ui.label(format!("Error: {}", e));
+                                        } else {
+                                            // Show field type selector button (maintained in FormFactorApp for state)
+                                            if ui.button("Assign to Field...").clicked() {
+                                                self.show_field_selector = true;
+                                                if self.field_type_selector.is_none() {
+                                                    self.field_type_selector =
+                                                        Some(form_factor_drawing::FieldTypeSelector::new());
+                                                }
                                             }
                                         }
-                                    }
-                                } else if let Some((det_type, det_idx)) =
-                                    *self.canvas.selected_detection()
-                                {
-                                    if let Err(e) = form_factor::PropertyRenderer::render_detection_properties(
-                                        ui,
-                                        &self.canvas,
-                                        det_type,
-                                        det_idx,
-                                    ) {
-                                        tracing::error!(error = %e, "Failed to render detection properties");
-                                        ui.label(format!("Error: {}", e));
-                                    } else {
-                                        // Show field type selector button (maintained in FormFactorApp for state)
-                                        if ui.button("Assign to Field...").clicked() {
-                                            self.show_field_selector = true;
-                                            if self.field_type_selector.is_none() {
-                                                self.field_type_selector =
-                                                    Some(form_factor_drawing::FieldTypeSelector::new());
+                                    } else if let Some((det_type, det_idx)) =
+                                        *self.canvas.selected_detection()
+                                    {
+                                        if let Err(e) = form_factor::PropertyRenderer::render_detection_properties(
+                                            ui,
+                                            &self.canvas,
+                                            det_type,
+                                            det_idx,
+                                        ) {
+                                            tracing::error!(error = %e, "Failed to render detection properties");
+                                            ui.label(format!("Error: {}", e));
+                                        } else {
+                                            // Show field type selector button (maintained in FormFactorApp for state)
+                                            if ui.button("Assign to Field...").clicked() {
+                                                self.show_field_selector = true;
+                                                if self.field_type_selector.is_none() {
+                                                    self.field_type_selector =
+                                                        Some(form_factor_drawing::FieldTypeSelector::new());
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
+                            });
                         });
-                    });
 
-                egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
-                    self.canvas.ui(ui);
-                });
+                    egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
+                        self.canvas.ui(ui);
+                    });
+                }
             }
+        }
+
+        // Fallback when plugins not enabled: just show canvas
+        #[cfg(not(feature = "plugins"))]
+        {
+            egui::CentralPanel::default().show(ctx.egui_ctx(), |ui| {
+                self.canvas.ui(ui);
+            });
         }
 
         // Check for selection changes and emit events
@@ -459,33 +475,33 @@ impl App for FormFactorApp {
         self.handle_selection_changes();
 
         // Show field type selector dialog if open
-        if self.show_field_selector {
-            if let Some(selector) = &mut self.field_type_selector {
-                let mut should_close = false;
-                egui::Window::new("Select Field Type")
-                    .collapsible(false)
-                    .resizable(true)
-                    .default_width(400.0)
-                    .show(ctx.egui_ctx(), |ui| {
-                        selector.show(ui);
+        if self.show_field_selector
+            && let Some(selector) = &mut self.field_type_selector
+        {
+            let mut should_close = false;
+            egui::Window::new("Select Field Type")
+                .collapsible(false)
+                .resizable(true)
+                .default_width(400.0)
+                .show(ctx.egui_ctx(), |ui| {
+                    selector.show(ui);
 
-                        ui.separator();
-                        ui.horizontal(|ui| {
-                            if ui.button("Cancel").clicked() {
-                                should_close = true;
-                            }
+                    ui.separator();
+                    ui.horizontal(|ui| {
+                        if ui.button("Cancel").clicked() {
+                            should_close = true;
+                        }
 
-                            if ui.button("Assign").clicked() && selector.selected().is_some() {
-                                // TODO: Actually assign the field to the selected shape/detection
-                                tracing::info!("Assigned field type: {:?}", selector.selected());
-                                should_close = true;
-                            }
-                        });
+                        if ui.button("Assign").clicked() && selector.selected().is_some() {
+                            // TODO: Actually assign the field to the selected shape/detection
+                            tracing::info!("Assigned field type: {:?}", selector.selected());
+                            should_close = true;
+                        }
                     });
+                });
 
-                if should_close {
-                    self.show_field_selector = false;
-                }
+            if should_close {
+                self.show_field_selector = false;
             }
         }
 

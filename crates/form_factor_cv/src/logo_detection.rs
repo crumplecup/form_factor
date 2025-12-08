@@ -131,7 +131,10 @@ impl Logo {
     ///
     /// Returns an error if the image cannot be read or is invalid
     #[instrument(skip_all, fields(name, path))]
-    pub fn from_file(name: impl Into<String>, path: impl AsRef<Path>) -> Result<Self, LogoDetectionError> {
+    pub fn from_file(
+        name: impl Into<String>,
+        path: impl AsRef<Path>,
+    ) -> Result<Self, LogoDetectionError> {
         let name = name.into();
         let path = path.as_ref();
 
@@ -154,7 +157,9 @@ impl Logo {
         })?;
 
         if image.empty() {
-            return Err(LogoDetectionError::new(LogoDetectionErrorKind::LogoImageEmpty(name)));
+            return Err(LogoDetectionError::new(
+                LogoDetectionErrorKind::LogoImageEmpty(name),
+            ));
         }
 
         // Convert to grayscale (cache for performance)
@@ -199,7 +204,9 @@ impl Logo {
         let height = image.rows();
 
         if image.empty() {
-            return Err(LogoDetectionError::new(LogoDetectionErrorKind::LogoImageEmpty(name)));
+            return Err(LogoDetectionError::new(
+                LogoDetectionErrorKind::LogoImageEmpty(name),
+            ));
         }
 
         // Convert to grayscale
@@ -211,7 +218,12 @@ impl Logo {
             0,
             core::AlgorithmHint::ALGO_HINT_DEFAULT,
         )
-        .map_err(|e| LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!("Failed to convert logo to grayscale: {}", e))))?;
+        .map_err(|e| {
+            LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!(
+                "Failed to convert logo to grayscale: {}",
+                e
+            )))
+        })?;
 
         debug!("Created logo '{}' from Mat: {}x{}", name, width, height);
 
@@ -326,7 +338,11 @@ impl LogoDetector {
     /// # Errors
     ///
     /// Returns an error if the Mat is invalid
-    pub fn add_logo_from_mat(&mut self, name: impl Into<String>, image: Mat) -> Result<(), LogoDetectionError> {
+    pub fn add_logo_from_mat(
+        &mut self,
+        name: impl Into<String>,
+        image: Mat,
+    ) -> Result<(), LogoDetectionError> {
         let logo = Logo::from_mat(name, image)?;
         info!("Added logo '{}' to detector", logo.name);
         self.logos.push(logo);
@@ -406,7 +422,10 @@ impl LogoDetector {
     ///
     /// Returns an error if the image is invalid or detection fails
     #[instrument(skip(self, image), fields(width = image.cols(), height = image.rows(), logos = self.logos.len()))]
-    pub fn detect_logos(&self, image: &Mat) -> Result<Vec<LogoDetectionResult>, LogoDetectionError> {
+    pub fn detect_logos(
+        &self,
+        image: &Mat,
+    ) -> Result<Vec<LogoDetectionResult>, LogoDetectionError> {
         if image.empty() {
             return Err(LogoDetectionError::new(
                 LogoDetectionErrorKind::InputImageEmpty,
@@ -435,7 +454,12 @@ impl LogoDetector {
             0,
             core::AlgorithmHint::ALGO_HINT_DEFAULT,
         )
-        .map_err(|e| LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!("Failed to convert image to grayscale: {}", e))))?;
+        .map_err(|e| {
+            LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!(
+                "Failed to convert image to grayscale: {}",
+                e
+            )))
+        })?;
 
         // Detect all logos
         let mut results = Vec::new();
@@ -520,7 +544,12 @@ impl LogoDetector {
                     scale,
                     imgproc::INTER_LINEAR,
                 )
-                .map_err(|e| LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!("Failed to resize logo template: {}", e))))?;
+                .map_err(|e| {
+                    LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!(
+                        "Failed to resize logo template: {}",
+                        e
+                    )))
+                })?;
             }
 
             // Perform template matching
@@ -539,7 +568,12 @@ impl LogoDetector {
                 CV_32FC1,
                 core::Scalar::all(0.0),
             )
-            .map_err(|e| LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!("Failed to create result matrix: {}", e))))?;
+            .map_err(|e| {
+                LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!(
+                    "Failed to create result matrix: {}",
+                    e
+                )))
+            })?;
 
             imgproc::match_template(
                 image_gray,
@@ -548,7 +582,12 @@ impl LogoDetector {
                 TM_CCOEFF_NORMED,
                 &core::no_array(),
             )
-            .map_err(|e| LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!("Failed to perform template matching: {}", e))))?;
+            .map_err(|e| {
+                LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!(
+                    "Failed to perform template matching: {}",
+                    e
+                )))
+            })?;
 
             // Find the maximum value
             let mut min_val = 0.0;
@@ -564,7 +603,12 @@ impl LogoDetector {
                 Some(&mut max_loc),
                 &core::no_array(),
             )
-            .map_err(|e| LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!("Failed to find maximum value: {}", e))))?;
+            .map_err(|e| {
+                LogoDetectionError::new(LogoDetectionErrorKind::Detection(format!(
+                    "Failed to find maximum value: {}",
+                    e
+                )))
+            })?;
 
             trace!(
                 "Scale {:.2}: confidence = {:.4} at ({}, {})",

@@ -9,7 +9,7 @@
 use form_factor_core::{
     FieldBounds, FieldDefinition, FieldType, FieldValue, FormInstance, FormTemplate,
 };
-use form_factor_drawing::{DrawingInstance, DrawingTemplate, FormError, TemplatePage};
+use form_factor_drawing::{DrawingInstance, DrawingTemplate, TemplatePage};
 
 #[test]
 fn test_multi_page_workflow() -> Result<(), form_factor::FormFactorError> {

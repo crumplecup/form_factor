@@ -15,7 +15,7 @@ pub enum CvErrorKind {
     #[cfg(feature = "text-detection")]
     #[display("Text Detection: {}", _0)]
     TextDetection(TextDetectionError),
-    
+
     /// Logo detection error
     #[cfg(feature = "logo-detection")]
     #[display("Logo Detection: {}", _0)]

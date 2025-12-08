@@ -23,11 +23,7 @@ pub struct IoError {
 impl IoError {
     /// Create a new IoError with location tracking
     #[track_caller]
-    pub fn new(
-        desc: impl Into<String>,
-        path: impl Into<String>,
-        operation: IoOperation,
-    ) -> Self {
+    pub fn new(desc: impl Into<String>, path: impl Into<String>, operation: IoOperation) -> Self {
         let loc = std::panic::Location::caller();
         Self {
             desc: desc.into(),
@@ -72,7 +68,7 @@ pub enum CoreErrorKind {
     /// I/O error
     #[display("I/O: {}", _0)]
     Io(IoError),
-    
+
     /// Template browser error
     #[display("Template Browser: {}", _0)]
     TemplateBrowser(crate::TemplateBrowserError),

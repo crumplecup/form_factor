@@ -225,9 +225,7 @@ impl TextDetector {
         debug!(model_path = %model_path, "Loading DB model");
 
         let mut detector = TextDetectionModel_DB::new_1(&model_path, "").map_err(|e| {
-            TextDetectionError::new(
-                TextDetectionErrorKind::ModelLoad(format!("{}", e)),
-            )
+            TextDetectionError::new(TextDetectionErrorKind::ModelLoad(format!("{}", e)))
         })?;
 
         // Configure input parameters (done once)
@@ -245,9 +243,10 @@ impl TextDetector {
                 false, // crop
             )
             .map_err(|e| {
-                TextDetectionError::new(
-                    TextDetectionErrorKind::ModelLoad(format!("Failed to set input params: {}", e)),
-                )
+                TextDetectionError::new(TextDetectionErrorKind::ModelLoad(format!(
+                    "Failed to set input params: {}",
+                    e
+                )))
             })?;
 
         debug!("DB model loaded successfully");
@@ -366,22 +365,18 @@ impl TextDetector {
         // Load the input image
         let image = imgcodecs::imread(
             path.to_str().ok_or_else(|| {
-                TextDetectionError::new(
-                    TextDetectionErrorKind::ImageLoad("Invalid UTF-8 in path".to_string()),
-                )
+                TextDetectionError::new(TextDetectionErrorKind::ImageLoad(
+                    "Invalid UTF-8 in path".to_string(),
+                ))
             })?,
             imgcodecs::IMREAD_COLOR,
         )
         .map_err(|e| {
-            TextDetectionError::new(
-                TextDetectionErrorKind::ImageLoad(format!("{}", e)),
-            )
+            TextDetectionError::new(TextDetectionErrorKind::ImageLoad(format!("{}", e)))
         })?;
 
         if image.empty() {
-            return Err(TextDetectionError::new(
-                TextDetectionErrorKind::ImageEmpty,
-            ));
+            return Err(TextDetectionError::new(TextDetectionErrorKind::ImageEmpty));
         }
 
         self.detect_from_mat(&image, confidence_threshold)
@@ -427,37 +422,32 @@ impl TextDetector {
         detector
             .set_binary_threshold(self.binary_threshold)
             .map_err(|e| {
-                TextDetectionError::new(
-                    TextDetectionErrorKind::ModelLoad(format!(
-                        "Failed to set binary threshold: {}",
-                        e
-                    )),
-                )
+                TextDetectionError::new(TextDetectionErrorKind::ModelLoad(format!(
+                    "Failed to set binary threshold: {}",
+                    e
+                )))
             })?;
         detector
             .set_polygon_threshold(self.polygon_threshold)
             .map_err(|e| {
-                TextDetectionError::new(
-                    TextDetectionErrorKind::ModelLoad(format!(
-                        "Failed to set polygon threshold: {}",
-                        e
-                    )),
-                )
+                TextDetectionError::new(TextDetectionErrorKind::ModelLoad(format!(
+                    "Failed to set polygon threshold: {}",
+                    e
+                )))
             })?;
         detector.set_unclip_ratio(self.unclip_ratio).map_err(|e| {
-            TextDetectionError::new(
-                TextDetectionErrorKind::ModelLoad(format!("Failed to set unclip ratio: {}", e)),
-            )
+            TextDetectionError::new(TextDetectionErrorKind::ModelLoad(format!(
+                "Failed to set unclip ratio: {}",
+                e
+            )))
         })?;
         detector
             .set_max_candidates(self.max_candidates)
             .map_err(|e| {
-                TextDetectionError::new(
-                    TextDetectionErrorKind::ModelLoad(format!(
-                        "Failed to set max candidates: {}",
-                        e
-                    )),
-                )
+                TextDetectionError::new(TextDetectionErrorKind::ModelLoad(format!(
+                    "Failed to set max candidates: {}",
+                    e
+                )))
             })?;
 
         // Detect text regions
@@ -467,9 +457,7 @@ impl TextDetector {
         detector
             .detect_text_rectangles(image, &mut detections, &mut confidences)
             .map_err(|e| {
-                TextDetectionError::new(
-                    TextDetectionErrorKind::Detection(format!("{}", e)),
-                )
+                TextDetectionError::new(TextDetectionErrorKind::Detection(format!("{}", e)))
             })?;
 
         debug!(count = detections.len(), "Text detection complete");
@@ -478,20 +466,16 @@ impl TextDetector {
         let mut regions = Vec::new();
         for i in 0..detections.len() {
             let rect = detections.get(i).map_err(|e| {
-                TextDetectionError::new(
-                    TextDetectionErrorKind::Detection(format!(
-                        "Failed to get detection {}: {}",
-                        i, e
-                    )),
-                )
+                TextDetectionError::new(TextDetectionErrorKind::Detection(format!(
+                    "Failed to get detection {}: {}",
+                    i, e
+                )))
             })?;
             let confidence = confidences.get(i).map_err(|e| {
-                TextDetectionError::new(
-                    TextDetectionErrorKind::Detection(format!(
-                        "Failed to get confidence {}: {}",
-                        i, e
-                    )),
-                )
+                TextDetectionError::new(TextDetectionErrorKind::Detection(format!(
+                    "Failed to get confidence {}: {}",
+                    i, e
+                )))
             })?;
 
             if confidence < confidence_threshold {
@@ -501,9 +485,10 @@ impl TextDetector {
             // Convert rotated rect to axis-aligned bounding box
             let mut points = [Point2f::default(); 4];
             rect.points(&mut points).map_err(|e| {
-                TextDetectionError::new(
-                    TextDetectionErrorKind::Detection(format!("Failed to get rect points: {}", e)),
-                )
+                TextDetectionError::new(TextDetectionErrorKind::Detection(format!(
+                    "Failed to get rect points: {}",
+                    e
+                )))
             })?;
 
             // Find bounding box
