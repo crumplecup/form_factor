@@ -65,36 +65,28 @@ const INPUT_SCALE: f64 = 1.0 / 255.0;
 // ============================================================================
 
 /// Kinds of errors that can occur during text detection
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 pub enum TextDetectionErrorKind {
     /// Failed to load image file
+    #[display("Failed to load image: {}", _0)]
     ImageLoad(String),
     /// Image is empty or corrupted
+    #[display("Image is empty")]
     ImageEmpty,
     /// Failed to load or configure detection model
+    #[display("Failed to load model: {}", _0)]
     ModelLoad(String),
     /// Detection operation failed
+    #[display("Detection failed: {}", _0)]
     Detection(String),
     /// Invalid parameter value
+    #[display("Invalid parameter: {}", _0)]
     InvalidParameter(String),
 }
 
-impl std::fmt::Display for TextDetectionErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TextDetectionErrorKind::ImageLoad(msg) => write!(f, "Failed to load image: {}", msg),
-            TextDetectionErrorKind::ImageEmpty => write!(f, "Image is empty"),
-            TextDetectionErrorKind::ModelLoad(msg) => write!(f, "Failed to load model: {}", msg),
-            TextDetectionErrorKind::Detection(msg) => write!(f, "Detection failed: {}", msg),
-            TextDetectionErrorKind::InvalidParameter(msg) => {
-                write!(f, "Invalid parameter: {}", msg)
-            }
-        }
-    }
-}
-
 /// Text detection error with location information
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_more::Display, derive_more::Error)]
+#[display("Text Detection: {} at {}:{}", kind, file, line)]
 pub struct TextDetectionError {
     /// Error category
     pub kind: TextDetectionErrorKind,
@@ -106,22 +98,16 @@ pub struct TextDetectionError {
 
 impl TextDetectionError {
     /// Create a new text detection error
-    pub fn new(kind: TextDetectionErrorKind, line: u32, file: &'static str) -> Self {
-        Self { kind, line, file }
+    #[track_caller]
+    pub fn new(kind: TextDetectionErrorKind) -> Self {
+        let loc = std::panic::Location::caller();
+        Self {
+            kind,
+            line: loc.line(),
+            file: loc.file(),
+        }
     }
 }
-
-impl std::fmt::Display for TextDetectionError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Text Detection Error: {} at line {} in {}",
-            self.kind, self.line, self.file
-        )
-    }
-}
-
-impl std::error::Error for TextDetectionError {}
 
 // ============================================================================
 // Text Region
@@ -168,8 +154,6 @@ impl TextRegion {
                     "Width cannot be negative: {}",
                     width
                 )),
-                line!(),
-                file!(),
             ));
         }
         if height < 0 {
@@ -178,8 +162,6 @@ impl TextRegion {
                     "Height cannot be negative: {}",
                     height
                 )),
-                line!(),
-                file!(),
             ));
         }
         if !(0.0..=1.0).contains(&confidence) {
@@ -188,8 +170,6 @@ impl TextRegion {
                     "Confidence must be between 0.0 and 1.0, got: {}",
                     confidence
                 )),
-                line!(),
-                file!(),
             ));
         }
 
@@ -247,8 +227,6 @@ impl TextDetector {
         let mut detector = TextDetectionModel_DB::new_1(&model_path, "").map_err(|e| {
             TextDetectionError::new(
                 TextDetectionErrorKind::ModelLoad(format!("{}", e)),
-                line!(),
-                file!(),
             )
         })?;
 
@@ -269,8 +247,6 @@ impl TextDetector {
             .map_err(|e| {
                 TextDetectionError::new(
                     TextDetectionErrorKind::ModelLoad(format!("Failed to set input params: {}", e)),
-                    line!(),
-                    file!(),
                 )
             })?;
 
@@ -297,8 +273,6 @@ impl TextDetector {
                     "Binary threshold must be between 0.0 and 1.0, got: {}",
                     threshold
                 )),
-                line!(),
-                file!(),
             ));
         }
         self.binary_threshold = threshold;
@@ -317,8 +291,6 @@ impl TextDetector {
                     "Polygon threshold must be between 0.0 and 1.0, got: {}",
                     threshold
                 )),
-                line!(),
-                file!(),
             ));
         }
         self.polygon_threshold = threshold;
@@ -337,8 +309,6 @@ impl TextDetector {
                     "Unclip ratio must be positive, got: {}",
                     ratio
                 )),
-                line!(),
-                file!(),
             ));
         }
         self.unclip_ratio = ratio;
@@ -357,8 +327,6 @@ impl TextDetector {
                     "Max candidates must be positive, got: {}",
                     max
                 )),
-                line!(),
-                file!(),
             ));
         }
         self.max_candidates = max;
@@ -400,8 +368,6 @@ impl TextDetector {
             path.to_str().ok_or_else(|| {
                 TextDetectionError::new(
                     TextDetectionErrorKind::ImageLoad("Invalid UTF-8 in path".to_string()),
-                    line!(),
-                    file!(),
                 )
             })?,
             imgcodecs::IMREAD_COLOR,
@@ -409,16 +375,12 @@ impl TextDetector {
         .map_err(|e| {
             TextDetectionError::new(
                 TextDetectionErrorKind::ImageLoad(format!("{}", e)),
-                line!(),
-                file!(),
             )
         })?;
 
         if image.empty() {
             return Err(TextDetectionError::new(
                 TextDetectionErrorKind::ImageEmpty,
-                line!(),
-                file!(),
             ));
         }
 
@@ -470,8 +432,6 @@ impl TextDetector {
                         "Failed to set binary threshold: {}",
                         e
                     )),
-                    line!(),
-                    file!(),
                 )
             })?;
         detector
@@ -482,15 +442,11 @@ impl TextDetector {
                         "Failed to set polygon threshold: {}",
                         e
                     )),
-                    line!(),
-                    file!(),
                 )
             })?;
         detector.set_unclip_ratio(self.unclip_ratio).map_err(|e| {
             TextDetectionError::new(
                 TextDetectionErrorKind::ModelLoad(format!("Failed to set unclip ratio: {}", e)),
-                line!(),
-                file!(),
             )
         })?;
         detector
@@ -501,8 +457,6 @@ impl TextDetector {
                         "Failed to set max candidates: {}",
                         e
                     )),
-                    line!(),
-                    file!(),
                 )
             })?;
 
@@ -515,8 +469,6 @@ impl TextDetector {
             .map_err(|e| {
                 TextDetectionError::new(
                     TextDetectionErrorKind::Detection(format!("{}", e)),
-                    line!(),
-                    file!(),
                 )
             })?;
 
@@ -531,8 +483,6 @@ impl TextDetector {
                         "Failed to get detection {}: {}",
                         i, e
                     )),
-                    line!(),
-                    file!(),
                 )
             })?;
             let confidence = confidences.get(i).map_err(|e| {
@@ -541,8 +491,6 @@ impl TextDetector {
                         "Failed to get confidence {}: {}",
                         i, e
                     )),
-                    line!(),
-                    file!(),
                 )
             })?;
 
@@ -555,8 +503,6 @@ impl TextDetector {
             rect.points(&mut points).map_err(|e| {
                 TextDetectionError::new(
                     TextDetectionErrorKind::Detection(format!("Failed to get rect points: {}", e)),
-                    line!(),
-                    file!(),
                 )
             })?;
 

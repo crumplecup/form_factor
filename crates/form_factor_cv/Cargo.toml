@@ -11,6 +11,7 @@ description = "Computer vision capabilities (text/logo detection) for form_facto
 opencv = { workspace = true }
 derive_builder = { workspace = true }
 derive-getters = { workspace = true }
+derive_more = { workspace = true }
 serde = { workspace = true }
 thiserror = { workspace = true }
 tracing = { workspace = true }

@@ -43,6 +43,62 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tracing::{debug, info, instrument, trace, warn};
 
+// ============================================================================
+// Error Types
+// ============================================================================
+
+/// Kinds of errors that can occur during logo detection
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
+pub enum LogoDetectionErrorKind {
+    /// Failed to load logo image file
+    #[display("Failed to load logo image: {}", _0)]
+    LogoImageLoad(String),
+    /// Logo image is empty or invalid
+    #[display("Logo image is empty or invalid: {}", _0)]
+    LogoImageEmpty(String),
+    /// Failed to load input image file
+    #[display("Failed to load input image: {}", _0)]
+    InputImageLoad(String),
+    /// Input image is empty or invalid
+    #[display("Input image is empty or invalid")]
+    InputImageEmpty,
+    /// Detection operation failed
+    #[display("Detection failed: {}", _0)]
+    Detection(String),
+    /// Invalid parameter value
+    #[display("Invalid parameter: {}", _0)]
+    InvalidParameter(String),
+}
+
+/// Logo detection error with location information
+#[derive(Debug, Clone, derive_more::Display, derive_more::Error)]
+#[display("Logo Detection: {} at {}:{}", kind, file, line)]
+pub struct LogoDetectionError {
+    /// Error category
+    pub kind: LogoDetectionErrorKind,
+    /// Line number where error occurred
+    pub line: u32,
+    /// File where error occurred
+    pub file: &'static str,
+}
+
+impl LogoDetectionError {
+    /// Create a new logo detection error with location tracking
+    #[track_caller]
+    pub fn new(kind: LogoDetectionErrorKind) -> Self {
+        let loc = std::panic::Location::caller();
+        Self {
+            kind,
+            line: loc.line(),
+            file: loc.file(),
+        }
+    }
+}
+
+// ============================================================================
+// Detection Types
+// ============================================================================
+
 /// Method used for logo detection
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LogoDetectionMethod {
@@ -75,18 +131,30 @@ impl Logo {
     ///
     /// Returns an error if the image cannot be read or is invalid
     #[instrument(skip_all, fields(name, path))]
-    pub fn from_file(name: impl Into<String>, path: impl AsRef<Path>) -> Result<Self, String> {
+    pub fn from_file(name: impl Into<String>, path: impl AsRef<Path>) -> Result<Self, LogoDetectionError> {
         let name = name.into();
         let path = path.as_ref();
 
         debug!("Loading logo '{}' from {:?}", name, path);
 
         // Read the logo image
-        let image = imgcodecs::imread(path.to_str().ok_or("Invalid path encoding")?, IMREAD_COLOR)
-            .map_err(|e| format!("Failed to read logo image: {}", e))?;
+        let image = imgcodecs::imread(
+            path.to_str().ok_or_else(|| {
+                LogoDetectionError::new(LogoDetectionErrorKind::LogoImageLoad(
+                    "Invalid path encoding".to_string(),
+                ))
+            })?,
+            IMREAD_COLOR,
+        )
+        .map_err(|e| {
+            LogoDetectionError::new(LogoDetectionErrorKind::LogoImageLoad(format!(
+                "Failed to read logo image: {}",
+                e
+            )))
+        })?;
 
         if image.empty() {
-            return Err(format!("Logo image '{}' is empty or invalid", name));
+            return Err(LogoDetectionError::new(LogoDetectionErrorKind::LogoImageEmpty(name)));
         }
 
         // Convert to grayscale (cache for performance)

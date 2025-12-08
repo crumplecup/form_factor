@@ -1520,6 +1520,7 @@ version = "0.1.0"
 dependencies = [
  "derive-getters",
  "derive_builder",
+ "derive_more",
  "opencv",
  "serde",
  "serde_json",
