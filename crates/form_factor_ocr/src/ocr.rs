@@ -95,39 +95,31 @@ const MAX_CONFIDENCE: f32 = 100.0;
 // ============================================================================
 
 /// Kinds of errors that can occur during OCR
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, derive_more::Display)]
 pub enum OCRErrorKind {
     /// Failed to initialize Tesseract engine
+    #[display("Failed to initialize Tesseract: {}", _0)]
     Initialization(String),
     /// Failed to load image file
+    #[display("Failed to load image: {}", _0)]
     ImageLoad(String),
     /// Failed to encode or process image
+    #[display("Image processing error: {}", _0)]
     ImageProcessing(String),
     /// Text extraction failed
+    #[display("Text extraction failed: {}", _0)]
     Extraction(String),
     /// Invalid region specified
+    #[display("Invalid region: {}", _0)]
     InvalidRegion(String),
     /// Invalid parameter value
+    #[display("Invalid parameter: {}", _0)]
     InvalidParameter(String),
 }
 
-impl std::fmt::Display for OCRErrorKind {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OCRErrorKind::Initialization(msg) => {
-                write!(f, "Failed to initialize Tesseract: {}", msg)
-            }
-            OCRErrorKind::ImageLoad(msg) => write!(f, "Failed to load image: {}", msg),
-            OCRErrorKind::ImageProcessing(msg) => write!(f, "Image processing error: {}", msg),
-            OCRErrorKind::Extraction(msg) => write!(f, "Text extraction failed: {}", msg),
-            OCRErrorKind::InvalidRegion(msg) => write!(f, "Invalid region: {}", msg),
-            OCRErrorKind::InvalidParameter(msg) => write!(f, "Invalid parameter: {}", msg),
-        }
-    }
-}
-
 /// OCR error with location information
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_more::Display, derive_more::Error)]
+#[display("OCR: {} at {}:{}", kind, file, line)]
 pub struct OCRError {
     /// Error category
     pub kind: OCRErrorKind,
@@ -138,23 +130,17 @@ pub struct OCRError {
 }
 
 impl OCRError {
-    /// Create a new OCR error
-    pub fn new(kind: OCRErrorKind, line: u32, file: &'static str) -> Self {
-        Self { kind, line, file }
+    /// Create a new OCR error with automatic location tracking
+    #[track_caller]
+    pub fn new(kind: OCRErrorKind) -> Self {
+        let loc = std::panic::Location::caller();
+        Self {
+            kind,
+            line: loc.line(),
+            file: loc.file(),
+        }
     }
 }
-
-impl std::fmt::Display for OCRError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "OCR Error: {} at line {} in {}",
-            self.kind, self.line, self.file
-        )
-    }
-}
-
-impl std::error::Error for OCRError {}
 
 // ============================================================================
 // Bounding Box
@@ -187,15 +173,11 @@ impl BoundingBox {
         if width <= 0 {
             return Err(OCRError::new(
                 OCRErrorKind::InvalidParameter(format!("Width must be positive, got: {}", width)),
-                line!(),
-                file!(),
             ));
         }
         if height <= 0 {
             return Err(OCRError::new(
                 OCRErrorKind::InvalidParameter(format!("Height must be positive, got: {}", height)),
-                line!(),
-                file!(),
             ));
         }
         Ok(Self {
@@ -464,16 +446,12 @@ impl OCREngine {
             LepTess::new(Some(path), &config.language).map_err(|e| {
                 OCRError::new(
                     OCRErrorKind::Initialization(format!("Failed with custom path: {}", e)),
-                    line!(),
-                    file!(),
                 )
             })?
         } else {
             LepTess::new(None, &config.language).map_err(|e| {
                 OCRError::new(
                     OCRErrorKind::Initialization(format!("Is Tesseract installed? {}", e)),
-                    line!(),
-                    file!(),
                 )
             })?
         };
@@ -486,8 +464,6 @@ impl OCREngine {
         .map_err(|e| {
             OCRError::new(
                 OCRErrorKind::Initialization(format!("Failed to set PSM: {}", e)),
-                line!(),
-                file!(),
             )
         })?;
 
@@ -506,7 +482,7 @@ impl OCREngine {
         debug!(path = ?path, "Loading image");
 
         let img = image::open(path).map_err(|e| {
-            OCRError::new(OCRErrorKind::ImageLoad(format!("{}", e)), line!(), file!())
+            OCRError::new(OCRErrorKind::ImageLoad(format!("{}", e)))
         })?;
 
         self.extract_text(&img)
@@ -541,8 +517,6 @@ impl OCREngine {
         .map_err(|e| {
             OCRError::new(
                 OCRErrorKind::Initialization(format!("{}", e)),
-                line!(),
-                file!(),
             )
         })?;
 
@@ -554,8 +528,6 @@ impl OCREngine {
         .map_err(|e| {
             OCRError::new(
                 OCRErrorKind::Initialization(format!("Failed to set PSM: {}", e)),
-                line!(),
-                file!(),
             )
         })?;
 
@@ -576,8 +548,6 @@ impl OCREngine {
                 .map_err(|e| {
                     OCRError::new(
                         OCRErrorKind::ImageProcessing(format!("Failed to encode image: {}", e)),
-                        line!(),
-                        file!(),
                     )
                 })?;
         }
@@ -586,14 +556,12 @@ impl OCREngine {
         lt.set_image_from_mem(&png_data).map_err(|e| {
             OCRError::new(
                 OCRErrorKind::ImageProcessing(format!("Failed to set image: {}", e)),
-                line!(),
-                file!(),
             )
         })?;
 
         // Get text
         let text = lt.get_utf8_text().map_err(|e| {
-            OCRError::new(OCRErrorKind::Extraction(format!("{}", e)), line!(), file!())
+            OCRError::new(OCRErrorKind::Extraction(format!("{}", e)))
         })?;
 
         // Get confidence and clamp to valid range
@@ -626,7 +594,7 @@ impl OCREngine {
         debug!(path = ?path, "Loading image");
 
         let img = image::open(path).map_err(|e| {
-            OCRError::new(OCRErrorKind::ImageLoad(format!("{}", e)), line!(), file!())
+            OCRError::new(OCRErrorKind::ImageLoad(format!("{}", e)))
         })?;
 
         self.extract_text_from_region(&img, region)
@@ -662,8 +630,6 @@ impl OCREngine {
                     image.width(),
                     image.height()
                 )),
-                line!(),
-                file!(),
             ));
         }
 
@@ -674,8 +640,6 @@ impl OCREngine {
                     "Region must have positive width and height, got: {}x{}",
                     width, height
                 )),
-                line!(),
-                file!(),
             ));
         }
 

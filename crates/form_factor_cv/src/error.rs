@@ -1,6 +1,6 @@
 //! Crate-level error aggregation following CLAUDE.md Pattern 4
 
-use derive_more::{Display, Error, From};
+use derive_more::{Display, Error};
 
 #[cfg(feature = "text-detection")]
 use crate::TextDetectionError;

@@ -26,9 +26,15 @@ pub enum FormFactorErrorKind {
     #[display("Drawing: {}", _0)]
     Drawing(form_factor_drawing::FormError),
 
-    // TODO: Add when crate umbrellas are created:
-    // Cv(form_factor_cv::CvError),
-    // Ocr(form_factor_ocr::OcrError),
+    /// Computer vision errors (text detection, logo detection)
+    #[cfg(feature = "cv")]
+    #[display("CV: {}", _0)]
+    Cv(form_factor_cv::CvError),
+
+    /// OCR errors (text extraction)
+    #[cfg(feature = "ocr")]
+    #[display("OCR: {}", _0)]
+    Ocr(form_factor_ocr::OCRError),
 }
 
 /// Workspace-wide umbrella error
