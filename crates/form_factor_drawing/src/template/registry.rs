@@ -53,12 +53,12 @@ impl TemplateRegistry {
     /// - Windows: `%APPDATA%\form_factor\templates\`
     fn global_templates_dir() -> Result<PathBuf, TemplateError> {
         let config_dir = dirs::config_dir().ok_or_else(|| {
-            TemplateError::new(TemplateErrorKind::ConfigDirNotFound, line!(), file!())
+            TemplateError::new(TemplateErrorKind::ConfigDirNotFound)
         })?;
 
         let templates_dir = config_dir.join("form_factor").join("templates");
         std::fs::create_dir_all(&templates_dir).map_err(|e| {
-            TemplateError::new(TemplateErrorKind::IoError(e.to_string()), line!(), file!())
+            TemplateError::new(TemplateErrorKind::IoError(e.to_string()))
         })?;
 
         Ok(templates_dir)
@@ -94,12 +94,12 @@ impl TemplateRegistry {
         debug!("Loading templates from {:?}", dir);
 
         let entries = std::fs::read_dir(dir).map_err(|e| {
-            TemplateError::new(TemplateErrorKind::IoError(e.to_string()), line!(), file!())
+            TemplateError::new(TemplateErrorKind::IoError(e.to_string()))
         })?;
 
         for entry in entries {
             let entry = entry.map_err(|e| {
-                TemplateError::new(TemplateErrorKind::IoError(e.to_string()), line!(), file!())
+                TemplateError::new(TemplateErrorKind::IoError(e.to_string()))
             })?;
 
             let path = entry.path();
@@ -127,7 +127,7 @@ impl TemplateRegistry {
     /// Load a single template file
     fn load_template_file(&self, path: &Path) -> Result<DrawingTemplate, TemplateError> {
         let json = std::fs::read_to_string(path).map_err(|e| {
-            TemplateError::new(TemplateErrorKind::IoError(e.to_string()), line!(), file!())
+            TemplateError::new(TemplateErrorKind::IoError(e.to_string()))
         })?;
 
         DrawingTemplate::from_json(&json)
@@ -171,15 +171,11 @@ impl TemplateRegistry {
         let path = self.global_dir.join(filename);
 
         let json = template.to_json().map_err(|e| {
-            TemplateError::new(
-                TemplateErrorKind::Serialization(e.to_string()),
-                line!(),
-                file!(),
-            )
+            TemplateError::new(TemplateErrorKind::Serialization(e.to_string()))
         })?;
 
         std::fs::write(&path, json).map_err(|e| {
-            TemplateError::new(TemplateErrorKind::IoError(e.to_string()), line!(), file!())
+            TemplateError::new(TemplateErrorKind::IoError(e.to_string()))
         })?;
 
         info!("Saved template {} to {:?}", template.id(), path);
@@ -191,33 +187,25 @@ impl TemplateRegistry {
     /// Returns an error if no project directory is set.
     pub fn save_to_project(&self, template: &DrawingTemplate) -> Result<(), TemplateError> {
         let project_dir = self.project_dir.as_ref().ok_or_else(|| {
-            TemplateError::new(
-                TemplateErrorKind::InvalidTemplate(
+            TemplateError::new(TemplateErrorKind::InvalidTemplate(
                     "No project directory set for project-local save".into(),
-                ),
-                line!(),
-                file!(),
-            )
+                ))
         })?;
 
         let templates_dir = project_dir.join("templates");
         std::fs::create_dir_all(&templates_dir).map_err(|e| {
-            TemplateError::new(TemplateErrorKind::IoError(e.to_string()), line!(), file!())
+            TemplateError::new(TemplateErrorKind::IoError(e.to_string()))
         })?;
 
         let filename = format!("{}.json", template.id());
         let path = templates_dir.join(filename);
 
         let json = template.to_json().map_err(|e| {
-            TemplateError::new(
-                TemplateErrorKind::Serialization(e.to_string()),
-                line!(),
-                file!(),
-            )
+            TemplateError::new(TemplateErrorKind::Serialization(e.to_string()))
         })?;
 
         std::fs::write(&path, json).map_err(|e| {
-            TemplateError::new(TemplateErrorKind::IoError(e.to_string()), line!(), file!())
+            TemplateError::new(TemplateErrorKind::IoError(e.to_string()))
         })?;
 
         info!("Saved template {} to project at {:?}", template.id(), path);
@@ -231,7 +219,7 @@ impl TemplateRegistry {
 
         if path.exists() {
             std::fs::remove_file(&path).map_err(|e| {
-                TemplateError::new(TemplateErrorKind::IoError(e.to_string()), line!(), file!())
+                TemplateError::new(TemplateErrorKind::IoError(e.to_string()))
             })?;
         }
 

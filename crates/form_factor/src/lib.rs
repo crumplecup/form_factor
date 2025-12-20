@@ -35,6 +35,7 @@ mod detection_results;
 mod detection_tasks;
 mod event_handlers;
 mod file_dialogs;
+mod overlays;
 #[cfg(feature = "plugins")]
 mod plugin_setup;
 mod type_conversions;
@@ -266,8 +267,15 @@ pub use detection_results::DetectionResultHandler;
 /// Event handlers
 pub use event_handlers::{
     CanvasEventHandler, DetectionEventHandler, FileEventHandler, LayerEventHandler,
-    ObjectEventHandler, SelectionEventHandler,
+    ObjectEventHandler, SelectionEventHandler, TemplateEventHandler,
 };
+
+// ============================================================================
+// Overlay System
+// ============================================================================
+
+/// Overlay system exports
+pub use overlays::{Overlay, OverlayManager, OverlayResponse, TemplateBrowserOverlay};
 
 // ============================================================================
 // Advanced: Direct module access for backend implementations

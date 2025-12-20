@@ -36,6 +36,12 @@ pub enum TemplateErrorKind {
 
     /// Duplicate field ID
     DuplicateFieldId(String),
+
+    /// No active template for operation
+    NoActiveTemplate,
+
+    /// Field not found in template
+    FieldNotFound(String),
 }
 
 impl std::fmt::Display for TemplateErrorKind {
@@ -62,6 +68,8 @@ impl std::fmt::Display for TemplateErrorKind {
             }
             TemplateErrorKind::InvalidField(msg) => write!(f, "Invalid field: {}", msg),
             TemplateErrorKind::DuplicateFieldId(id) => write!(f, "Duplicate field ID: {}", id),
+            TemplateErrorKind::NoActiveTemplate => write!(f, "No active template"),
+            TemplateErrorKind::FieldNotFound(id) => write!(f, "Field not found: {}", id),
         }
     }
 }
@@ -79,8 +87,14 @@ pub struct TemplateError {
 }
 
 impl TemplateError {
-    /// Create a new template error
-    pub fn new(kind: TemplateErrorKind, line: u32, file: &'static str) -> Self {
-        Self { kind, line, file }
+    /// Create a new template error with caller tracking
+    #[track_caller]
+    pub fn new(kind: TemplateErrorKind) -> Self {
+        let location = std::panic::Location::caller();
+        Self {
+            kind,
+            line: location.line(),
+            file: location.file(),
+        }
     }
 }

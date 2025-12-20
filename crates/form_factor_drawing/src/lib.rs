@@ -32,6 +32,7 @@ pub use canvas::{
     CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DetectionType, DrawingCanvas,
     SelectionResult,
 };
+pub use canvas::field_creator::FieldCreator;
 pub use detection_metadata::{DetectionMetadata, FormFieldType, MetadataDetectionType};
 pub use error::{FormError, FormErrorKind};
 pub use instance::{

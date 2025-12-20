@@ -62,6 +62,10 @@ impl PluginSetup {
             count += 1;
         }
 
+        // Register templates plugin (always enabled)
+        Self::register_templates_plugin(&mut manager);
+        count += 1;
+
         tracing::info!(count, "Plugin manager created with {} plugin(s)", count);
         manager
     }
@@ -99,5 +103,12 @@ impl PluginSetup {
     fn register_properties_plugin(manager: &mut PluginManager) {
         manager.register(Box::new(PropertiesPlugin::new()));
         tracing::info!("Registered properties plugin");
+    }
+
+    #[cfg(feature = "plugins")]
+    #[instrument(skip(manager))]
+    fn register_templates_plugin(manager: &mut PluginManager) {
+        manager.register(Box::new(form_factor_plugins::TemplatesPlugin::new()));
+        tracing::info!("Registered templates plugin");
     }
 }

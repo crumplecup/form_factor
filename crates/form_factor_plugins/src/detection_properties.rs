@@ -47,9 +47,12 @@ impl DetectionPropertiesPanel {
     }
 
     /// Renders the properties panel UI.
+    ///
+    /// Returns updated metadata if changes were made, and optionally an event to emit.
     #[instrument(skip(self, ui))]
-    pub fn ui(&mut self, ui: &mut egui::Ui) -> Option<DetectionMetadata> {
+    pub fn ui(&mut self, ui: &mut egui::Ui) -> (Option<DetectionMetadata>, Option<crate::AppEvent>) {
         let mut updated_metadata = None;
+        let mut event_to_emit = None;
 
         if let Some(metadata) = &mut self.metadata {
             ui.group(|ui| {
@@ -336,12 +339,22 @@ impl DetectionPropertiesPanel {
                 }
 
                 updated_metadata = Some(metadata.clone());
+
+                ui.separator();
+
+                // Add to Template button
+                if ui.button("➕ Add to Template").clicked() {
+                    debug!(detection_id = metadata.id(), "Add to Template clicked");
+                    event_to_emit = Some(crate::AppEvent::AddDetectionToTemplate {
+                        detection_id: metadata.id().clone(),
+                    });
+                }
             });
         } else {
             ui.label("No detection selected");
         }
 
-        updated_metadata
+        (updated_metadata, event_to_emit)
     }
 }
 

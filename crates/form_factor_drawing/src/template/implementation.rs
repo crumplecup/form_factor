@@ -40,11 +40,7 @@ impl DrawingTemplate {
     /// Load a template from JSON
     pub fn from_json(json: &str) -> Result<Self, TemplateError> {
         serde_json::from_str(json).map_err(|e| {
-            TemplateError::new(
-                TemplateErrorKind::Deserialization(e.to_string()),
-                line!(),
-                file!(),
-            )
+            TemplateError::new(TemplateErrorKind::Deserialization(e.to_string()))
         })
     }
 
@@ -77,10 +73,7 @@ impl DrawingTemplate {
     /// - Valid page indices in field definitions
     pub fn validate(&self) -> Result<(), TemplateError> {
         if self.pages.is_empty() {
-            return Err(TemplateError::new(
-                TemplateErrorKind::InvalidTemplate("Template must have at least one page".into()),
-                line!(),
-                file!(),
+            return Err(TemplateError::new(TemplateErrorKind::InvalidTemplate("Template must have at least one page".into())
             ));
         }
 
@@ -89,10 +82,7 @@ impl DrawingTemplate {
         for field in self.fields() {
             if !seen_ids.insert(field.id()) {
                 return Err(TemplateError::new(
-                    TemplateErrorKind::DuplicateFieldId(field.id().clone()),
-                    line!(),
-                    file!(),
-                ));
+                    TemplateErrorKind::DuplicateFieldId(field.id().clone())));
             }
 
             // Check that field's page_index is valid
@@ -102,9 +92,7 @@ impl DrawingTemplate {
                         "Field '{}' references invalid page index {}",
                         field.id(),
                         field.page_index()
-                    )),
-                    line!(),
-                    file!(),
+                    ))
                 ));
             }
         }
@@ -367,16 +355,12 @@ impl DrawingTemplateBuilder {
         let template = DrawingTemplate {
             id: self.id.ok_or_else(|| {
                 TemplateError::new(
-                    TemplateErrorKind::InvalidTemplate("id is required".into()),
-                    line!(),
-                    file!(),
+                    TemplateErrorKind::InvalidTemplate("id is required".into())
                 )
             })?,
             name: self.name.ok_or_else(|| {
                 TemplateError::new(
-                    TemplateErrorKind::InvalidTemplate("name is required".into()),
-                    line!(),
-                    file!(),
+                    TemplateErrorKind::InvalidTemplate("name is required".into())
                 )
             })?,
             version: self.version.unwrap_or_else(|| "1.0.0".to_string()),

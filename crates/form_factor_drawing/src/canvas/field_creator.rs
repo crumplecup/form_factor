@@ -214,6 +214,75 @@ impl FieldCreator {
     pub fn reset_counter(&mut self) {
         self.field_counter = 0;
     }
+
+    /// Creates a field from a detection with bounds.
+    ///
+    /// # Arguments
+    /// * `detection` - The detection metadata
+    /// * `bounds` - The bounding box (x, y, width, height)
+    ///
+    /// # Returns
+    /// A `FieldDefinition` created from the detection
+    #[instrument(skip(self, detection), fields(detection_id = detection.id()))]
+    pub fn create_field_from_detection(
+        &mut self,
+        detection: &crate::DetectionMetadata,
+        bounds: (f32, f32, f32, f32),
+    ) -> FieldCreatorResult<FieldDefinition> {
+        use crate::FormFieldType;
+
+        let (x, y, width, height) = bounds;
+
+        // Map FormFieldType → FieldType
+        let field_type = match detection.form_field_type() {
+            Some(FormFieldType::Text) | Some(FormFieldType::TextArea) => FieldType::FreeText,
+            Some(FormFieldType::Date) => FieldType::Date,
+            Some(FormFieldType::Number) => FieldType::Currency,
+            Some(FormFieldType::Checkbox) => FieldType::Checkbox,
+            Some(FormFieldType::Radio) => FieldType::RadioButton,
+            Some(FormFieldType::Dropdown) => FieldType::FreeText, // Map to FreeText for now
+            Some(FormFieldType::Signature) => FieldType::Signature,
+            None => FieldType::FreeText,
+        };
+
+        // Use detection label or generate name
+        let field_id = if let Some(label) = detection.label() {
+            label.clone()
+        } else {
+            self.field_counter += 1;
+            format!("field_{}", self.field_counter)
+        };
+
+        debug!(
+            field_id,
+            ?field_type,
+            "Creating field from detection"
+        );
+
+        // Build field bounds
+        let field_bounds = FieldBoundsBuilder::default()
+            .x(x)
+            .y(y)
+            .width(width)
+            .height(height)
+            .build()
+            .map_err(|e| {
+                FieldCreatorError::new(FieldCreatorErrorKind::BuilderError(e.to_string()))
+            })?;
+
+        // Build field definition
+        FieldDefinitionBuilder::default()
+            .id(field_id.clone())
+            .label(field_id)
+            .field_type(field_type)
+            .bounds(field_bounds)
+            .page_index(0) // TODO: Use current page from canvas
+            .required(detection.form_field_required().unwrap_or(false))
+            .build()
+            .map_err(|e| {
+                FieldCreatorError::new(FieldCreatorErrorKind::BuilderError(e.to_string()))
+            })
+    }
 }
 
 impl Default for FieldCreator {

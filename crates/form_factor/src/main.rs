@@ -21,6 +21,7 @@ use form_factor::{App, AppContext, DrawingCanvas};
     )
 ))]
 use form_factor_drawing::Shape;
+use tracing::debug;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[cfg(feature = "backend-eframe")]
@@ -35,6 +36,8 @@ struct FormFactorApp {
     canvas: DrawingCanvas,
     app_state: form_factor::AppState,
     mode_switcher: form_factor::ModeSwitcher,
+    /// Overlay manager for modal dialogs and side panels
+    overlay_manager: form_factor::OverlayManager,
     /// Data entry panel for instance filling (created when entering InstanceFilling mode)
     #[cfg(feature = "plugins")]
     data_entry_panel: Option<form_factor::DataEntryPanel>,
@@ -70,6 +73,7 @@ impl FormFactorApp {
             canvas: DrawingCanvas::new(),
             app_state: form_factor::AppState::new(),
             mode_switcher: form_factor::ModeSwitcher::new(),
+            overlay_manager: form_factor::OverlayManager::new(),
             #[cfg(feature = "plugins")]
             data_entry_panel: None,
             #[cfg(feature = "plugins")]
@@ -365,6 +369,46 @@ impl App for FormFactorApp {
                             &mut self.canvas,
                         );
                     }
+                    AppEvent::AddDetectionToTemplate { detection_id } => {
+                        if let Some(event) = form_factor::TemplateEventHandler::handle_add_detection_to_template(
+                            &mut self.canvas,
+                            detection_id,
+                        ) {
+                            // Re-emit FieldAddedToTemplate event
+                            self.plugin_manager.event_bus().sender().emit(event);
+                        }
+                    }
+                    AppEvent::AddShapeToTemplate { shape_id } => {
+                        if let Some(event) = form_factor::TemplateEventHandler::handle_add_shape_to_template(
+                            &mut self.canvas,
+                            *shape_id,
+                        ) {
+                            // Re-emit FieldAddedToTemplate event
+                            self.plugin_manager.event_bus().sender().emit(event);
+                        }
+                    }
+                    AppEvent::RemoveFieldFromTemplate { field_id } => {
+                        form_factor::TemplateEventHandler::handle_remove_field_from_template(
+                            &mut self.canvas,
+                            field_id,
+                        );
+                    }
+                    AppEvent::FieldAddedToTemplate { field_id } => {
+                        // Show success toast
+                        self.toasts.success(format!("Field '{}' added to template", field_id));
+                    }
+                    AppEvent::OpenTemplateBrowserRequested => {
+                        // Open the template browser overlay
+                        debug!("Opening template browser overlay");
+                        match form_factor::TemplateBrowserOverlay::new() {
+                            Ok(overlay) => {
+                                self.overlay_manager.push(Box::new(overlay));
+                            }
+                            Err(e) => {
+                                self.toasts.error(format!("Failed to open template browser: {}", e));
+                            }
+                        }
+                    }
                     _ => {
                         // Ignore other events
                     }
@@ -507,6 +551,9 @@ impl App for FormFactorApp {
 
         // Render toast notifications (shown on top of everything)
         self.toasts.show(ctx.egui_ctx());
+
+        // Show overlays (must be last to render on top)
+        self.overlay_manager.show(ctx.egui_ctx());
     }
 
     fn on_exit(&mut self) {

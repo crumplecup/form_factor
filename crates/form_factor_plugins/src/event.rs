@@ -226,6 +226,33 @@ pub enum AppEvent {
         tool_name: String,
     },
 
+    /// User wants to add detection to template
+    AddDetectionToTemplate {
+        /// ID of the detection to add
+        detection_id: String,
+    },
+
+    /// User wants to add shape to template
+    AddShapeToTemplate {
+        /// Index of the shape to add
+        shape_id: usize,
+    },
+
+    /// Field was successfully added to template
+    FieldAddedToTemplate {
+        /// ID of the field that was added
+        field_id: String,
+    },
+
+    /// User wants to remove field from template
+    RemoveFieldFromTemplate {
+        /// ID of the field to remove
+        field_id: String,
+    },
+
+    /// Request to open the template browser overlay
+    OpenTemplateBrowserRequested,
+
     /// Custom event with arbitrary data
     Custom {
         /// Plugin that sent the event

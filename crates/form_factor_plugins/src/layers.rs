@@ -576,6 +576,39 @@ impl Plugin for LayersPlugin {
             ui.separator();
             self.render_layer_list(ui, ctx);
         });
+
+        // Template status widget
+        #[cfg(feature = "plugin-canvas")]
+        if let Some(canvas) = ctx.canvas {
+            ui.add_space(10.0);
+            ui.group(|ui| {
+                ui.heading("Template Status");
+                ui.separator();
+                
+                if let Some(template) = canvas.current_template() {
+                    ui.label(format!("Name: {}", template.get_name()));
+                    
+                    let field_count: usize = template.page_count(); // Use page count as proxy for now
+                    ui.label(format!("Pages: {}", template.page_count()));
+                    ui.label("(Field count coming soon)");
+                    
+                    if field_count > 0 {
+                        ui.add_space(5.0);
+                        ui.colored_label(
+                            egui::Color32::from_rgb(0, 200, 0),
+                            format!("✓ {} page{} added", field_count, if field_count == 1 { "" } else { "s" })
+                        );
+                    }
+                } else {
+                    ui.label("No active template");
+                    ui.add_space(5.0);
+                    ui.colored_label(
+                        egui::Color32::GRAY,
+                        "Create a template to add fields"
+                    );
+                }
+            });
+        }
     }
 
     #[instrument(skip(self, _ctx), fields(plugin = "layers"))]

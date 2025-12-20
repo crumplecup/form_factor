@@ -87,6 +87,7 @@ mod detection_properties;
 mod properties;
 
 mod template_browser_plugin;
+mod templates;
 
 /// Template UI components for page navigation and field management.
 pub mod template_ui;
@@ -114,4 +115,5 @@ pub use detection_properties::DetectionPropertiesPanel;
 pub use properties::PropertiesPlugin;
 
 pub use template_browser_plugin::TemplateBrowserPlugin;
+pub use templates::TemplatesPlugin;
 pub use template_ui::{render_page_navigation, render_page_thumbnails};

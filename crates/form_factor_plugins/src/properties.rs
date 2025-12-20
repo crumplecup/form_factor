@@ -87,7 +87,10 @@ impl PropertiesPlugin {
         size: &mut Option<(f32, f32)>,
         color: &mut Color32,
         label: &mut String,
-    ) {
+        ctx: &PluginContext,
+    ) -> Option<AppEvent> {
+        let mut event_to_emit = None;
+
         {
             ui.heading("Shape Properties");
             ui.separator();
@@ -132,7 +135,16 @@ impl PropertiesPlugin {
                 ui.label("Label:");
                 ui.text_edit_singleline(label);
             });
+
+            // Add to Template button
+            ui.separator();
+            if ui.button("➕ Add to Template").clicked() {
+                tracing::debug!(shape_id = id, "Add to Template clicked for shape");
+                event_to_emit = Some(AppEvent::AddShapeToTemplate { shape_id: id });
+            }
         }
+
+        event_to_emit
     }
 }
 
@@ -165,17 +177,26 @@ impl Plugin for PropertiesPlugin {
                 color,
                 label,
             }) => {
-                Self::render_shape_properties(ui, *id, shape_type, position, size, color, label);
+                if let Some(event) = Self::render_shape_properties(
+                    ui, *id, shape_type, position, size, color, label, ctx,
+                ) {
+                    ctx.events.emit(event);
+                }
             }
             #[cfg(feature = "plugin-detection")]
             Some(SelectedItem::Detection { metadata }) => {
                 // Show detection properties panel
                 self.detection_panel
                     .set_metadata(Some((**metadata).clone()));
-                if let Some(_updated) = self.detection_panel.ui(ui) {
+                let (updated, event) = self.detection_panel.ui(ui);
+                if let Some(_updated) = updated {
                     // TODO: Emit event with updated metadata
                     // For now, just log that an update happened
                     tracing::debug!("Detection metadata updated");
+                }
+                if let Some(event) = event {
+                    // Emit the event via context
+                    ctx.events.emit(event);
                 }
             }
             None => {

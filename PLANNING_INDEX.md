@@ -29,6 +29,12 @@ This index tracks all planning documents in the workspace. When documents are co
   - UI assessment and roadmap from current state to awesome UI
   - 4 phases: Template UI Integration, Instance Data Entry, Workflow Enhancements, Advanced Features
   - Addresses plugin architecture transition gaps and missing user workflows
+- **UI_ROADMAP_OVERLAY.md** - `current` (2025-12-20)
+  - **UNIFIED PLAN:** Simplified overlay-based UI architecture
+  - Canvas + overlays approach: Template browser, data entry panel, instance browser
+  - **Includes critical "Add to Template" workflow** (detection/shape → template field conversion)
+  - Complete user stories: Load form → detect → add to template → save
+  - Estimated 10-15 days (4 phases with gap analysis integrated)
 
 ## Development Guidelines
 

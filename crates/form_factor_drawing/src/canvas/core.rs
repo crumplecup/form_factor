@@ -6,7 +6,7 @@ use egui::{Color32, Pos2, Stroke};
 use form_factor_core::FieldDefinition;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::debug;
+use tracing::{debug, instrument};
 
 /// Default zoom level for new canvases
 pub(super) fn default_zoom_level() -> f32 {
@@ -853,6 +853,108 @@ impl DrawingCanvas {
             .as_ref()
             .map(|t| t.pages.len())
             .unwrap_or(0)
+    }
+
+    /// Adds a field to the current template.
+    ///
+    /// # Arguments
+    /// * `field` - The field definition to add
+    ///
+    /// # Returns
+    /// `Ok(())` if successful, `Err` if no template is active or field is invalid
+    #[instrument(skip(self, field), fields(field_id = field.id()))]
+    pub fn add_field_to_template(
+        &mut self,
+        field: form_factor_core::FieldDefinition,
+    ) -> Result<(), crate::TemplateError> {
+        let Some(template) = &mut self.current_template else {
+            return Err(crate::TemplateError::new(
+                crate::TemplateErrorKind::NoActiveTemplate,
+            ));
+        };
+
+        let page_index = self.current_page;
+
+        // Ensure page exists
+        while template.pages.len() <= page_index {
+            let page = crate::TemplatePageBuilder::new(template.pages.len()).build();
+            template.pages.push(page);
+            debug!(page_count = template.pages.len(), "Added new page to template");
+        }
+
+        // Add field to current page
+        template.pages[page_index].fields.push(field.clone());
+
+        debug!(
+            page = page_index,
+            field_id = field.id(),
+            field_count = template.pages[page_index].fields.len(),
+            "Added field to template"
+        );
+
+        Ok(())
+    }
+
+    /// Removes a field from the current template.
+    ///
+    /// # Arguments
+    /// * `field_id` - The ID of the field to remove
+    ///
+    /// # Returns
+    /// `Ok(())` if successful, `Err` if no template is active
+    #[instrument(skip(self), fields(field_id))]
+    pub fn remove_field_from_template(&mut self, field_id: &str) -> Result<(), crate::TemplateError> {
+        let Some(template) = &mut self.current_template else {
+            return Err(crate::TemplateError::new(
+                crate::TemplateErrorKind::NoActiveTemplate,
+            ));
+        };
+
+        let mut removed_count = 0;
+
+        // Remove field from all pages
+        for (page_index, page) in template.pages.iter_mut().enumerate() {
+            let before_count = page.fields.len();
+            page.fields.retain(|f| f.id() != field_id);
+            let after_count = page.fields.len();
+
+            if before_count > after_count {
+                removed_count += before_count - after_count;
+                debug!(page_index, "Removed field from page");
+            }
+        }
+
+        if removed_count > 0 {
+            debug!(field_id, removed_count, "Removed field from template");
+            Ok(())
+        } else {
+            debug!(field_id, "Field not found in template");
+            Err(crate::TemplateError::new(
+                crate::TemplateErrorKind::FieldNotFound(field_id.to_string()),
+            ))
+        }
+    }
+
+    /// Gets a shape by index from the shapes layer.
+    ///
+    /// # Arguments
+    /// * `index` - The index of the shape
+    ///
+    /// # Returns
+    /// Reference to the shape if found
+    pub fn get_shape(&self, index: usize) -> Option<&Shape> {
+        self.shapes.get(index)
+    }
+
+    /// Gets a detection shape by index from the detections layer.
+    ///
+    /// # Arguments
+    /// * `index` - The index of the detection
+    ///
+    /// # Returns
+    /// Reference to the detection shape if found
+    pub fn get_detection(&self, index: usize) -> Option<&Shape> {
+        self.detections.get(index)
     }
 
     // Introspection APIs for testing

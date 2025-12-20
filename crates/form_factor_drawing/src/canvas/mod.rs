@@ -7,6 +7,7 @@
 //! - `rendering`: UI rendering and painting logic
 
 mod core;
+pub mod field_creator;
 mod io;
 mod rendering;
 mod tools;
@@ -15,4 +16,5 @@ mod tools;
 pub use core::{
     CanvasError, CanvasErrorKind, CanvasState, DetectionSubtype, DetectionType, DrawingCanvas,
 };
+pub use field_creator::FieldCreator;
 pub use tools::SelectionResult;
